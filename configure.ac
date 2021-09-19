@@ -67,14 +67,19 @@ AC_SUBST([vec_flags])
 LDFLAGS="$save_LDFLAGS"
 LIBS="$save_LIBS"
 
+AM_CONDITIONAL([ARCH_X86_64], [test "$ARCH" = x86_64])
+
 AC_CONFIG_LINKS([
 kernel/boot.S:$ARCH_DIR/boot.S
+include/pml/memory.h:include/pml/$ARCH/memory.h
+include/pml/panic.h:include/pml/$ARCH/panic.h
 ])
 
 AC_CONFIG_FILES([
 Makefile
 arch/x86_64/Makefile
 drivers/Makefile
+include/pml/Makefile
 kernel/Makefile
 util/Makefile
 ])

@@ -19,6 +19,8 @@
 
 #include <pml/cdefs.h>
 
+/* Kernel panic routine for x86_64 */
+
 #define panic(fmt, ...) do						\
     {									\
       __asm__ volatile ("push %%rax\n"					\
