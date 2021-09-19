@@ -46,23 +46,21 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
   if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
     return 0;
 
-  pdpt = (uintptr_t *) (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE) +
-			LOW_PHYSICAL_BASE_VMA);
+  pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
   pdpe = (v >> 30) & 0x1ff;
   if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
     return 0;
   if (pdpt[pdpe] & PAGE_FLAG_SIZE)
     return ALIGN_DOWN (pdpt[pdpe], HUGE_PAGE_SIZE) | (v & (HUGE_PAGE_SIZE - 1));
 
-  pdt = (uintptr_t *) (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE) +
-		       LOW_PHYSICAL_BASE_VMA);
+  pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
   pde = (v >> 21) & 0x1ff;
   if (!(pdt[pde] & PAGE_FLAG_PRESENT))
     return 0;
   if (pdt[pde] & PAGE_FLAG_SIZE)
     return ALIGN_DOWN (pdt[pde], LARGE_PAGE_SIZE) | (v & (LARGE_PAGE_SIZE - 1));
 
-  pt = (uintptr_t *) (ALIGN_DOWN (pdt[pde], PAGE_SIZE) + LOW_PHYSICAL_BASE_VMA);
+  pt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
   pte = (v >> 12) & 0x1ff;
   if (!(pt[pte] & PAGE_FLAG_PRESENT))
     return 0;

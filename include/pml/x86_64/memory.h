@@ -57,6 +57,8 @@
 #define KERNEL_START            ((uintptr_t) &__kernel_start)
 #define KERNEL_END              ((uintptr_t) &__kernel_end)
 
+#define PHYS_REL(x) ((__typeof__ (x)) ((uintptr_t) (x) + LOW_PHYSICAL_BASE_VMA))
+
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>

@@ -44,7 +44,7 @@ AcpiOsGetRootPointer (void)
 void *
 AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys_addr, ACPI_SIZE len)
 {
-  return (void *) (phys_addr + LOW_PHYSICAL_BASE_VMA);
+  return (void *) PHYS_REL (phys_addr);
 }
 
 void
