@@ -10,6 +10,7 @@ libarch_a_SOURCES =	\
 	lgdt.S		\
 	memcpy.S	\
 	memset.S	\
+	mm.c		\
 	multiboot.c	\
 	panic.S		\
 	panic-print.c

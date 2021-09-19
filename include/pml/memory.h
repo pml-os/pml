@@ -48,35 +48,47 @@
 #define LARGE_PAGE_SIZE         0x200000
 #define HUGE_PAGE_SIZE          0x40000000
 
+#define KERNEL_VMA              ((uintptr_t) &__kernel_vma)
+#define KERNEL_START            ((uintptr_t) &__kernel_start)
+#define KERNEL_END              ((uintptr_t) &__kernel_end)
+
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>
 
-#define __page_align            alignas (PAGE_SIZE)
+#define __page_align            __attribute__ ((aligned (PAGE_SIZE)))
 
 __always_inline static inline void
-cpu_vm_clear_tlb (void)
+vm_clear_tlb (void)
 {
   __asm__ volatile ("mov %%cr3, %%rax\nmov %%rax, %%cr3" ::: "memory");
 }
 
 __always_inline static inline void
-cpu_vm_clear_page (void *addr)
+vm_clear_page (void *addr)
 {
   __asm__ volatile ("invlpg (%0)" :: "r" (addr) : "memory");
 }
 
 __always_inline static inline void
-cpu_vm_set_cr3 (uintptr_t addr)
+vm_set_cr3 (uintptr_t addr)
 {
   __asm__ volatile ("mov %0, %%cr3" :: "r" (addr) : "memory");
 }
 
 __BEGIN_DECLS
 
+extern void *__kernel_vma;
+extern void *__kernel_start;
+extern void *__kernel_end;
+
 extern uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES] __page_align;
+extern uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
+extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 extern uintptr_t copy_region_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
-extern uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 2] __page_align;
+extern uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
+
+void vm_init (void);
 
 __END_DECLS
 
