@@ -37,8 +37,6 @@ panic_print_registers (uint64_t rax, uint64_t rcx, uint64_t rdx, uint64_t rbx,
 	  "RAX %#016lx    RCX %#016lx\n"
 	  "RDX %#016lx    RBX %#016lx\n"
 	  "RSP %#016lx    RBP %#016lx\n"
-	  "RSI %#016lx    RDI %#016lx\n"
-	  "CS  %#04x    DS  %#04x    ES  %#04x\n"
-	  "FS  %#04x    GS  %#04x    SS  %#04x\n",
+	  "RSI %#016lx    RDI %#016lx\n",
 	  rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi);
 }

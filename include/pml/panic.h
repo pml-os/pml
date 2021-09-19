@@ -40,7 +40,7 @@
 			"popq 8(%%rax)\n"				\
 			"popq (%%rax)\n"				\
 			"add $8, %%rsp" ::				\
-			"i" (panic_registers) : "rax")			\
+			"i" (panic_registers) : "rax");			\
       __panic (fmt, ## __VA_ARGS__);					\
     }									\
   while (0)
