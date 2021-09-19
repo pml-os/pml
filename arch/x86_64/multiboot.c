@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <acpi/acpi.h>
 #include <pml/multiboot.h>
 #include <stdio.h>
 
@@ -34,6 +35,10 @@ multiboot_init (uintptr_t addr)
 	case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME:
 	  printf ("Boot loader name: %s\n",
 		  ((struct mb_str_tag *) tag)->string);
+	  break;
+	case MULTIBOOT_TAG_TYPE_ACPI_OLD:
+	case MULTIBOOT_TAG_TYPE_ACPI_NEW:
+	  acpi_rsdp = &((struct mb_acpi_rsdp_tag *) tag)->rsdp;
 	  break;
 	}
     }

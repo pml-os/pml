@@ -2,9 +2,10 @@ include $(top_srcdir)/compile.mk
 
 boot_PROGRAMS = kernel
 
-component_libs =				\
-	$(top_builddir)/$(ARCH_DIR)/libarch.a	\
-	$(top_builddir)/drivers/libdrivers.a	\
+component_libs =					\
+	$(top_builddir)/$(ARCH_DIR)/libarch.a		\
+	$(top_builddir)/drivers/libdrivers.a		\
+	$(top_builddir)/drivers/acpica/libacpica.a	\
 	$(top_builddir)/util/libutil.a
 
 link_script = $(top_srcdir)/$(ARCH_DIR)/link.ld

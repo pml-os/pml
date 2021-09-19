@@ -1,5 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
+ACLOCAL_AMFLAGS = -I m4
 
-COMMON_DIRS = drivers include/pml util kernel
+COMMON_DIRS = drivers include util kernel
 SUBDIRS = $(ARCH_DIR) $(COMMON_DIRS)
 DIST_SUBDIRS = arch/x86_64 $(COMMON_DIRS)

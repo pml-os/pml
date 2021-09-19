@@ -19,13 +19,13 @@
 
 #include <pml/cdefs.h>
 
-/* Macros used for speed optimization */
-
 #define ALIGNED(x, s) (!((uintptr_t) (x) & ((s) - 1)))
 #define LONG_NULL(x) (((x) - 0x0101010101010101) & ~(x) & 0x8080808080808080)
 #define LONG_CHAR(x, c) LONG_NULL ((x) ^ (c))
 
-/* Macros for branch prediction */
+#define ALIGN_DOWN(x, a) ((__typeof__ (x)) ((uintptr_t) (x) & ~((a) - 1)))
+#define ALIGN_UP(x, a)						\
+  ((__typeof__ (x)) ((((uintptr_t) (x) - 1) | ((a) - 1)) + 1))
 
 #define LIKELY(x)               (__builtin_expect (!!(x), 1))
 #define UNLIKELY(x)             (__builtin_expect (!!(x), 0))

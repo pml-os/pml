@@ -1,3 +1,5 @@
+pmlincludedir = $(includedir)/pml
+
 if ARCH_X86_64
 arch_headers =		\
 	asm.h		\
@@ -11,8 +13,6 @@ arch_headers =		\
 else
 arch_headers =
 endif
-
-pmlincludedir = $(includedir)/pml
 
 pmlinclude_HEADERS =	\
 	cdefs.h		\

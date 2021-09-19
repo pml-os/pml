@@ -17,7 +17,7 @@
 #include <pml/lock.h>
 
 void
-lock (lock_t *l)
+spinlock_acquire (lock_t *l)
 {
   while (__sync_lock_test_and_set (l, 1))
     {
@@ -27,7 +27,7 @@ lock (lock_t *l)
 }
 
 void
-unlock (lock_t *l)
+spinlock_release (lock_t *l)
 {
   __sync_synchronize ();
   *l = 0;

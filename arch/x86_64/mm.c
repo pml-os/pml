@@ -15,12 +15,59 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/memory.h>
+#include <stdlib.h>
 
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];
 uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
 uintptr_t copy_region_pdt[PAGE_STRUCT_ENTRIES * 4];
 uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4];
+
+uintptr_t next_phys_addr;
+
+/* Returns the physical address of the virtual address, or zero if the
+   virtual address is not mapped to a physical address. */
+
+uintptr_t
+vm_phys_addr (uintptr_t *pml4t, void *addr)
+{
+  uintptr_t v = (uintptr_t) addr;
+  unsigned int pml4e;
+  unsigned int pdpe;
+  unsigned int pde;
+  unsigned int pte;
+  uintptr_t *pdpt;
+  uintptr_t *pdt;
+  uintptr_t *pt;
+
+  pml4e = (v >> 39) & 0x1ff;
+  if (v >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
+    return 0;
+  if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
+    return 0;
+
+  pdpt = (uintptr_t *) (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE) +
+			LOW_PHYSICAL_BASE_VMA);
+  pdpe = (v >> 30) & 0x1ff;
+  if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
+    return 0;
+  if (pdpt[pdpe] & PAGE_FLAG_SIZE)
+    return ALIGN_DOWN (pdpt[pdpe], HUGE_PAGE_SIZE) | (v & (HUGE_PAGE_SIZE - 1));
+
+  pdt = (uintptr_t *) (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE) +
+		       LOW_PHYSICAL_BASE_VMA);
+  pde = (v >> 21) & 0x1ff;
+  if (!(pdt[pde] & PAGE_FLAG_PRESENT))
+    return 0;
+  if (pdt[pde] & PAGE_FLAG_SIZE)
+    return ALIGN_DOWN (pdt[pde], LARGE_PAGE_SIZE) | (v & (LARGE_PAGE_SIZE - 1));
+
+  pt = (uintptr_t *) (ALIGN_DOWN (pdt[pde], PAGE_SIZE) + LOW_PHYSICAL_BASE_VMA);
+  pte = (v >> 12) & 0x1ff;
+  if (!(pt[pte] & PAGE_FLAG_PRESENT))
+    return 0;
+  return ALIGN_DOWN (pt[pte], PAGE_SIZE) | (v & (PAGE_SIZE - 1));
+}
 
 void
 vm_init (void)
@@ -46,4 +93,5 @@ vm_init (void)
 	| PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
     }
   vm_set_cr3 ((uintptr_t) kernel_pml4t - KERNEL_VMA);
+  next_phys_addr = ALIGN_UP (KERNEL_END, LARGE_PAGE_SIZE);
 }

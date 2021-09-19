@@ -17,18 +17,23 @@
 #ifndef ____MEMORY_H
 #define ____MEMORY_H
 
-/* Memory layout on x86_64
+/* Virtual memory layout on x86_64
+
    0x0000000000000000-0x00007fffffffffff  128T  User space memory
    0xffff800000000000-0xfffffdfdffffffff ~126T  Reserved kernel memory
    0xfffffdfe00000000-0xfffffdfeffffffff    4G  Virtual address copy region
    0xfffffdff00000000-0xfffffdffffffffff    4G  Thread-local storage
-   0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings */
+   0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
+
+   A maximum of 2 TiB of physical memory is supported. PML will not be able
+   to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT). */
 
 #define COPY_REGION_BASE_VMA    0xfffffdfe00000000
 #define THREAD_LOCAL_BASE_VMA   0xfffffdff00000000
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
-#define LOW_MEMORY_LIMIT        0x100000
+#define LOW_MEMORY_LIMIT        0x0000000000100000
+#define PHYS_ADDR_LIMIT         0x0000020000000000
 
 #define PAGE_STRUCT_ALIGN       4096
 #define PAGE_STRUCT_SIZE        4096
@@ -88,6 +93,9 @@ extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 extern uintptr_t copy_region_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 extern uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 
+extern uintptr_t next_phys_addr;
+
+uintptr_t vm_phys_addr (uintptr_t *pml4t, void *addr);
 void vm_init (void);
 
 __END_DECLS

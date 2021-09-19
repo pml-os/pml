@@ -23,8 +23,8 @@ typedef volatile int lock_t;
 
 __BEGIN_DECLS
 
-void lock (lock_t *l);
-void unlock (lock_t *l);
+void spinlock_acquire (lock_t *l);
+void spinlock_release (lock_t *l);
 
 __END_DECLS
 

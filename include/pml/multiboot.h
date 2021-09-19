@@ -119,6 +119,12 @@ struct mb_mmap_tag
   struct mb_mmap_entry entries[];
 };
 
+struct mb_acpi_rsdp_tag
+{
+  struct mb_tag tag;
+  unsigned char rsdp[];
+};
+
 __BEGIN_DECLS
 
 void multiboot_init (uintptr_t addr);
