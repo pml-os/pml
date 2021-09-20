@@ -71,6 +71,8 @@ multiboot_init (uintptr_t addr)
 		  mmap_region_count++;
 		  printf ("  %p-%p (%H)\n", (char *) entry->base,
 			  (char *) entry->base + entry->len, entry->len);
+		  if (entry->base >= LOW_MEMORY_LIMIT)
+		    total_phys_mem += entry->len;
 		}
 	    }
 	  break;

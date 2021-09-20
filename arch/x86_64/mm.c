@@ -22,7 +22,9 @@ uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
 uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4];
 
+struct page_stack phys_page_stack;
 uintptr_t next_phys_addr;
+uintptr_t total_phys_mem;
 
 /* Returns the physical address of the virtual address, or zero if the
    virtual address is not mapped to a physical address. */
@@ -66,6 +68,35 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
   return ALIGN_DOWN (pt[pte], PAGE_SIZE) | (v & (PAGE_SIZE - 1));
 }
 
+/* Allocates a page frame and returns its physical address. */
+
+uintptr_t
+alloc_page (void)
+{
+  if (phys_page_stack.ptr > phys_page_stack.base)
+    return *--phys_page_stack.ptr;
+  else
+    {
+      uintptr_t addr = next_phys_addr;
+      next_phys_addr += PAGE_SIZE;
+      return addr;
+    }
+}
+
+/* Frees the page frame at the specified physical address. */
+
+void
+free_page (uintptr_t addr)
+{
+  if (!addr)
+    return;
+  addr = ALIGN_DOWN (addr, PAGE_SIZE);
+  *phys_page_stack.ptr++ = addr;
+}
+
+/* Initializes the kernel virtual address space. See <pml/x86_64/memory.h>
+   for a description of the layout of the virtual address space on x86_64. */
+
 void
 vm_init (void)
 {
@@ -85,5 +116,9 @@ vm_init (void)
       ((uintptr_t) (kernel_tls_pdt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
       | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
   vm_set_cr3 ((uintptr_t) kernel_pml4t - KERNEL_VMA);
-  next_phys_addr = ALIGN_UP (KERNEL_END, LARGE_PAGE_SIZE);
+
+  next_phys_addr = ALIGN_UP (KERNEL_END, PAGE_SIZE);
+  phys_page_stack.base = (uintptr_t *) next_phys_addr;
+  phys_page_stack.ptr = phys_page_stack.base;
+  next_phys_addr += ALIGN_UP (total_phys_mem / 512, PAGE_SIZE);
 }

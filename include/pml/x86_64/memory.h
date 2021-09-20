@@ -63,6 +63,12 @@
 
 #define __page_align            __attribute__ ((aligned (PAGE_SIZE)))
 
+struct page_stack
+{
+  uintptr_t *base;
+  uintptr_t *ptr;
+};
+
 __always_inline static inline void
 vm_clear_tlb (void)
 {
@@ -92,7 +98,9 @@ extern uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 extern uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 
+extern struct page_stack phys_page_stack;
 extern uintptr_t next_phys_addr;
+extern uintptr_t total_phys_mem;
 
 uintptr_t vm_phys_addr (uintptr_t *pml4t, void *addr);
 void vm_skip_holes (void);
