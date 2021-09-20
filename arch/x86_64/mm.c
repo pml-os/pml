@@ -20,7 +20,6 @@
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];
 uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
-uintptr_t copy_region_pdt[PAGE_STRUCT_ENTRIES * 4];
 uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4];
 
 uintptr_t next_phys_addr;
@@ -82,14 +81,9 @@ vm_init (void)
        addr += HUGE_PAGE_SIZE, i++)
     phys_map_pdpt[i] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_SIZE;
   for (i = 0; i < 4; i++)
-    {
-      kernel_data_pdpt[i + 504] =
-	((uintptr_t) (copy_region_pdt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
-	| PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
-      kernel_data_pdpt[i + 508] =
-	((uintptr_t) (kernel_tls_pdt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
-	| PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
-    }
+    kernel_data_pdpt[i + 508] =
+      ((uintptr_t) (kernel_tls_pdt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
+      | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
   vm_set_cr3 ((uintptr_t) kernel_pml4t - KERNEL_VMA);
   next_phys_addr = ALIGN_UP (KERNEL_END, LARGE_PAGE_SIZE);
 }

@@ -20,15 +20,13 @@
 /* Virtual memory layout on x86_64
 
    0x0000000000000000-0x00007fffffffffff  128T  User space memory
-   0xffff800000000000-0xfffffdfdffffffff ~126T  Reserved kernel memory
-   0xfffffdfe00000000-0xfffffdfeffffffff    4G  Virtual address copy region
+   0xffff800000000000-0xfffffdfeffffffff ~126T  Reserved kernel memory
    0xfffffdff00000000-0xfffffdffffffffff    4G  Thread-local storage
    0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
 
    A maximum of 2 TiB of physical memory is supported. PML will not be able
    to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT). */
 
-#define COPY_REGION_BASE_VMA    0xfffffdfe00000000
 #define THREAD_LOCAL_BASE_VMA   0xfffffdff00000000
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
@@ -53,15 +51,15 @@
 #define LARGE_PAGE_SIZE         0x200000
 #define HUGE_PAGE_SIZE          0x40000000
 
+#ifndef __ASSEMBLER__
+
+#include <pml/cdefs.h>
+
 #define KERNEL_VMA              ((uintptr_t) &__kernel_vma)
 #define KERNEL_START            ((uintptr_t) &__kernel_start)
 #define KERNEL_END              ((uintptr_t) &__kernel_end)
 
 #define PHYS_REL(x) ((__typeof__ (x)) ((uintptr_t) (x) + LOW_PHYSICAL_BASE_VMA))
-
-#ifndef __ASSEMBLER__
-
-#include <pml/cdefs.h>
 
 #define __page_align            __attribute__ ((aligned (PAGE_SIZE)))
 
@@ -92,12 +90,12 @@ extern void *__kernel_end;
 extern uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
-extern uintptr_t copy_region_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 extern uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 
 extern uintptr_t next_phys_addr;
 
 uintptr_t vm_phys_addr (uintptr_t *pml4t, void *addr);
+void vm_skip_holes (void);
 void vm_init (void);
 
 __END_DECLS
