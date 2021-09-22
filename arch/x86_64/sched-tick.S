@@ -19,6 +19,8 @@
 	.section .text
 	.global sched_tick
 ASM_FUNC_BEGIN (sched_tick):
+	call	int_save_registers
+
 	/* If thread switching is disabled, don't switch */
 	movabs	$thread_switch_lock, %rax
 	mov	(%rax), %eax
@@ -31,5 +33,23 @@ ASM_FUNC_BEGIN (sched_tick):
 
 	/* TODO Finish thread switching */
 .done:
+	call	int_restore_registers
 	ret
 ASM_FUNC_END (sched_tick)
+
+	.global sched_yield
+ASM_FUNC_BEGIN (sched_yield):
+	mov	%rsp, %rcx
+	mov	%ss, %rax
+	push	%rax
+	push	%rcx
+	pushf
+	mov	%cs, %rax
+	push	%rax
+	pushq	$1f
+	push	%rax
+	jmp	sched_tick
+
+1:
+	ret
+ASM_FUNC_END (sched_yield)

@@ -14,5 +14,6 @@ libarch_a_SOURCES =	\
 	multiboot.c	\
 	panic.S		\
 	panic-print.c	\
+	save-reg.S	\
 	sched-tick.S	\
 	thread.c
