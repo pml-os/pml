@@ -4,6 +4,7 @@ noinst_LIBRARIES = libutil.a
 
 libutil_a_SOURCES =	\
 	lock.c		\
+	malloc.c	\
 	memcmp.c	\
 	memmove.c	\
 	printf.c	\

@@ -77,7 +77,7 @@ alloc_page (void)
     return *--phys_page_stack.ptr;
   else
     {
-      uintptr_t addr = next_phys_addr;
+      uintptr_t addr = next_phys_addr - LOW_PHYSICAL_BASE_VMA;
       next_phys_addr += PAGE_SIZE;
       return addr;
     }

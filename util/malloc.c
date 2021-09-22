@@ -1,4 +1,4 @@
-/* init.c -- This file is part of PML.
+/* malloc.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -17,18 +17,43 @@
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <stdlib.h>
+#include <string.h>
 
-static void
-init_kernel_heap (void)
+void *
+malloc (size_t size)
 {
-  uintptr_t size = ALIGN_UP (total_phys_mem / 16, PAGE_SIZE);
-  kh_init (next_phys_addr, size);
-  next_phys_addr += size;
+  return kh_alloc_aligned (size, KH_DEFAULT_ALIGN);
+}
+
+void *
+calloc (size_t block, size_t size)
+{
+  void *ptr = malloc (block * size);
+  if (LIKELY (ptr))
+    memset (ptr, 0, block * size);
+  return ptr;
+}
+
+void *
+aligned_alloc (size_t align, size_t size)
+{
+  return kh_alloc_aligned (size, align);
+}
+
+void *
+valloc (size_t size)
+{
+  return kh_alloc_aligned (size, PAGE_SIZE);
+}
+
+void *
+realloc (void *ptr, size_t size)
+{
+  return kh_realloc (ptr, size);
 }
 
 void
-arch_init (void)
+free (void *ptr)
 {
-  vm_init ();
-  init_kernel_heap ();
+  return kh_free (ptr);
 }

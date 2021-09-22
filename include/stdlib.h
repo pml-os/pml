@@ -26,6 +26,7 @@
 #define ALIGN_DOWN(x, a) ((__typeof__ (x)) ((uintptr_t) (x) & ~((a) - 1)))
 #define ALIGN_UP(x, a)						\
   ((__typeof__ (x)) ((((uintptr_t) (x) - 1) | ((a) - 1)) + 1))
+#define IS_P2(x) ((x) != 0 && !((x) & ((x) - 1)))
 
 #define LIKELY(x)               (__builtin_expect (!!(x), 1))
 #define UNLIKELY(x)             (__builtin_expect (!!(x), 0))
