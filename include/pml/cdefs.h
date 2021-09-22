@@ -27,6 +27,7 @@
 #define __hot                   __attribute__ ((hot))
 #define __cold                  __attribute__ ((cold))
 #define __pure                  __attribute__ ((pure))
+#define __alias(x)              __attribute__ ((alias (#x)))
 
 #ifdef __cplusplus
 #define __BEGIN_DECLS           extern "C" {

@@ -31,6 +31,8 @@
 #define LIKELY(x)               (__builtin_expect (!!(x), 1))
 #define UNLIKELY(x)             (__builtin_expect (!!(x), 0))
 
+#define ALIAS(old, new)         extern __typeof__ (old) new __alias (old)
+
 __BEGIN_DECLS
 
 unsigned long strtoul (const char *__restrict__ str, char **__restrict__ end,
