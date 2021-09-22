@@ -3,6 +3,7 @@ include $(top_srcdir)/compile.mk
 noinst_LIBRARIES = libutil.a
 
 libutil_a_SOURCES =	\
+	errno.c		\
 	lock.c		\
 	malloc.c	\
 	memcmp.c	\

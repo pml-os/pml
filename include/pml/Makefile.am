@@ -15,6 +15,8 @@ arch_headers =
 endif
 
 pmlinclude_HEADERS =	\
+	alloc.h		\
+	errno.h		\
 	cdefs.h		\
 	lock.h		\
 	memory.h	\
