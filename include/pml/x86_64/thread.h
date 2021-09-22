@@ -23,27 +23,52 @@
 #define PRIO_MIN                19
 #define PRIO_MAX                -20
 
+#define THIS_THREAD							\
+  (current_process->threads.queue[current_process->threads.len])
+
 #ifndef __ASSEMBLER__
 
 #include <pml/lock.h>
 #include <pml/types.h>
 
+enum
+{
+  THREAD_STATE_RUNNING,
+  THREAD_STATE_BLOCKED
+};
+
 struct thread
 {
-  pid_t pid;
-  pid_t ppid;
-  pid_t tid;
-  uint64_t *pml4t;
-  void *stack;
-  int priority;
+  pid_t tid;                    /* Thread ID */
+  struct process *process;      /* Process this thread belongs to */
+  uint64_t *pml4t;              /* Address of PML4T */
+  void *stack;                  /* Address of stack pointer */
+  int state;                    /* Thread state */
+};
+
+struct thread_queue
+{
+  struct thread **queue;
+  size_t len;
+  size_t front;
+  
+};
+
+struct process
+{
+  pid_t pid;                    /* Process ID */
+  pid_t ppid;                   /* Parent process ID */
+  struct thread_queue threads;  /* Process thread queue */
+  int priority;                 /* Process priority */
 };
 
 __BEGIN_DECLS
 
 extern lock_t thread_switch_lock;
-extern struct thread *current_thread;
+extern struct process *current_process;
 
 void sched_init (void);
+void thread_save_stack (void *stack);
 
 __END_DECLS
 

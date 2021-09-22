@@ -178,7 +178,6 @@ ASM_FUNC_BEGIN (high_start):
 
 	/* Initialize virtual memory layout */
 	call	vm_init
-	call	sched_init
 	movabs	$DEFAULT_STACK_VMA, %rsp
 
 	/* Initialize platform-specific services */

@@ -16,14 +16,27 @@
 
 #include <pml/memory.h>
 #include <pml/thread.h>
+#include <stdlib.h>
 
 static struct thread kernel_thread;
+static struct process kernel_process;
 
 lock_t thread_switch_lock;
-struct thread *current_thread;
+struct process *current_process;
 
 void
 sched_init (void)
 {
   kernel_thread.pml4t = kernel_pml4t;
+  kernel_process.threads.queue = malloc (sizeof (struct thread *));
+  kernel_process.threads.queue[0] = &kernel_thread;
+  kernel_process.threads.len = 1;
+  kernel_process.priority = PRIO_MIN;
+  current_process = &kernel_process;
+}
+
+void
+thread_save_stack (void *stack)
+{
+  THIS_THREAD->stack = stack;
 }

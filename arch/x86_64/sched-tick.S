@@ -1,4 +1,4 @@
-/* init.c -- This file is part of PML.
+/* sched-tick.S -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,22 +14,22 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/alloc.h>
-#include <pml/memory.h>
-#include <pml/thread.h>
-#include <stdlib.h>
+#include <pml/asm.h>
 
-static void
-init_kernel_heap (void)
-{
-  uintptr_t size = ALIGN_UP (total_phys_mem / 16, PAGE_SIZE);
-  kh_init (next_phys_addr, size);
-  next_phys_addr += size;
-}
+	.section .text
+	.global sched_tick
+ASM_FUNC_BEGIN (sched_tick):
+	/* If thread switching is disabled, don't switch */
+	movabs	$thread_switch_lock, %rax
+	mov	(%rax), %eax
+	test	%eax, %eax
+	jnz	.done
 
-void
-arch_init (void)
-{
-  init_kernel_heap ();
-  sched_init ();
-}
+	/* Save thread stack pointer */
+	mov	%rsp, %rdi
+	call	thread_save_stack
+
+	/* TODO Finish thread switching */
+.done:
+	ret
+ASM_FUNC_END (sched_tick)
