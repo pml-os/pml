@@ -17,10 +17,14 @@
 #include <pml/memory.h>
 #include <stdlib.h>
 
+static uintptr_t kernel_stack_pdt[PAGE_STRUCT_ENTRIES] __page_align;
+static uintptr_t kernel_stack_pt[PAGE_STRUCT_ENTRIES] __page_align;
+
+extern void *boot_stack;
+
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];
-uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES];
+uintptr_t kernel_stack_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
-uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4];
 
 struct page_stack phys_page_stack;
 uintptr_t next_phys_addr;
@@ -102,19 +106,29 @@ vm_init (void)
 {
   uintptr_t addr;
   size_t i;
+
+  /* Map physical memory region */
   for (i = 0; i < 4; i++)
     kernel_pml4t[i + 508] =
       ((uintptr_t) (phys_map_pdpt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
       | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
-  kernel_pml4t[507] = ((uintptr_t) kernel_data_pdpt - KERNEL_VMA)
-    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
   for (addr = 0, i = 0; i < PAGE_STRUCT_ENTRIES * 4;
        addr += HUGE_PAGE_SIZE, i++)
     phys_map_pdpt[i] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_SIZE;
+
+  /* Map kernel stack to correct address space */
+  kernel_pml4t[505] = ((uintptr_t) kernel_stack_pdpt - KERNEL_VMA)
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+  kernel_stack_pdpt[511] = ((uintptr_t) kernel_stack_pdt - KERNEL_VMA)
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+  kernel_stack_pdt[511] = ((uintptr_t) kernel_stack_pt - KERNEL_VMA)
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
   for (i = 0; i < 4; i++)
-    kernel_data_pdpt[i + 508] =
-      ((uintptr_t) (kernel_tls_pdt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
+    kernel_stack_pt[i + 508] =
+      ((uintptr_t) &boot_stack + i * PAGE_SIZE - KERNEL_VMA)
       | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+
+  /* Apply the new page structures */
   vm_set_cr3 ((uintptr_t) kernel_pml4t - KERNEL_VMA);
 
   next_phys_addr = ALIGN_UP (KERNEL_END, PAGE_SIZE);

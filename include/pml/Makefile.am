@@ -21,6 +21,7 @@ pmlinclude_HEADERS =	\
 	lock.h		\
 	memory.h	\
 	panic.h		\
+	thread.h	\
 	tty.h		\
 	types.h		\
 	$(arch_headers)

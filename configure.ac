@@ -49,6 +49,7 @@ AC_CONFIG_LINKS([
 kernel/boot.S:$ARCH_DIR/boot.S
 include/pml/memory.h:include/pml/$ARCH/memory.h
 include/pml/panic.h:include/pml/$ARCH/panic.h
+include/pml/thread.h:include/pml/$ARCH/thread.h
 ])
 
 AC_CONFIG_FILES([

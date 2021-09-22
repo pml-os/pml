@@ -14,20 +14,22 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#ifndef ____MEMORY_H
-#define ____MEMORY_H
+#ifndef __PML_MEMORY_H
+#define __PML_MEMORY_H
 
 /* Virtual memory layout on x86_64
 
    0x0000000000000000-0x00007fffffffffff  128T  User space memory
-   0xffff800000000000-0xfffffdfeffffffff ~126T  Reserved kernel memory
-   0xfffffdff00000000-0xfffffdffffffffff    4G  Thread-local storage
+   0xffff800000000000-0xfffffcffffffffff  124T  Reserved kernel memory
+   0xfffffc0000000000-0xfffffcffffffffff    1T  Process stack
+   0xfffffd0000000000-0xfffffdffffffffff    1T  Thread-local storage
    0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
 
    A maximum of 2 TiB of physical memory is supported. PML will not be able
    to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT). */
 
-#define THREAD_LOCAL_BASE_VMA   0xfffffdff00000000
+#define PROCESS_STACK_BASE_VMA  0xfffffc0000000000
+#define THREAD_LOCAL_BASE_VMA   0xfffffd0000000000
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
 #define LOW_MEMORY_LIMIT        0x0000000000100000
@@ -94,9 +96,8 @@ extern void *__kernel_start;
 extern void *__kernel_end;
 
 extern uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES] __page_align;
-extern uintptr_t kernel_data_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
+extern uintptr_t kernel_stack_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
-extern uintptr_t kernel_tls_pdt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 
 extern struct page_stack phys_page_stack;
 extern uintptr_t next_phys_addr;

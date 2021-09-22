@@ -1,4 +1,4 @@
-/* init.c -- This file is part of PML.
+/* thread.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,21 +14,39 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/alloc.h>
-#include <pml/memory.h>
-#include <pml/thread.h>
-#include <stdlib.h>
+#ifndef __PML_THREAD_H
+#define __PML_THREAD_H
 
-static void
-init_kernel_heap (void)
-{
-  uintptr_t size = ALIGN_UP (total_phys_mem / 16, PAGE_SIZE);
-  kh_init (next_phys_addr, size);
-  next_phys_addr += size;
-}
+#define THREAD_QUANTUM          20
+#define DEFAULT_STACK_VMA       0xfffffcfffffffff0
 
-void
-arch_init (void)
+#define PRIO_MIN                19
+#define PRIO_MAX                -20
+
+#ifndef __ASSEMBLER__
+
+#include <pml/lock.h>
+#include <pml/types.h>
+
+struct thread
 {
-  init_kernel_heap ();
-}
+  pid_t pid;
+  pid_t ppid;
+  pid_t tid;
+  uint64_t *pml4t;
+  void *stack;
+  int priority;
+};
+
+__BEGIN_DECLS
+
+extern lock_t thread_switch_lock;
+extern struct thread *current_thread;
+
+void sched_init (void);
+
+__END_DECLS
+
+#endif /* !__ASSEMBLER__ */
+
+#endif

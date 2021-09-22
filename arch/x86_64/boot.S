@@ -19,6 +19,7 @@
 #include <pml/memory.h>
 #include <pml/msr.h>
 #include <pml/multiboot.h>
+#include <pml/thread.h>
 
 	/* Boot code runs in protected mode */
 	.code32
@@ -175,6 +176,11 @@ ASM_FUNC_BEGIN (high_start):
 	mov	$(THREAD_LOCAL_BASE_VMA & 0xffffffff), %eax
 	wrmsr
 
+	/* Initialize virtual memory layout */
+	call	vm_init
+	call	sched_init
+	movabs	$DEFAULT_STACK_VMA, %rsp
+
 	/* Initialize platform-specific services */
 	call	arch_init
 
@@ -188,7 +194,8 @@ ASM_FUNC_BEGIN (high_start):
 ASM_FUNC_END (high_start)
 
 	.section .bss
-	.align 16
-boot_stack_bottom:
-	.skip 4096
+	.align PAGE_SIZE
+	.global boot_stack
+boot_stack:
+	.skip 16384
 boot_stack_top:

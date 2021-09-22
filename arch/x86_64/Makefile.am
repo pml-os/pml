@@ -13,4 +13,5 @@ libarch_a_SOURCES =	\
 	mm.c		\
 	multiboot.c	\
 	panic.S		\
-	panic-print.c
+	panic-print.c	\
+	thread.c
