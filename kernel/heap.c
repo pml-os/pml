@@ -15,10 +15,13 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/alloc.h>
+#include <pml/lock.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+static lock_t kh_lock;
 static uintptr_t kh_base_addr;
 static uintptr_t kh_end_addr;
 
@@ -50,18 +53,29 @@ kh_alloc_aligned (size_t size, size_t align)
 
   /* Check that the requested alignment is a power of two */
   if (UNLIKELY (!IS_P2 (align)))
-    return NULL;
+    {
+      errno = EINVAL;
+      return NULL;
+    }
 
   /* Align the requested size to the default alignment so all memory
      accesses are aligned */
   size = ALIGN_UP (size, KH_DEFAULT_ALIGN);
 
+  spinlock_acquire (&kh_lock);
   while (1)
     {
       if (UNLIKELY (header >= (struct kh_header *) kh_end_addr))
-	return NULL;
+	{
+	  /* Reached the end of the heap and no suitable block was found */
+	  spinlock_release (&kh_lock);
+	  errno = ENOMEM;
+	  return NULL;
+	}
       if (UNLIKELY (header->magic != KH_HEADER_MAGIC))
 	{
+	  spinlock_release (&kh_lock);
+	  errno = EUCLEAN;
 	  debug_printf ("bad magic number in header block\n");
 	  return NULL;
 	}
@@ -71,6 +85,8 @@ kh_alloc_aligned (size_t size, size_t align)
 				 sizeof (struct kh_header));
       if (UNLIKELY (tail->magic != KH_TAIL_MAGIC || tail->header != header))
 	{
+	  spinlock_release (&kh_lock);
+	  errno = EUCLEAN;
 	  debug_printf ("invalid tail block for header block\n");
 	  return NULL;
 	}
@@ -186,6 +202,7 @@ kh_alloc_aligned (size_t size, size_t align)
 
   /* Mark the header as allocated and return the pointer to its data */
   header->flags |= KH_FLAG_ALLOC;
+  spinlock_release (&kh_lock);
   return block;
 }
 
@@ -199,13 +216,19 @@ kh_realloc (void *ptr, size_t size)
      accesses are aligned */
   size = ALIGN_UP (size, KH_DEFAULT_ALIGN);
 
+  spinlock_acquire (&kh_lock);
   if (UNLIKELY (header->magic != KH_HEADER_MAGIC))
     {
+      spinlock_release (&kh_lock);
+      errno = EFAULT;
       debug_printf ("invalid pointer");
       return NULL;
     }
   if (!(header->flags & KH_FLAG_ALLOC))
-    return kh_alloc_aligned (size, KH_DEFAULT_ALIGN);
+    {
+      spinlock_release (&kh_lock);
+      return kh_alloc_aligned (size, KH_DEFAULT_ALIGN);
+    }
 
   if (size > header->size)
     {
@@ -256,7 +279,9 @@ kh_realloc (void *ptr, size_t size)
 	}
       else
 	{
-	  void *new_ptr = kh_alloc_aligned (size, KH_DEFAULT_ALIGN);
+	  void *new_ptr;
+	  spinlock_release (&kh_lock);
+	  new_ptr = kh_alloc_aligned (size, KH_DEFAULT_ALIGN);
 	  if (UNLIKELY (!new_ptr))
 	    return NULL;
 	  memcpy (new_ptr, ptr, header->size);
@@ -290,6 +315,7 @@ kh_realloc (void *ptr, size_t size)
       next_tail->header = next_header;
       header->size = size;
     }
+  spinlock_release (&kh_lock);
   return ptr;
 }
 
@@ -304,9 +330,12 @@ kh_free (void *ptr)
     return;
 
   /* Validate the pointer's header and mark it as free */
+  spinlock_acquire (&kh_lock);
   header = (struct kh_header *) ptr - 1;
   if (UNLIKELY (header->magic != KH_HEADER_MAGIC))
     {
+      spinlock_release (&kh_lock);
+      errno = EFAULT;
       debug_printf ("invalid pointer");
       return;
     }
@@ -339,4 +368,5 @@ kh_free (void *ptr)
 				      next_header->size);
       next_tail->header = header;
     }
+  spinlock_release (&kh_lock);
 }
