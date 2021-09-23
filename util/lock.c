@@ -15,6 +15,8 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/lock.h>
+#include <pml/thread.h>
+#include <stdlib.h>
 
 void
 spinlock_acquire (lock_t *l)
@@ -31,6 +33,32 @@ spinlock_release (lock_t *l)
 {
   __sync_synchronize ();
   *l = 0;
+}
+
+struct semaphore *
+semaphore_create (lock_t init_count)
+{
+  struct semaphore *sem = malloc (sizeof (struct semaphore));
+  if (UNLIKELY (!sem))
+    return NULL;
+  sem->lock = init_count;
+  sem->blocked = NULL;
+  return sem;
+}
+
+void
+semaphore_free (struct semaphore *sem)
+{
+  /* Unblock all threads blocked by the semaphore */
+  struct thread_list *list = sem->blocked;
+  while (list != NULL)
+    {
+      struct thread_list *next = list->next;
+      list->thread->state = THREAD_STATE_RUNNING;
+      free (list);
+      list = next;
+    }
+  free (sem);
 }
 
 void

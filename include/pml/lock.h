@@ -34,6 +34,8 @@ __BEGIN_DECLS
 void spinlock_acquire (lock_t *l);
 void spinlock_release (lock_t *l);
 
+struct semaphore *semaphore_create (lock_t init_count);
+void semaphore_free (struct semaphore *sem);
 void semaphore_signal (struct semaphore *sem);
 void semaphore_wait (struct semaphore *sem);
 

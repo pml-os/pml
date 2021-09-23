@@ -19,6 +19,7 @@
 #include <pml/lock.h>
 #include <pml/memory.h>
 #include <pml/panic.h>
+#include <pml/thread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -101,6 +102,45 @@ AcpiOsFree (void *ptr)
 }
 
 ACPI_STATUS
+AcpiOsCreateSemaphore (UINT32 max_units, UINT32 init_units,
+		       ACPI_SEMAPHORE *handle)
+{
+  struct semaphore *sem = semaphore_create (init_units);
+  if (UNLIKELY (!sem))
+    return AE_NO_MEMORY;
+  *handle = sem;
+  return 0;
+}
+
+ACPI_STATUS
+AcpiOsDeleteSemaphore (ACPI_SEMAPHORE handle)
+{
+  semaphore_free (handle);
+  return AE_OK;
+}
+
+ACPI_STATUS
+AcpiOsWaitSemaphore (ACPI_SEMAPHORE handle, UINT32 units, UINT16 timeout)
+{
+  struct semaphore *sem = handle;
+  UINT32 i;
+  if (!timeout && sem->lock)
+    return AE_TIME;
+  for (i = 0; i < units; i++)
+    semaphore_wait (sem);
+  return AE_OK;
+}
+
+ACPI_STATUS
+AcpiOsSignalSemaphore (ACPI_SEMAPHORE handle, UINT32 units)
+{
+  UINT32 i;
+  for (i = 0; i < units; i++)
+    semaphore_signal (handle);
+  return AE_OK;
+}
+
+ACPI_STATUS
 AcpiOsCreateLock (ACPI_SPINLOCK *handle)
 {
   lock_t *lock = malloc (sizeof (lock_t));
@@ -128,6 +168,11 @@ void
 AcpiOsReleaseLock (ACPI_SPINLOCK l, ACPI_CPU_FLAGS flags)
 {
   spinlock_release (l);
+}
+
+void
+AcpiOsWaitEventsComplete (void)
+{
 }
 
 ACPI_STATUS
@@ -224,6 +269,12 @@ AcpiOsSignal (UINT32 func, void *info)
   return AE_OK;
 }
 
+ACPI_THREAD_ID
+AcpiOsGetThreadId (void)
+{
+  return THIS_THREAD->tid;
+}
+
 void
 AcpiOsPrintf (const char *fmt, ...)
 {
@@ -242,4 +293,5 @@ AcpiOsVprintf (const char *fmt, va_list args)
 void
 acpi_init (void)
 {
+  AcpiInitializeSubsystem ();
 }
