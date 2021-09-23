@@ -50,14 +50,18 @@ thread_save_stack (void *stack)
 void
 thread_switch (void **stack, uintptr_t *pml4t_phys)
 {
-  /* Switch to the next thread in the current process */
-  if (++THIS_PROCESS->threads.front == THIS_PROCESS->threads.len)
+  /* Switch to the next unblocked thread in the current process */
+  do
     {
-      /* All threads have executed, go to the next process */
-      THIS_PROCESS->threads.front = 0;
-      if (++process_queue.front == process_queue.len)
-	process_queue.front = 0;
+      if (++THIS_PROCESS->threads.front == THIS_PROCESS->threads.len)
+	{
+	  /* All threads have executed, go to the next process */
+	  THIS_PROCESS->threads.front = 0;
+	  if (++process_queue.front == process_queue.len)
+	    process_queue.front = 0;
+	}
     }
+  while (THIS_THREAD->state != THREAD_STATE_RUNNING);
   *stack = THIS_THREAD->stack;
   *pml4t_phys = (uintptr_t) THIS_THREAD->pml4t - KERNEL_VMA;
 }
