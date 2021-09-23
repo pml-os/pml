@@ -51,7 +51,12 @@ struct thread_queue
   struct thread **queue;
   size_t len;
   size_t front;
-  
+};
+
+struct thread_list
+{
+  struct thread *thread;
+  struct thread_list *next;
 };
 
 struct process

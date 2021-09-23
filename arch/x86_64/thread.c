@@ -28,6 +28,7 @@ void
 sched_init (void)
 {
   kernel_thread.pml4t = kernel_pml4t;
+  kernel_thread.state = THREAD_STATE_RUNNING;
   kernel_process.threads.queue = malloc (sizeof (struct thread *));
   kernel_process.threads.queue[0] = &kernel_thread;
   kernel_process.threads.len = 1;

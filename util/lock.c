@@ -32,3 +32,18 @@ spinlock_release (lock_t *l)
   __sync_synchronize ();
   *l = 0;
 }
+
+void
+semaphore_signal (struct semaphore *sem)
+{
+  __sync_synchronize ();
+  __atomic_fetch_add (&sem->lock, 1, __ATOMIC_SEQ_CST);
+}
+
+void
+semaphore_wait (struct semaphore *sem)
+{
+  while (!__atomic_load_n (&sem->lock, __ATOMIC_SEQ_CST))
+    ;
+  __atomic_fetch_sub (&sem->lock, 1, __ATOMIC_SEQ_CST);
+}

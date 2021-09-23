@@ -21,10 +21,21 @@
 
 typedef volatile int lock_t;
 
+struct thread_list;
+
+struct semaphore
+{
+  lock_t lock;                  /* The actual locked object */
+  struct thread_list *blocked;  /* Threads blocked for acquiring mutex */
+};
+
 __BEGIN_DECLS
 
 void spinlock_acquire (lock_t *l);
 void spinlock_release (lock_t *l);
+
+void semaphore_signal (struct semaphore *sem);
+void semaphore_wait (struct semaphore *sem);
 
 __END_DECLS
 
