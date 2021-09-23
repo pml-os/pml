@@ -1,6 +1,7 @@
 AC_PREREQ([2.69])
 AC_INIT([PML], [0.1], [xnscdev@gmail.com])
 AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_HEADERS([pml-config.h])
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES([yes])
 

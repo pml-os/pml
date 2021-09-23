@@ -29,12 +29,16 @@ case "$vec_type" in
     no* )
 	vec_flags="-mno-mmx -mno-sse -mno-sse2"
 	;;
-    mmx | sse | sse2 | sse3 | ssse3 | sse4 | sse4a | sse4.1 | sse4.2 | avx | \
-	avx2 )
+    mmx | sse | sse2 | sse3 | ssse3 | sse4 | sse4a | sse4.1 | sse4.2 )
 	vec_flags="-ftree-vectorize -m$vec_type"
 	;;
-    avx512 )
+    avx | avx2 )
+        vec_flags="-ftree-vectorize -m$vec_type"
+	AC_DEFINE([AVX_SUPPORT], [1], [Host CPU has AVX support])
+	;;
+    avx512* )
 	vec_flags="-ftree-vectorize -mavx512f"
+	AC_DEFINE([AVX512F_SUPPORT], [1], [Host CPU has AVX-512F support])
 	;;
     * )
 	AC_MSG_RESULT([no])

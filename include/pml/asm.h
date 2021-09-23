@@ -17,6 +17,10 @@
 #ifndef __PML_ASM_H
 #define __PML_ASM_H
 
+#ifdef HAVE_CONFIG_H
+#include <pml-config.h>
+#endif
+
 #define ASM_FUNC_BEGIN(name)    .type name, @function; name
 #define ASM_FUNC_END(name)      .size name, . - name
 

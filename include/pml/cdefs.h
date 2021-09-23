@@ -17,6 +17,10 @@
 #ifndef __PML_CDEFS_H
 #define __PML_CDEFS_H
 
+#ifdef HAVE_CONFIG_H
+#include <pml-config.h>
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 
