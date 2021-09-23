@@ -14,7 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <acpi/acpi.h>
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <pml/thread.h>
@@ -33,5 +32,4 @@ arch_init (void)
 {
   init_kernel_heap ();
   sched_init ();
-  acpi_init ();
 }

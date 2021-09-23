@@ -56,9 +56,7 @@ AC_CONFIG_FILES([
 Makefile
 arch/x86_64/Makefile
 drivers/Makefile
-drivers/acpica/Makefile
 include/Makefile
-include/acpi/Makefile
 include/pml/Makefile
 kernel/Makefile
 util/Makefile

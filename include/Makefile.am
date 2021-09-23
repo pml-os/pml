@@ -1,1 +1,1 @@
-SUBDIRS = acpi pml
+SUBDIRS = pml
