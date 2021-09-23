@@ -37,6 +37,33 @@ ASM_FUNC_BEGIN (int_save_registers):
 	push	%r14
 	push	%r15
 
+#if defined AVX512F_SUPPORT
+#error "saving AVX-512 registers is not supported"
+#elif defined AVX_SUPPORT
+	/* Align the stack pointer to 32 bytes */
+	mov	%rsp, %rbp
+	and	$-32, %rsp
+	mov	%rbp, (%rsp)
+
+	/* Save AVX registers */
+	lea	-512(%rsp), %rsp
+	vmovdqa	%ymm0, (%rsp)
+	vmovdqa	%ymm1, 32(%rsp)
+	vmovdqa	%ymm2, 64(%rsp)
+	vmovdqa	%ymm3, 96(%rsp)
+	vmovdqa	%ymm4, 128(%rsp)
+	vmovdqa	%ymm5, 160(%rsp)
+	vmovdqa	%ymm6, 192(%rsp)
+	vmovdqa	%ymm7, 224(%rsp)
+	vmovdqa	%ymm8, 256(%rsp)
+	vmovdqa	%ymm9, 288(%rsp)
+	vmovdqa	%ymm10, 320(%rsp)
+	vmovdqa	%ymm11, 352(%rsp)
+	vmovdqa	%ymm12, 384(%rsp)
+	vmovdqa	%ymm13, 416(%rsp)
+	vmovdqa	%ymm14, 448(%rsp)
+	vmovdqa	%ymm15, 480(%rsp)
+#else
 	/* Save SSE registers */
 	lea	-264(%rsp), %rsp
 	movdqa	%xmm0, (%rsp)
@@ -55,6 +82,7 @@ ASM_FUNC_BEGIN (int_save_registers):
 	movdqa	%xmm13, 208(%rsp)
 	movdqa	%xmm14, 224(%rsp)
 	movdqa	%xmm15, 240(%rsp)
+#endif
 
 	/* Return to caller using saved return pointer */
 	jmp	*%rax
@@ -65,6 +93,28 @@ ASM_FUNC_BEGIN (int_restore_registers):
 	/* Save instruction pointer */
 	pop	%rax
 
+#if defined AVX512F_SUPPORT
+#error "restoring AVX-512 registers is not supported"
+#elif defined AVX_SUPPORT
+	/* Restore AVX registers */
+	vmovdqa	(%rsp), %ymm0
+	vmovdqa	32(%rsp), %ymm1
+	vmovdqa	64(%rsp), %ymm2
+	vmovdqa	96(%rsp), %ymm3
+	vmovdqa	128(%rsp), %ymm4
+	vmovdqa	160(%rsp), %ymm5
+	vmovdqa	192(%rsp), %ymm6
+	vmovdqa	224(%rsp), %ymm7
+	vmovdqa	256(%rsp), %ymm8
+	vmovdqa	288(%rsp), %ymm9
+	vmovdqa	320(%rsp), %ymm10
+	vmovdqa	352(%rsp), %ymm11
+	vmovdqa	384(%rsp), %ymm12
+	vmovdqa	416(%rsp), %ymm13
+	vmovdqa	448(%rsp), %ymm14
+	vmovdqa	480(%rsp), %ymm15
+	mov	512(%rsp), %rsp
+#else
 	/* Restore SSE registers */
 	movdqa	(%rsp), %xmm0
 	movdqa	16(%rsp), %xmm1
@@ -83,6 +133,7 @@ ASM_FUNC_BEGIN (int_restore_registers):
 	movdqa	224(%rsp), %xmm14
 	movdqa	240(%rsp), %xmm15
 	lea	264(%rsp), %rsp
+#endif
 
 	/* Restore general-purpose registers */
 	pop	%r15

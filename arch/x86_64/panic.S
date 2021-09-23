@@ -31,5 +31,8 @@ ASM_FUNC_BEGIN (__panic):
 	mov	8(%rax), %rsi
 	mov	(%rax), %rdi
 	call	panic_print_registers
-	jmp	abort
+
+1:
+	hlt
+	jmp	1b
 ASM_FUNC_END (__panic)
