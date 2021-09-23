@@ -27,14 +27,30 @@ ASM_FUNC_BEGIN (sched_tick):
 	test	%eax, %eax
 	jnz	.done
 
-	/* Save thread stack pointer */
+	/* Save this thread's stack pointer */
 	mov	%rsp, %rdi
 	call	thread_save_stack
 
-	/* TODO Finish thread switching */
+	/* Switch threads */
+	sub	$16, %rsp
+	lea	(%rsp), %rdi
+	lea	8(%rsp), %rsi
+	call	thread_switch
+
+	/* Set the new page directory */
+	mov	8(%rsp), %rax
+	mov	%cr3, %rcx
+	cmp	%rax, %rcx
+	je	.no_flush
+	mov	%rax, %cr3
+
+.no_flush:
+	/* Set the new stack pointer */
+	mov	(%rsp), %rsp
+
 .done:
 	call	int_restore_registers
-	ret
+	iretq
 ASM_FUNC_END (sched_tick)
 
 	.global sched_yield
@@ -46,10 +62,10 @@ ASM_FUNC_BEGIN (sched_yield):
 	pushf
 	mov	%cs, %rax
 	push	%rax
-	pushq	$1f
+	lea	.after_ts(%rip), %rax
 	push	%rax
 	jmp	sched_tick
 
-1:
+.after_ts:
 	ret
 ASM_FUNC_END (sched_yield)

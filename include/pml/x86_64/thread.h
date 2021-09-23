@@ -23,8 +23,8 @@
 #define PRIO_MIN                19
 #define PRIO_MAX                -20
 
-#define THIS_THREAD							\
-  (current_process->threads.queue[current_process->threads.len])
+#define THIS_PROCESS (process_queue.queue[process_queue.front])
+#define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
 
 #ifndef __ASSEMBLER__
 
@@ -62,13 +62,22 @@ struct process
   int priority;                 /* Process priority */
 };
 
+struct process_queue
+{
+  struct process **queue;
+  size_t len;
+  size_t front;
+};
+
 __BEGIN_DECLS
 
 extern lock_t thread_switch_lock;
-extern struct process *current_process;
+extern struct process_queue process_queue;
 
 void sched_init (void);
+void sched_yield (void);
 void thread_save_stack (void *stack);
+void thread_switch (void **stack, uintptr_t *pml4t_phys);
 
 __END_DECLS
 

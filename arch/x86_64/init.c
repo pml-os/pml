@@ -32,4 +32,5 @@ arch_init (void)
 {
   init_kernel_heap ();
   sched_init ();
+  sched_yield ();
 }
