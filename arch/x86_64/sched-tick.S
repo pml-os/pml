@@ -17,6 +17,11 @@
 #include <pml/asm.h>
 
 	.section .text
+	.global int_rtc_tick
+ASM_FUNC_BEGIN (int_rtc_tick):
+	jmp	sched_tick
+ASM_FUNC_END (int_rtc_tick)
+
 	.global sched_tick
 ASM_FUNC_BEGIN (sched_tick):
 	call	int_save_registers

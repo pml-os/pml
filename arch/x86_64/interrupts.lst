@@ -1,0 +1,42 @@
+# -*- mode: conf-space; indent-tabs-mode: nil; -*-
+
+# List of interrupts for x86-64 machines. Processed by genirq.sh.
+
+# File format:
+# Num   Name                    Type    Stub?   Error?
+
+# CPU exceptions
+0       div_zero                TRAP    true    false
+1       debug                   TRAP    true    false
+2       nmi                     TRAP    true    false
+3       breakpoint              TRAP    true    false
+4       overflow                TRAP    true    false
+5       bound_range             TRAP    true    false
+6       bad_opcode              TRAP    true    false
+7       no_device               TRAP    true    false
+8       double_fault            TRAP    true    true
+10      bad_tss                 TRAP    true    true
+11      bad_segment             TRAP    true    true
+12      stack_segment           TRAP    true    true
+13      gpf                     TRAP    true    true
+14      page_fault              TRAP    true    true
+16      fpu                     TRAP    true    false
+17      align_check             TRAP    true    true
+18      machine_check           TRAP    true    false
+19      simd_fpu                TRAP    true    false
+20      virtualization          TRAP    true    false
+30      security                TRAP    true    true
+
+# Hardware interrupts
+32      pit_tick                INT     true
+33      ps2_keyboard            INT     true
+35      serial2                 INT     true
+36      serial1                 INT     true
+38      floppy_disk             INT     true
+40      rtc_tick                INT     false
+41      acpi_control            INT     true
+44      ps2_mouse               INT     true
+46      ata_primary             INT     true
+47      ata_secondary           INT     true
+
+# End of interrupts list

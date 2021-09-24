@@ -180,6 +180,9 @@ ASM_FUNC_BEGIN (high_start):
 	call	vm_init
 	movabs	$DEFAULT_STACK_VMA, %rsp
 
+	/* Initialize interrupts */
+	call	init_idt
+
 	/* Initialize platform-specific services */
 	call	arch_init
 

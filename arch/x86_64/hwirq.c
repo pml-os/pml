@@ -1,4 +1,4 @@
-/* idt.c -- This file is part of PML.
+/* hwirq.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -16,28 +16,47 @@
 
 #include <pml/interrupt.h>
 
-static struct idt_entry idt_table[256];
-static struct idt_ptr idt_ptr;
-
 void
-set_int_vector (unsigned char num, void *addr, unsigned char privilege,
-		unsigned char type)
+int_pit_tick (void)
 {
-  uintptr_t offset = (uintptr_t) addr;
-  idt_table[num].offset_low = offset & 0xffff;
-  idt_table[num].selector = 0x08;
-  idt_table[num].ist = 0;
-  idt_table[num].type_attr =
-    IDT_ATTR_PRESENT | ((privilege & 3) << 5) | (type & 7);
-  idt_table[num].offset_mid = (offset >> 16) & 0xffff;
-  idt_table[num].offset_high = offset >> 32;
 }
 
 void
-init_idt (void)
+int_ps2_keyboard (void)
 {
-  fill_idt_vectors ();
-  idt_ptr.size = sizeof (idt_table) - 1;
-  idt_ptr.addr = idt_table;
-  load_idt (&idt_ptr);
+}
+
+void
+int_serial2 (void)
+{
+}
+
+void
+int_serial1 (void)
+{
+}
+
+void
+int_floppy_disk (void)
+{
+}
+
+void
+int_acpi_control (void)
+{
+}
+
+void
+int_ps2_mouse (void)
+{
+}
+
+void
+int_ata_primary (void)
+{
+}
+
+void
+int_ata_secondary (void)
+{
 }

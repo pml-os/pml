@@ -60,8 +60,8 @@ __BEGIN_DECLS
 
 void pic_8259_remap (void);
 void pic_8259_eoi (unsigned char irq);
-void set_int_vector (unsigned char num, void *addr, uint16_t selector,
-		     unsigned char privilege, unsigned char type);
+void set_int_vector (unsigned char num, void *addr, unsigned char privilege,
+		     unsigned char type);
 void fill_idt_vectors (void);
 void init_idt (void);
 
