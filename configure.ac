@@ -48,6 +48,7 @@ AM_CONDITIONAL([ARCH_X86_64], [test "$ARCH" = x86_64])
 
 AC_CONFIG_LINKS([
 kernel/boot.S:$ARCH_DIR/boot.S
+include/pml/interrupt.h:include/pml/$ARCH/interrupt.h
 include/pml/memory.h:include/pml/$ARCH/memory.h
 include/pml/panic.h:include/pml/$ARCH/panic.h
 include/pml/thread.h:include/pml/$ARCH/thread.h
