@@ -25,6 +25,8 @@
 #define PIC_8259_SLAVE_DATA     0xa1
 
 #define PIC_8259_EOI            0x20
+#define PIC_8259_READ_IRR       0x0a
+#define PIC_8259_READ_ISR       0x0b
 
 #define IDT_GATE_TASK           0x05
 #define IDT_GATE_INT            0x0e
@@ -50,10 +52,10 @@ struct idt_ptr
   struct idt_entry *addr;
 } __packed;
 
-static inline void
-load_idt (const struct idt_ptr *ptr)
+__always_inline static inline void
+load_idt (struct idt_ptr ptr)
 {
-  __asm__ volatile ("lidt (%0)" :: "r" (ptr));
+  __asm__ volatile ("lidt %0" :: "m" (ptr));
 }
 
 __BEGIN_DECLS

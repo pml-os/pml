@@ -22,16 +22,16 @@
 void
 pic_8259_remap (void)
 {
-  outb (0x11, PIC_8259_MASTER_COMMAND);
-  outb (0x11, PIC_8259_SLAVE_COMMAND);
-  outb (0x20, PIC_8259_MASTER_DATA);
-  outb (0x28, PIC_8259_SLAVE_DATA);
-  outb (4, PIC_8259_MASTER_DATA);
-  outb (2, PIC_8259_SLAVE_DATA);
-  outb (1, PIC_8259_MASTER_DATA);
-  outb (1, PIC_8259_SLAVE_DATA);
-  outb (0, PIC_8259_MASTER_DATA);
-  outb (0, PIC_8259_SLAVE_DATA);
+  outb_p (0x11, PIC_8259_MASTER_COMMAND);
+  outb_p (0x11, PIC_8259_SLAVE_COMMAND);
+  outb_p (0x20, PIC_8259_MASTER_DATA);
+  outb_p (0x28, PIC_8259_SLAVE_DATA);
+  outb_p (4, PIC_8259_MASTER_DATA);
+  outb_p (2, PIC_8259_SLAVE_DATA);
+  outb_p (1, PIC_8259_MASTER_DATA);
+  outb_p (1, PIC_8259_SLAVE_DATA);
+  outb_p (0, PIC_8259_MASTER_DATA);
+  outb_p (0, PIC_8259_SLAVE_DATA);
 }
 
 /* Signals the 8259 PIC to resume generating interrupts. */

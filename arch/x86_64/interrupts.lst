@@ -32,10 +32,15 @@
 33      ps2_keyboard            INT     true
 35      serial2                 INT     true
 36      serial1                 INT     true
+37      parallel2               INT     true
 38      floppy_disk             INT     true
+39      parallel1               INT     true
 40      rtc_tick                INT     false
 41      acpi_control            INT     true
+42      peripheral1             INT     true
+43      peripheral2             INT     true
 44      ps2_mouse               INT     true
+45      coprocessor             INT     true
 46      ata_primary             INT     true
 47      ata_secondary           INT     true
 

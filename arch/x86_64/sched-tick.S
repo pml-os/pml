@@ -54,6 +54,8 @@ ASM_FUNC_BEGIN (sched_tick):
 	mov	(%rsp), %rsp
 
 .done:
+	mov	$8, %edi
+	call	pic_8259_eoi
 	call	int_restore_registers
 	iretq
 ASM_FUNC_END (sched_tick)
