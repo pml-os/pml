@@ -44,6 +44,9 @@ struct kh_tail
 
 __BEGIN_DECLS
 
+uintptr_t alloc_page (void);
+void free_page (uintptr_t addr);
+
 void kh_init (uintptr_t base, size_t size);
 void *kh_alloc_aligned (size_t size, size_t align);
 void *kh_realloc (void *ptr, size_t size);

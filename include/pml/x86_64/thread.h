@@ -43,6 +43,7 @@ struct thread
   struct process *process;      /* Process this thread belongs to */
   uint64_t *pml4t;              /* Address of PML4T */
   void *stack;                  /* Address of stack pointer */
+  size_t stack_size;            /* Size of stack */
   int state;                    /* Thread state */
 };
 
@@ -83,6 +84,7 @@ void sched_init (void);
 void sched_yield (void);
 void thread_save_stack (void *stack);
 void thread_switch (void **stack, uintptr_t *pml4t_phys);
+int thread_clone (void *entry, void *stack, size_t stack_size);
 
 __END_DECLS
 
