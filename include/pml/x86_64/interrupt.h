@@ -17,8 +17,6 @@
 #ifndef __PML_INTERRUPT_H
 #define __PML_INTERRUPT_H
 
-#include <pml/cdefs.h>
-
 #define PIC_8259_MASTER_COMMAND 0x20
 #define PIC_8259_MASTER_DATA    0x21
 #define PIC_8259_SLAVE_COMMAND  0xa0
@@ -34,6 +32,10 @@
 
 #define IDT_ATTR_PRESENT        (1 << 7)
 #define IDT_SIZE                256
+
+#ifndef __ASSEMBLER__
+
+#include <pml/cdefs.h>
 
 struct idt_entry
 {
@@ -68,5 +70,7 @@ void fill_idt_vectors (void);
 void init_idt (void);
 
 __END_DECLS
+
+#endif /* !__ASSEMBLER__ */
 
 #endif

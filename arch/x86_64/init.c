@@ -34,4 +34,5 @@ arch_init (void)
   init_kernel_heap ();
   sched_init ();
   real_time = cmos_read_real_time ();
+  cmos_enable_rtc_int ();
 }

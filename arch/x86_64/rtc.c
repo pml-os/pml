@@ -110,3 +110,24 @@ cmos_read_real_time (void)
     (posix_year - 70) * 31536000 + (posix_year - 69) / 4 * 86000 -
     (posix_year - 1) / 100 * 86400 + (posix_year + 299) / 400 * 86400;
 }
+
+void
+cmos_enable_rtc_int (void)
+{
+  unsigned char x;
+  outb (CMOS_REG_STATUS_A | 0x80, CMOS_PORT_INDEX);
+  x = inb (CMOS_PORT_DATA);
+  outb (CMOS_REG_STATUS_A | 0x80, CMOS_PORT_INDEX);
+  outb ((x & 0xf0) | 11, CMOS_PORT_DATA);
+  outb (CMOS_REG_STATUS_B | 0x80, CMOS_PORT_INDEX);
+  x = inb (CMOS_PORT_DATA);
+  outb (CMOS_REG_STATUS_B | 0x80, CMOS_PORT_INDEX);
+  outb (x | 0x40, CMOS_PORT_DATA);
+}
+
+void
+cmos_rtc_finish_irq (void)
+{
+  outb (CMOS_REG_STATUS_C, CMOS_PORT_INDEX);
+  inb (CMOS_PORT_DATA);
+}

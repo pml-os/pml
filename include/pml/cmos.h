@@ -17,9 +17,6 @@
 #ifndef __PML_CMOS_H
 #define __PML_CMOS_H
 
-#include <pml/io.h>
-#include <pml/types.h>
-
 #define CMOS_PORT_INDEX         0x70
 #define CMOS_PORT_DATA          0x71
 
@@ -38,6 +35,11 @@
 #define CMOS_STATUS_B_12H       (1 << 1)
 #define CMOS_STATUS_B_BCD       (1 << 2)
 
+#ifndef __ASSEMBLER__
+
+#include <pml/io.h>
+#include <pml/types.h>
+
 static inline unsigned char
 cmos_read_register (unsigned char reg)
 {
@@ -48,7 +50,11 @@ cmos_read_register (unsigned char reg)
 __BEGIN_DECLS
 
 time_t cmos_read_real_time (void);
+void cmos_enable_rtc_int (void);
+void cmos_rtc_finish_irq (void);
 
 __END_DECLS
+
+#endif /* !__ASSEMBLER__ */
 
 #endif

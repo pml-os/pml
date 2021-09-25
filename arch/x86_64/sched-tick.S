@@ -15,6 +15,8 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/asm.h>
+#include <pml/cmos.h>
+#include <pml/interrupt.h>
 
 	.section .text
 	.global int_rtc_tick
@@ -55,6 +57,7 @@ ASM_FUNC_BEGIN (sched_tick):
 
 .done:
 	mov	$8, %edi
+	call	cmos_rtc_finish_irq
 	call	pic_8259_eoi
 	call	int_restore_registers
 	iretq
