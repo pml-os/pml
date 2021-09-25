@@ -2,6 +2,7 @@ pmlincludedir = $(includedir)/pml
 
 if ARCH_X86_64
 arch_headers =		\
+	cmos.h		\
 	cpuid.h		\
 	ctlreg.h	\
 	gdt.h		\

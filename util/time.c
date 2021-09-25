@@ -1,4 +1,4 @@
-/* entry.c -- This file is part of PML.
+/* time.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,18 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <stdio.h>
 #include <stdlib.h>
 
-static void
-splash (void)
-{
-  printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
-	  "System time: %ld\n", real_time);
-}
-
-void
-kentry (void)
-{
-  splash ();
-}
+time_t real_time;

@@ -18,6 +18,7 @@
 #define __STDLIB_H
 
 #include <pml/cdefs.h>
+#include <pml/types.h>
 
 #define ALIGNED(x, s) (!((uintptr_t) (x) & ((s) - 1)))
 #define LONG_NULL(x) (((x) - 0x0101010101010101) & ~(x) & 0x8080808080808080)
@@ -34,6 +35,8 @@
 #define ALIAS(old, new)         extern __typeof__ (old) new __alias (old)
 
 __BEGIN_DECLS
+
+extern time_t real_time;
 
 unsigned long strtoul (const char *__restrict__ str, char **__restrict__ end,
 		       int base) __pure;

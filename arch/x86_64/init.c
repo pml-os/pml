@@ -15,6 +15,7 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/alloc.h>
+#include <pml/cmos.h>
 #include <pml/memory.h>
 #include <pml/thread.h>
 #include <stdlib.h>
@@ -32,4 +33,5 @@ arch_init (void)
 {
   init_kernel_heap ();
   sched_init ();
+  real_time = cmos_read_real_time ();
 }

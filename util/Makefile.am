@@ -16,4 +16,5 @@ libutil_a_SOURCES =	\
 	strdup.c	\
 	strlen.c	\
 	strstr.c	\
-	strtoul.c
+	strtoul.c	\
+	time.c
