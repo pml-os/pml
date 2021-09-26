@@ -30,6 +30,7 @@ void
 sched_init (void)
 {
   kernel_thread.pml4t = kernel_pml4t;
+  kernel_thread.stack_base = (void *) (PROCESS_STACK_BASE_VMA + 0xffffffc000);
   kernel_thread.stack_size = 16384;
   kernel_thread.state = THREAD_STATE_RUNNING;
   kernel_process.threads.queue = malloc (sizeof (struct thread *));
@@ -76,7 +77,7 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
    virtual address space) */
 
 int
-thread_clone (void *entry, void *stack, size_t stack_size)
+thread_clone (void *entry, void *stack, void *stack_base, size_t stack_size)
 {
   uintptr_t pml4t_phys = alloc_page ();
   uint64_t *pml4t;
@@ -99,6 +100,7 @@ thread_clone (void *entry, void *stack, size_t stack_size)
   thread->process = THIS_PROCESS;
   thread->pml4t = pml4t;
   thread->stack = stack;
+  thread->stack_base = stack_base;
   thread->stack_size = stack_size;
   thread->state = THREAD_STATE_RUNNING;
 
@@ -119,5 +121,84 @@ thread_clone (void *entry, void *stack, size_t stack_size)
  err0:
   free_page (pml4t_phys);
   thread_switch_lock = 0;
+  return -1;
+}
+
+/* Duplicates the current thread's stack. @result is set to the physical 
+   address of the new PDPT. */
+
+int
+thread_dup_stack (uintptr_t *result)
+{
+  uintptr_t pdpt_phys = alloc_page ();
+  uintptr_t pdt_phys;
+  uint64_t *pdpt;
+  uint64_t *pdt;
+  uintptr_t addr;
+  uintptr_t stack_end;
+  uintptr_t i = 0;
+  if (UNLIKELY (!pdpt_phys))
+    return -1;
+  pdpt = (uint64_t *) PHYS_REL (pdpt_phys);
+  memcpy (pdpt, kernel_stack_pdpt, PAGE_STRUCT_SIZE);
+
+  pdt_phys = alloc_page ();
+  if (UNLIKELY (!pdt_phys))
+    goto err0;
+  pdt = (uint64_t *) PHYS_REL (pdt_phys);
+  pdpt[511] = pdt_phys | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+
+  addr = (uintptr_t) THIS_THREAD->stack_base;
+  stack_end = addr + THIS_THREAD->stack_size;
+  for (; addr < stack_end; addr += PAGE_SIZE)
+    {
+      unsigned int pde = (addr >> 21) & 0x1ff;
+      unsigned int pte = (addr >> 12) & 0x1ff;
+      uint64_t *pt;
+      void *page;
+      if (!pdt[pde])
+	{
+	  /* Allocate a new page directory table */
+	  pdt[pde] = alloc_page ();
+	  if (UNLIKELY (!pdt[pde]))
+	    goto err1;
+	  pdt[pde] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+	}
+
+      /* Allocate a new page and copy the corresponding stack contents */
+      pt = (uint64_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
+      pt[pte] = alloc_page ();
+      if (UNLIKELY (!pt[pte]))
+	goto err1;
+      pt[pte] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+      page = (void *) PHYS_REL (ALIGN_DOWN (pt[pte], PAGE_SIZE));
+      memcpy (page, (void *) addr, PAGE_SIZE);
+    }
+  *result = pdpt_phys;
+  return 0;
+
+ err1:
+  /* Memory allocation failed in loop, free all previously allocated pages */
+  while (i < addr)
+    {
+      unsigned int pde = (addr >> 21) & 0x1ff;
+      if (pdt[pde])
+	{
+	  uint64_t *pt =
+	    (uint64_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
+	  int j;
+	  for (j = 0; j < PAGE_STRUCT_ENTRIES; j++)
+	    {
+	      if (pt[j])
+		free_page (pt[j]);
+	    }
+	  free_page (pdt[pde]);
+	  pdt[pde] = 0;
+	}
+      i = ALIGN_UP (i, LARGE_PAGE_SIZE);
+    }
+  free_page (pdt_phys);
+ err0:
+  free_page (pdpt_phys);
   return -1;
 }

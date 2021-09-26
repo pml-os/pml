@@ -16,6 +16,7 @@
 
 #include <pml/memory.h>
 #include <stdlib.h>
+#include <string.h>
 
 static uintptr_t kernel_stack_pdt[PAGE_STRUCT_ENTRIES] __page_align;
 static uintptr_t kernel_stack_pt[PAGE_STRUCT_ENTRIES] __page_align;
@@ -77,14 +78,18 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
 uintptr_t
 alloc_page (void)
 {
+  uintptr_t addr;
   if (phys_page_stack.ptr > phys_page_stack.base)
-    return *--phys_page_stack.ptr;
+    {
+      addr = *--phys_page_stack.ptr;
+      memset ((void *) PHYS_REL (addr), 0, PAGE_SIZE);
+    }
   else
     {
-      uintptr_t addr = next_phys_addr - LOW_PHYSICAL_BASE_VMA;
+      addr = next_phys_addr - LOW_PHYSICAL_BASE_VMA;
       next_phys_addr += PAGE_SIZE;
-      return addr;
     }
+  return addr;
 }
 
 /* Frees the page frame at the specified physical address. */
@@ -118,15 +123,15 @@ vm_init (void)
 
   /* Map kernel stack to correct address space */
   kernel_pml4t[505] = ((uintptr_t) kernel_stack_pdpt - KERNEL_VMA)
-    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   kernel_stack_pdpt[511] = ((uintptr_t) kernel_stack_pdt - KERNEL_VMA)
-    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   kernel_stack_pdt[511] = ((uintptr_t) kernel_stack_pt - KERNEL_VMA)
-    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   for (i = 0; i < 4; i++)
     kernel_stack_pt[i + 508] =
       ((uintptr_t) &boot_stack + i * PAGE_SIZE - KERNEL_VMA)
-      | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+      | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
 
   /* Apply the new page structures */
   vm_set_cr3 ((uintptr_t) kernel_pml4t - KERNEL_VMA);

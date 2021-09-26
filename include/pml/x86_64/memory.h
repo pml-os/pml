@@ -21,14 +21,14 @@
 
    0x0000000000000000-0x00007fffffffffff  128T  User space memory
    0xffff800000000000-0xfffffcffffffffff  124T  Reserved kernel memory
-   0xfffffc0000000000-0xfffffcffffffffff    1T  Process stack
+   0xfffffcffe0000000-0xfffffcffffffffff  512M  Process stack
    0xfffffd0000000000-0xfffffdffffffffff    1T  Thread-local storage
    0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
 
    A maximum of 2 TiB of physical memory is supported. PML will not be able
    to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT). */
 
-#define PROCESS_STACK_BASE_VMA  0xfffffc0000000000
+#define PROCESS_STACK_BASE_VMA  0xfffffcffe0000000
 #define THREAD_LOCAL_BASE_VMA   0xfffffd0000000000
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
