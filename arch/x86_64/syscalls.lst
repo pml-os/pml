@@ -1,0 +1,10 @@
+# -*- mode: conf-space; indent-tabs-mode: nil; -*-
+
+# List of system calls for x86-64 machines. Processed by gensyscalls.sh.
+
+# File format:
+# Num   Name            Return type Parameters
+
+0       fork            pid_t       void
+
+# End of system calls list

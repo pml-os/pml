@@ -1,4 +1,4 @@
-pmlincludedir = $(includedir)/pml
+include $(top_srcdir)/compile.mk
 
 if ARCH_X86_64
 arch_headers =		\

@@ -4,7 +4,14 @@ noinst_LIBRARIES = libarch.a
 
 BUILT_SOURCES =		\
 	irq-stubs.S	\
-	irq-vectors.c
+	irq-vectors.c	\
+	systab.c	\
+	syscall.h
+
+nodist_libarch_a_SOURCES = \
+	irq-stubs.S	\
+	irq-vectors.c	\
+	systab.c
 
 libarch_a_SOURCES =	\
 	exceptions.c	\
@@ -13,8 +20,6 @@ libarch_a_SOURCES =	\
 	idt.c		\
 	init.c		\
 	insn-set.S	\
-	irq-stubs.S	\
-	irq-vectors.c	\
 	lgdt.S		\
 	memcpy.S	\
 	memset.S	\
@@ -28,6 +33,7 @@ libarch_a_SOURCES =	\
 	rtc.c		\
 	save-reg.S	\
 	sched-tick.S	\
+	syscall.S	\
 	thread.c
 
 # Generate interrupt handler stubs and IDT fill function
@@ -37,8 +43,21 @@ irq-vectors.c: interrupts.lst genirq.sh
 
 irq-stubs.S: irq-vectors.c
 
+# Generate system call table and definitions
+
+systab.c: syscalls.lst gensyscalls.sh
+	$(AM_V_GEN)$(srcdir)/gensyscalls.sh $<
+
+syscall.h: systab.c
+	@test -f $@ || rm -f $<
+	@test -f $@ || $(MAKE) $(AM_MAKEFLAGS) $<
+
+nodist_pmlinclude_HEADERS = syscall.h
+
 EXTRA_DIST =		\
 	boot.S		\
 	genirq.sh	\
+	gensyscalls.sh	\
 	interrupts.lst	\
+	syscalls.lst	\
 	link.ld
