@@ -12,7 +12,8 @@ link_script = $(top_srcdir)/$(ARCH_DIR)/link.ld
 kernel_SOURCES =	\
 	boot.S		\
 	entry.c		\
-	heap.c
+	heap.c		\
+	pid.c
 kernel_LDFLAGS = -T $(link_script) -nostdlib -z max-page-size=4096
 kernel_LDADD = $(component_libs) $(component_libs) -lgcc
 kernel_DEPENDENCIES = $(link_script) $(component_libs)

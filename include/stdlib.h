@@ -34,6 +34,24 @@
 
 #define ALIAS(old, new)         extern __typeof__ (old) new __alias (old)
 
+static inline void
+set_bit (void *bitmap, size_t index)
+{
+  ((unsigned char *) bitmap)[index / 8] |= 1 << (7 - index % 8);
+}
+
+static inline void
+clear_bit (void *bitmap, size_t index)
+{
+  ((unsigned char *) bitmap)[index / 8] &= ~(1 << (7 - index % 8));
+}
+
+static inline int
+test_bit (const void *bitmap, size_t index)
+{
+  return ((unsigned char *) bitmap)[index / 8] & (1 << (7 - index % 8));
+}
+
 __BEGIN_DECLS
 
 extern time_t real_time;

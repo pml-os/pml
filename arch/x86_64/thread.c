@@ -93,7 +93,9 @@ thread_clone (void *entry, void *stack, size_t stack_size)
 
   /* Fill thread info */
   memcpy (pml4t, THIS_THREAD->pml4t, PAGE_STRUCT_SIZE);
-  /* TODO Allocate thread ID and set it */
+  thread->tid = alloc_pid ();
+  if (UNLIKELY (!thread->tid))
+    goto err1;
   thread->process = THIS_PROCESS;
   thread->pml4t = pml4t;
   thread->stack = stack;
@@ -104,12 +106,14 @@ thread_clone (void *entry, void *stack, size_t stack_size)
   queue = realloc (THIS_PROCESS->threads.queue,
 		   sizeof (struct thread *) * ++THIS_PROCESS->threads.len);
   if (UNLIKELY (!queue))
-    goto err1;
+    goto err2;
   THIS_PROCESS->threads.queue = queue;
   queue[THIS_PROCESS->threads.len - 1] = thread;
   thread_switch_lock = 0;
   return 0;
 
+ err2:
+  free_pid (thread->tid);
  err1:
   free (thread);
  err0:

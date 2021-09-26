@@ -86,6 +86,10 @@ void thread_save_stack (void *stack);
 void thread_switch (void **stack, uintptr_t *pml4t_phys);
 int thread_clone (void *entry, void *stack, size_t stack_size);
 
+void init_pid_allocator (void);
+pid_t alloc_pid (void);
+void free_pid (pid_t pid);
+
 __END_DECLS
 
 #endif /* !__ASSEMBLER__ */
