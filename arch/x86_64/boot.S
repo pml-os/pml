@@ -190,7 +190,6 @@ ASM_FUNC_BEGIN (high_start):
 	call	kentry
 
 	/* Nothing left to do, just busy-wait */
-	sti
 .hang:
 	hlt
 	jmp	.hang

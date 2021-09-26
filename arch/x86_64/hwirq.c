@@ -18,12 +18,6 @@
 #include <pml/io.h>
 
 void
-int_pit_tick (void)
-{
-  pic_8259_eoi (0);
-}
-
-void
 int_ps2_keyboard (void)
 {
   pic_8259_eoi (1);

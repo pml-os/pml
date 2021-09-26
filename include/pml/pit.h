@@ -45,6 +45,7 @@ pit_command_byte (unsigned char channel, unsigned char acc, unsigned char mode)
 __BEGIN_DECLS
 
 void pit_set_freq (unsigned char channel, unsigned int freq);
+void pit_sleep (unsigned long ms);
 
 __END_DECLS
 

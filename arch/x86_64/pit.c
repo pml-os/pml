@@ -14,8 +14,11 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <pml/interrupt.h>
 #include <pml/io.h>
 #include <pml/pit.h>
+
+static volatile unsigned long pit_ticks;
 
 void
 pit_set_freq (unsigned char channel, unsigned int freq)
@@ -25,4 +28,19 @@ pit_set_freq (unsigned char channel, unsigned int freq)
 	PIT_PORT_COMMAND);
   outb (div & 0xff, PIT_PORT_CHANNEL (channel));
   outb (div >> 8, PIT_PORT_CHANNEL (channel));
+}
+
+void
+pit_sleep (unsigned long ms)
+{
+  unsigned long start = pit_ticks;
+  while (pit_ticks < start + ms)
+    ;
+}
+
+void
+int_pit_tick (void)
+{
+  pit_ticks++;
+  pic_8259_eoi (0);
 }

@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <pml/interrupt.h>
 #include <pml/thread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,4 +31,5 @@ kentry (void)
 {
   splash ();
   init_pid_allocator ();
+  int_enable ();
 }

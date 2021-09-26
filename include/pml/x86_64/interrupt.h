@@ -60,6 +60,18 @@ load_idt (struct idt_ptr ptr)
   __asm__ volatile ("lidt %0" :: "m" (ptr));
 }
 
+__always_inline static inline void
+int_disable (void)
+{
+  __asm__ volatile ("cli");
+}
+
+__always_inline static inline void
+int_enable (void)
+{
+  __asm__ volatile ("sti");
+}
+
 __BEGIN_DECLS
 
 void pic_8259_remap (void);
