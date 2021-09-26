@@ -36,3 +36,9 @@ irq-vectors.c: interrupts.lst genirq.sh
 	$(AM_V_GEN)$(srcdir)/genirq.sh $<
 
 irq-stubs.S: irq-vectors.c
+
+EXTRA_DIST =		\
+	boot.S		\
+	genirq.sh	\
+	interrupts.lst	\
+	link.ld

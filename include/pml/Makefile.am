@@ -15,16 +15,20 @@ else
 arch_headers =
 endif
 
+nodist_pmlinclude_HEADERS = \
+	interrupt.h	\
+	memory.h	\
+	panic.h		\
+	thread.h
+
 pmlinclude_HEADERS =	\
 	alloc.h		\
 	asm.h		\
 	errno.h		\
 	cdefs.h		\
-	interrupt.h	\
 	lock.h		\
-	memory.h	\
-	panic.h		\
-	thread.h	\
 	tty.h		\
 	types.h		\
 	$(arch_headers)
+
+EXTRA_DIST = x86_64
