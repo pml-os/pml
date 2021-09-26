@@ -65,6 +65,15 @@ ASM_FUNC_END (sched_tick)
 
 	.global sched_yield
 ASM_FUNC_BEGIN (sched_yield):
+	lea	.after_ts(%rip), %rdi
+	call	sched_yield_to
+
+.after_ts:
+	ret
+ASM_FUNC_END (sched_yield)
+
+	.global sched_yield_to
+ASM_FUNC_BEGIN (sched_yield_to):
 	mov	%rsp, %rcx
 	mov	%ss, %rax
 	push	%rax
@@ -72,10 +81,6 @@ ASM_FUNC_BEGIN (sched_yield):
 	pushf
 	mov	%cs, %rax
 	push	%rax
-	lea	.after_ts(%rip), %rax
-	push	%rax
+	push	%rdi
 	jmp	sched_tick
-
-.after_ts:
-	ret
-ASM_FUNC_END (sched_yield)
+ASM_FUNC_END (sched_yield_to)

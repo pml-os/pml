@@ -29,9 +29,10 @@ struct process_queue process_queue;
 void
 sched_init (void)
 {
-  kernel_thread.pml4t = kernel_pml4t;
-  kernel_thread.stack_base = (void *) (PROCESS_STACK_BASE_VMA + 0xffffffc000);
-  kernel_thread.stack_size = 16384;
+  kernel_thread.args.pml4t = kernel_pml4t;
+  kernel_thread.args.stack_base =
+    (void *) (PROCESS_STACK_BASE_VMA + 0xffffffc000);
+  kernel_thread.args.stack_size = 16384;
   kernel_thread.state = THREAD_STATE_RUNNING;
   kernel_process.threads.queue = malloc (sizeof (struct thread *));
   kernel_process.threads.queue[0] = &kernel_thread;
@@ -47,7 +48,7 @@ sched_init (void)
 void
 thread_save_stack (void *stack)
 {
-  THIS_THREAD->stack = stack;
+  THIS_THREAD->args.stack = stack;
 }
 
 /* Switches to the next thread.
@@ -68,60 +69,82 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
 	}
     }
   while (THIS_THREAD->state != THREAD_STATE_RUNNING);
-  *stack = THIS_THREAD->stack;
-  *pml4t_phys = (uintptr_t) THIS_THREAD->pml4t - KERNEL_VMA;
+  *stack = THIS_THREAD->args.stack;
+  *pml4t_phys = (uintptr_t) THIS_THREAD->args.pml4t - KERNEL_VMA;
 }
 
-/* Clones the current thread. The new thread will start running at the
-   specified entry address with the given stack pointer (in the new thread's
-   virtual address space) */
+/* Creates a new thread of the current process. The new thread will begin
+   execution at address @entry with the specified stack parameters. */
 
 int
-thread_clone (void *entry, void *stack, void *stack_base, size_t stack_size)
+thread_new (struct thread_args *args)
 {
-  uintptr_t pml4t_phys = alloc_page ();
-  uint64_t *pml4t;
   struct thread *thread;
   struct thread **queue;
-  if (UNLIKELY (!pml4t_phys))
-    return -1;
   thread_switch_lock = 1;
-  pml4t = (uint64_t *) PHYS_REL (pml4t_phys);
 
   thread = malloc (sizeof (struct thread));
   if (UNLIKELY (!thread))
     goto err0;
 
-  /* Fill thread info */
-  memcpy (pml4t, THIS_THREAD->pml4t, PAGE_STRUCT_SIZE);
   thread->tid = alloc_pid ();
   if (UNLIKELY (!thread->tid))
-    goto err1;
+    goto err0;
   thread->process = THIS_PROCESS;
-  thread->pml4t = pml4t;
-  thread->stack = stack;
-  thread->stack_base = stack_base;
-  thread->stack_size = stack_size;
+  thread->args.pml4t = args->pml4t;
+  thread->args.stack = args->stack;
+  thread->args.stack_base = args->stack_base;
+  thread->args.stack_size = args->stack_size;
   thread->state = THREAD_STATE_RUNNING;
 
   /* Add thread to the process thread queue */
   queue = realloc (THIS_PROCESS->threads.queue,
 		   sizeof (struct thread *) * ++THIS_PROCESS->threads.len);
   if (UNLIKELY (!queue))
-    goto err2;
+    goto err1;
   THIS_PROCESS->threads.queue = queue;
   queue[THIS_PROCESS->threads.len - 1] = thread;
   thread_switch_lock = 0;
   return 0;
 
- err2:
-  free_pid (thread->tid);
  err1:
-  free (thread);
+  free_pid (thread->tid);
  err0:
-  free_page (pml4t_phys);
+  free (thread);
   thread_switch_lock = 0;
   return -1;
+}
+
+/* Clones the current thread and begins execution at @entry. */
+
+int
+thread_clone (void *entry)
+{
+  struct thread_args args;
+  uintptr_t pml4t_phys;
+  uint64_t *pml4t;
+  uintptr_t stack_pdpt;
+
+  /* Allocate a new PML4T */
+  pml4t_phys = alloc_page ();
+  if (UNLIKELY (!pml4t_phys))
+    return -1;
+  pml4t = (uint64_t *) PHYS_REL (pml4t_phys);
+  memcpy (pml4t, THIS_THREAD->args.pml4t, PAGE_STRUCT_SIZE);
+
+  /* Duplicate the stack */
+  if (thread_dup_stack (&stack_pdpt))
+    goto err0;
+  pml4t[505] = stack_pdpt | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+  args.pml4t = pml4t;
+  args.stack = THIS_THREAD->args.stack;
+  args.stack_base = THIS_THREAD->args.stack_base;
+  args.stack_size = THIS_THREAD->args.stack_size;
+  return thread_new (&args);
+
+ err0:
+  free_page (pml4t_phys);
+  return 0;
 }
 
 /* Duplicates the current thread's stack. @result is set to the physical 
@@ -148,8 +171,8 @@ thread_dup_stack (uintptr_t *result)
   pdt = (uint64_t *) PHYS_REL (pdt_phys);
   pdpt[511] = pdt_phys | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
 
-  addr = (uintptr_t) THIS_THREAD->stack_base;
-  stack_end = addr + THIS_THREAD->stack_size;
+  addr = (uintptr_t) THIS_THREAD->args.stack_base;
+  stack_end = addr + THIS_THREAD->args.stack_size;
   for (; addr < stack_end; addr += PAGE_SIZE)
     {
       unsigned int pde = (addr >> 21) & 0x1ff;

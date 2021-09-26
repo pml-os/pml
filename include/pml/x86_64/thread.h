@@ -37,14 +37,19 @@ enum
   THREAD_STATE_BLOCKED
 };
 
-struct thread
+struct thread_args
 {
-  pid_t tid;                    /* Thread ID */
-  struct process *process;      /* Process this thread belongs to */
   uint64_t *pml4t;              /* Address of PML4T */
   void *stack;                  /* Address of stack pointer */
   void *stack_base;             /* Pointer to bottom of stack */
   size_t stack_size;            /* Size of stack */
+};
+
+struct thread
+{
+  pid_t tid;                    /* Thread ID */
+  struct process *process;      /* Process this thread belongs to */
+  struct thread_args args;      /* Properties of thread */
   int state;                    /* Thread state */
 };
 
@@ -83,10 +88,11 @@ extern struct process_queue process_queue;
 
 void sched_init (void);
 void sched_yield (void);
+void sched_yield_to (void *addr) __noreturn;
 void thread_save_stack (void *stack);
 void thread_switch (void **stack, uintptr_t *pml4t_phys);
-int thread_clone (void *entry, void *stack, void *stack_base,
-		  size_t stack_size);
+int thread_new (struct thread_args *args);
+int thread_clone (void *entry);
 int thread_dup_stack (uintptr_t *result);
 
 void init_pid_allocator (void);
