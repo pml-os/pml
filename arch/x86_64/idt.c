@@ -14,11 +14,22 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/interrupt.h>
 #include <pml/pit.h>
 
 static struct idt_entry idt_table[IDT_SIZE];
 static struct idt_ptr idt_ptr;
+
+/*!
+ * Attaches an interrupt handler to an interrupt vector.
+ *
+ * @param num the interrupt vector number
+ * @param addr the address of the interrupt handler function
+ * @param privilege the minimum privilege level required to call the interrupt
+ * @param type the type of interrupt
+ */
 
 void
 set_int_vector (unsigned char num, void *addr, unsigned char privilege,
@@ -34,6 +45,10 @@ set_int_vector (unsigned char num, void *addr, unsigned char privilege,
   idt_table[num].offset_high = offset >> 32;
   idt_table[num].reserved = 0;
 }
+
+/*!
+ * Initializes the long mode interrupt descriptor table and remaps the 8259 PIC.
+ */
 
 void
 init_idt (void)

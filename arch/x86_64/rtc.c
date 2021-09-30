@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/cmos.h>
 #include <string.h>
 
@@ -49,6 +51,12 @@ cmos_wait_update (void)
   while (cmos_read_register (CMOS_REG_STATUS_A) & 0x80)
     ;
 }
+
+/*!
+ * Reads the value of the real-time clock from the CMOS.
+ *
+ * @return a UNIX timestamp
+ */
 
 time_t
 cmos_read_real_time (void)
@@ -111,6 +119,10 @@ cmos_read_real_time (void)
     (posix_year - 1) / 100 * 86400 + (posix_year + 299) / 400 * 86400;
 }
 
+/*!
+ * Enables interrupts through the real-time clock on IRQ 8.
+ */
+
 void
 cmos_enable_rtc_int (void)
 {
@@ -124,6 +136,11 @@ cmos_enable_rtc_int (void)
   outb (CMOS_REG_STATUS_B | 0x80, CMOS_PORT_INDEX);
   outb (x | 0x40, CMOS_PORT_DATA);
 }
+
+/*!
+ * Reads and discards the value of the C status RTC register. This is necessary
+ * to allow the RTC to continue to send interrupts.
+ */
 
 void
 cmos_rtc_finish_irq (void)

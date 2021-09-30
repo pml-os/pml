@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/alloc.h>
 #include <pml/cmos.h>
 #include <pml/memory.h>
@@ -27,6 +29,10 @@ init_kernel_heap (void)
   kh_init (next_phys_addr, size);
   next_phys_addr += size;
 }
+
+/*!
+ * Initializes architecture-specific services.
+ */
 
 void
 arch_init (void)

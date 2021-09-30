@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <pml/thread.h>
@@ -27,7 +29,9 @@ static struct process kernel_process;
 lock_t thread_switch_lock;
 struct process_queue process_queue;
 
-/* Initializes the scheduler and sets up the kernel process and main thread. */
+/*!
+ * Initializes the scheduler and sets up the kernel process and main thread.
+ */
 
 void
 sched_init (void)
@@ -46,8 +50,11 @@ sched_init (void)
   process_queue.len = 1;
 }
 
-/* Updates the stack pointer of the curren thread.
-   @stack: the new stack pointer */
+/*!
+ * Updates the stack pointer of the current thread.
+ *
+ * @param stack the new stack pointer
+ */
 
 void
 thread_save_stack (void *stack)
@@ -55,10 +62,13 @@ thread_save_stack (void *stack)
   THIS_THREAD->args.stack = stack;
 }
 
-/* Switches to the next thread.
-   TODO Support process priorities
-   @stack: pointer to store new thread stack address
-   @pml4t_phys: pointer to store new thread PML4T physical address */
+/*!
+ * Switches to the next thread.
+ *
+ * @todo support process priorities
+ * @param stack pointer to store new thread stack address
+ * @param pml4t_phys pointer to store new thread PML4T physical address
+ */
 
 void
 thread_switch (void **stack, uintptr_t *pml4t_phys)
@@ -79,10 +89,14 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
   *pml4t_phys = (uintptr_t) THIS_THREAD->args.pml4t - KERNEL_VMA;
 }
 
-/* Creates a new thread with the given arguments, allocates a thread ID, and
-   sets its state to running. The returned thread does not correspond to
-   any process.
-   @args: thread arguments */
+/*!
+ * Creates a new thread with the given arguments, allocates a thread ID, and
+ * sets its state to running. The returned thread does not correspond to
+ * any process.
+ *
+ * @param args thread arguments
+ * @return the new thread
+ */
 
 struct thread *
 thread_create (struct thread_args *args)
@@ -103,10 +117,13 @@ thread_create (struct thread_args *args)
   return NULL;
 }
 
-/* Destroys a thread. Its thread ID will be unallocated for use by other
-   threads or processes, and its stack and any thread-local data will
-   be unallocated. The thread will not be removed from its parent's queue.
-   @thread: the thread to destroy */
+/*!
+ * Destroys a thread. Its thread ID will be unallocated for use by other
+ * threads or processes, and its stack and any thread-local data will
+ * be unallocated. The thread will not be removed from its parent's queue.
+ *
+ * @param thread the thread to destroy
+ */
 
 void
 thread_free (struct thread *thread)
@@ -128,9 +145,13 @@ thread_free (struct thread *thread)
   free (thread);
 }
 
-/* Attaches a thread as a child of a process.
-   @process: target process
-   @thread: target thread */
+/*!
+ * Attaches a thread as a child of a process.
+ *
+ * @param process the target process
+ * @param thread the target thread
+ * @return zero on success
+ */
 
 int
 thread_attach_process (struct process *process, struct thread *thread)
@@ -152,9 +173,13 @@ thread_attach_process (struct process *process, struct thread *thread)
   return -1;
 }
 
-/* Clones a thread's stack and updates a PDPT.
-   @thread: the thread whose stack will be cloned
-   @pdpt: the PDPT used to update the stack pointer entries */
+/*!
+ * Clones a thread's stack and updates a PDPT.
+ *
+ * @param thread the thread whose stack will be cloned
+ * @param pdpt the PDPT used to update the stack pointer entries
+ * @return zero on success
+ */
 
 int
 thread_clone_stack (struct thread *thread, uintptr_t *pdpt)
@@ -176,10 +201,14 @@ thread_clone_stack (struct thread *thread, uintptr_t *pdpt)
   return 0;
 }
 
-/* Adds a new thread to the current process.
-   @tid: pointer to store the thread ID of the new thread
-   @func: function to begin execution in new thread
-   @arg: argument passed to @func */
+/*!
+ * Adds a new thread to the current process.
+ *
+ * @param tid pointer to store the thread ID of the new thread
+ * @param func function to begin execution in new thread
+ * @param arg argument passed to the starting function
+ * @return zero on success
+ */
 
 int
 thread_exec (pid_t *tid, int (*func) (void *), void *arg)

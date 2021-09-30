@@ -14,11 +14,20 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/interrupt.h>
 #include <pml/io.h>
 #include <pml/pit.h>
 
 static volatile unsigned long pit_ticks;
+
+/*!
+ * Sets the frequency of a PIT timer channel.
+ *
+ * @param channel the PIT channel number
+ * @param freq the frequency of the timer, in hertz
+ */
 
 void
 pit_set_freq (unsigned char channel, unsigned int freq)
@@ -29,6 +38,12 @@ pit_set_freq (unsigned char channel, unsigned int freq)
   outb (div & 0xff, PIT_PORT_CHANNEL (channel));
   outb (div >> 8, PIT_PORT_CHANNEL (channel));
 }
+
+/*!
+ * Suspends execution of the current thread.
+ *
+ * @param ms milliseconds to suspend
+ */
 
 void
 pit_sleep (unsigned long ms)

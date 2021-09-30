@@ -14,8 +14,17 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/interrupt.h>
 #include <pml/panic.h>
+
+/*!
+ * Handles a page fault. This function will perform necessary copying-on-writes
+ * and deliver a fatal kernel panic if the exception cannot be handled.
+ *
+ * @param err the error code pushed by the page fault exception
+ */
 
 void
 int_page_fault (unsigned long err)

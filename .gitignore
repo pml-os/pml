@@ -5,6 +5,7 @@ autom4te.cache
 Makefile.in
 configure
 *.h.in
+doc
 
 ._*
 *~

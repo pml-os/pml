@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <errno.h>
@@ -33,10 +35,14 @@ struct page_stack phys_page_stack;
 uintptr_t next_phys_addr;
 uintptr_t total_phys_mem;
 
-/* Returns the physical address of the virtual address, or zero if the
-   virtual address is not mapped to a physical address.
-   @pml4t: the PML4T to use to lookup virtual address translations
-   @addr: the virtual address to lookup */
+/*! 
+ * Returns the physical address of the virtual address, or zero if the
+ * virtual address is not mapped to a physical address.
+ *
+ * @param pml4t the PML4T to use to lookup virtual address translations
+ * @param addr the virtual address to lookup
+ * @return the physical address of the virtual address
+ */
 
 uintptr_t
 vm_phys_addr (uintptr_t *pml4t, void *addr)
@@ -77,12 +83,16 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
   return ALIGN_DOWN (pt[pte], PAGE_SIZE) | (v & (PAGE_SIZE - 1));
 }
 
-/* Maps the page at the virtual address to a physical address. The
-   virtual address must be in a page-aligned address.
-   @pml4t: the address space to perform the mapping
-   @phys_addr: the physical address to be mapped
-   @addr: the virtual address to map the physical address to
-   @flags: extra page flags */
+/*!
+ * Maps the page at the virtual address to a physical address. The
+ * virtual address must be in a page-aligned address.
+ *
+ * @param pml4t the address space to perform the mapping
+ * @param phys_addr the physical address to be mapped
+ * @param addr the virtual address to map the physical address to
+ * @param flags extra page flags
+ * @return zero on success
+ */
 
 int
 vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
@@ -138,7 +148,11 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
   return 0;
 }
 
-/* Allocates a page frame and returns its physical address. */
+/*!
+ * Allocates a page frame and returns its physical address.
+ *
+ * @return the physical address of the new page frame
+ */
 
 uintptr_t
 alloc_page (void)
@@ -158,9 +172,12 @@ alloc_page (void)
   return addr;
 }
 
-/* Frees the page frame containing the given physical address. The address
-   does not need to be page-aligned.
-   @addr: the physical address to free */
+/*!
+ * Frees the page frame containing the given physical address. The address
+ * does not need to be page-aligned.
+ *
+ * @param addr the physical address to free
+ */
 
 void
 free_page (uintptr_t addr)
@@ -171,9 +188,12 @@ free_page (uintptr_t addr)
   *phys_page_stack.ptr++ = addr;
 }
 
-/* Frees all physical memory contained in a page table. The page table
-   itself is not freed.
-   @pt: the page table to free */
+/*!
+ * Frees all physical memory contained in a page table. The page table
+ * itself is not freed.
+ *
+ * @param pt the page table to free
+ */
 
 void
 free_pt (uintptr_t *pt)
@@ -187,10 +207,13 @@ free_pt (uintptr_t *pt)
     }
 }
 
-/* Frees all physical memory contained in a page directory table. The
-   page directory table itself is not freed, but any page tables it contains
-   are freed.
-   @pdt: the page directory table to free */
+/*!
+ * Frees all physical memory contained in a page directory table. The
+ * page directory table itself is not freed, but any page tables it contains
+ * are freed.
+ *
+ * @param pdt the page directory table to free
+ */
 
 void
 free_pdt (uintptr_t *pdt)
@@ -209,10 +232,13 @@ free_pdt (uintptr_t *pdt)
     }
 }
 
-/* Frees all physical memory contained in a page directory pointer table (PDPT).
-   The structure itself is not freed, but any page tables or directories it
-   contains are freed.
-   @pdpt: the PDPT to free */
+/*!
+ * Frees all physical memory contained in a page directory pointer table (PDPT).
+ * The structure itself is not freed, but any page tables or directories it
+ * contains are freed.
+ *
+ * @param pdpt the PDPT to free
+ */
 
 void
 free_pdpt (uintptr_t *pdpt)
@@ -231,8 +257,10 @@ free_pdpt (uintptr_t *pdpt)
     }
 }
 
-/* Initializes the kernel virtual address space. See <pml/x86_64/memory.h>
-   for a description of the layout of the virtual address space on x86_64. */
+/*!
+ * Initializes the kernel virtual address space. See <pml/x86_64/memory.h>
+ * for a description of the layout of the virtual address space on x86_64.
+ */
 
 void
 vm_init (void)

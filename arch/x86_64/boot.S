@@ -110,7 +110,7 @@ ASM_FUNC_BEGIN (_start):
 	/* Enable long mode in the EFER register */
 	mov	$MSR_EFER, %ecx
 	rdmsr
-	or	$EFER_LME, %eax
+	or	$(EFER_SCE | EFER_LME), %eax
 	wrmsr
 
 	/* Enable paging and protected mode, required by long mode */

@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/memory.h>
 #include <pml/multiboot.h>
 #include <pml/panic.h>
@@ -24,8 +26,10 @@ static struct mb_mmap_tag *multiboot_mmap;
 static size_t mmap_curr_region;
 static size_t mmap_region_count;
 
-/* Checks if the next physical address is in a memory hole according to
-   the memory map given by Multiboot2. */
+/*!
+ * Checks if the next physical address is in a memory hole according to
+ * the memory map given by Multiboot2.
+ */
 
 void
 vm_skip_holes (void)
@@ -41,6 +45,12 @@ vm_skip_holes (void)
 	ALIGN_UP (multiboot_mmap->entries[mmap_curr_region].base, PAGE_SIZE);
     }
 }
+
+/*!
+ * Parses the Multiboot2 structure.
+ *
+ * @param addr the address of the Multiboot2 structure
+ */
 
 void
 multiboot_init (uintptr_t addr)

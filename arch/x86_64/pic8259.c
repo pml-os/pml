@@ -14,10 +14,14 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/interrupt.h>
 #include <pml/io.h>
 
-/* Remaps the 8259 PIC to serve interrupts 32-47. */
+/*!
+ * Remaps the 8259 PIC to serve interrupts 32-47.
+ */
 
 void
 pic_8259_remap (void)
@@ -34,7 +38,11 @@ pic_8259_remap (void)
   outb_p (0, PIC_8259_SLAVE_DATA);
 }
 
-/* Signals the 8259 PIC to resume generating interrupts. */
+/*!
+ * Signals the 8259 PIC to resume generating interrupts.
+ *
+ * @param irq the IRQ number of the interrupt
+ */
 
 void
 pic_8259_eoi (unsigned char irq)
