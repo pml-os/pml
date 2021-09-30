@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/alloc.h>
 #include <pml/lock.h>
 #include <errno.h>
@@ -24,6 +26,13 @@
 static lock_t kh_lock;
 static uintptr_t kh_base_addr;
 static uintptr_t kh_end_addr;
+
+/*!
+ * Initializes the kernel heap.
+ *
+ * @param base the base address of the heap
+ * @param size the reserved size of the heap, in bytes
+ */
 
 void
 kh_init (uintptr_t base, size_t size)
@@ -43,6 +52,14 @@ kh_init (uintptr_t base, size_t size)
   tail->reserved = 0;
   tail->header = header;
 }
+
+/*!
+ * Allocates a block of memory on the kernel heap.
+ *
+ * @param size the minimum size of the block
+ * @param align the required alignment of the returned pointer
+ * @return a pointer to the new block, or NULL if the allocation failed
+ */
 
 void *
 kh_alloc_aligned (size_t size, size_t align)
@@ -200,6 +217,16 @@ kh_alloc_aligned (size_t size, size_t align)
   return block;
 }
 
+/*!
+ * Changes the size of a memory block. If more memory is requested, the
+ * returned pointer may be another memory block with the same contents as the
+ * old one but at a different address.
+ *
+ * @param ptr the pointer to reallocate
+ * @param size the new size of the block
+ * @return a pointer to the new block, or NULL if the allocation failed
+ */
+
 void *
 kh_realloc (void *ptr, size_t size)
 {
@@ -311,6 +338,13 @@ kh_realloc (void *ptr, size_t size)
   spinlock_release (&kh_lock);
   return ptr;
 }
+
+/*!
+ * Unallocates the memory used by a memory block. If a null pointer is given,
+ * no action is performed.
+ *
+ * @param ptr the pointer to free
+ */
 
 void
 kh_free (void *ptr)

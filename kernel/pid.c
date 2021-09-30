@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/** @file */
+
 #include <pml/panic.h>
 #include <pml/thread.h>
 #include <errno.h>
@@ -28,8 +30,10 @@ static size_t next_pid;         /* PID to start searching from */
 static size_t pid_bitmap_size;  /* Size of bitmap in bytes */
 static lock_t pid_bitmap_lock;
 
-/* Initializes the PID allocator by marking PIDs 0 and 1 as used and allocating
-   the PID bitmap. */
+/*!
+ * Initializes the PID allocator by marking PIDs 0 and 1 as used and allocating
+ * the PID bitmap.
+ */
 
 void
 init_pid_allocator (void)
@@ -43,9 +47,13 @@ init_pid_allocator (void)
   next_pid = 2;
 }
 
-/* Returns a number suitable as a process or thread ID. The returned value
-   is guaranteed to be unique from all other values returned from this
-   function unless freed with free_pid(). */
+/*!
+ * Returns a number suitable as a process or thread ID. The returned value
+ * is guaranteed to be unique from all other values returned from this
+ * function unless freed with free_pid().
+ *
+ * @return an unused ID, or -1 if no ID could be allocated
+ */
 
 pid_t
 alloc_pid (void)
@@ -81,7 +89,11 @@ alloc_pid (void)
   RETV_ERROR (ENOMEM, -1);
 }
 
-/* Unallocates the given PID so it can be reused by other processes. */
+/*!
+ * Unallocates a process or thread ID so it can be reused by other processes.
+ *
+ * @param pid the ID to unallocate
+ */
 
 void
 free_pid (pid_t pid)
