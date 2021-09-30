@@ -53,10 +53,7 @@ kh_alloc_aligned (size_t size, size_t align)
 
   /* Check that the requested alignment is a power of two */
   if (UNLIKELY (!IS_P2 (align)))
-    {
-      errno = EINVAL;
-      return NULL;
-    }
+    RETV_ERROR (EINVAL, NULL);
 
   /* Align the requested size to the default alignment so all memory
      accesses are aligned */
@@ -69,15 +66,13 @@ kh_alloc_aligned (size_t size, size_t align)
 	{
 	  /* Reached the end of the heap and no suitable block was found */
 	  spinlock_release (&kh_lock);
-	  errno = ENOMEM;
-	  return NULL;
+	  RETV_ERROR (ENOMEM, NULL);
 	}
       if (UNLIKELY (header->magic != KH_HEADER_MAGIC))
 	{
 	  spinlock_release (&kh_lock);
-	  errno = EUCLEAN;
 	  debug_printf ("bad magic number in header block\n");
-	  return NULL;
+	  RETV_ERROR (EUCLEAN, NULL);
 	}
 
       /* Check that the tail block is valid */
@@ -86,9 +81,8 @@ kh_alloc_aligned (size_t size, size_t align)
       if (UNLIKELY (tail->magic != KH_TAIL_MAGIC || tail->header != header))
 	{
 	  spinlock_release (&kh_lock);
-	  errno = EUCLEAN;
 	  debug_printf ("invalid tail block for header block\n");
-	  return NULL;
+	  RETV_ERROR (EUCLEAN, NULL);
 	}
 
       /* Check if the header is free */
@@ -220,9 +214,8 @@ kh_realloc (void *ptr, size_t size)
   if (UNLIKELY (header->magic != KH_HEADER_MAGIC))
     {
       spinlock_release (&kh_lock);
-      errno = EFAULT;
       debug_printf ("invalid pointer");
-      return NULL;
+      RETV_ERROR (EFAULT, NULL);
     }
   if (!(header->flags & KH_FLAG_ALLOC))
     {
@@ -335,9 +328,8 @@ kh_free (void *ptr)
   if (UNLIKELY (header->magic != KH_HEADER_MAGIC))
     {
       spinlock_release (&kh_lock);
-      errno = EFAULT;
       debug_printf ("invalid pointer");
-      return;
+      RET_ERROR (EFAULT);
     }
   header->flags &= ~KH_FLAG_ALLOC;
 

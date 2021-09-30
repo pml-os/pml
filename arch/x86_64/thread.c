@@ -26,6 +26,8 @@ static struct process kernel_process;
 lock_t thread_switch_lock;
 struct process_queue process_queue;
 
+/* Initializes the scheduler and sets up the kernel process and main thread. */
+
 void
 sched_init (void)
 {
@@ -43,7 +45,8 @@ sched_init (void)
   process_queue.len = 1;
 }
 
-/* Updates the stack pointer of the curren thread. */
+/* Updates the stack pointer of the curren thread.
+   @stack: the new stack pointer */
 
 void
 thread_save_stack (void *stack)
@@ -52,7 +55,9 @@ thread_save_stack (void *stack)
 }
 
 /* Switches to the next thread.
-   TODO Support process priorities */
+   TODO Support process priorities
+   @stack: pointer to store new thread stack address
+   @pml4t_phys: pointer to store new thread PML4T physical address */
 
 void
 thread_switch (void **stack, uintptr_t *pml4t_phys)
@@ -73,53 +78,88 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
   *pml4t_phys = (uintptr_t) THIS_THREAD->args.pml4t - KERNEL_VMA;
 }
 
-/* Creates a new thread of the current process. The new thread will begin
-   execution at address @entry with the specified stack parameters. */
+/* Creates a new thread with the given arguments, allocates a thread ID, and
+   sets its state to running. The returned thread does not correspond to
+   any process.
+   @args: thread arguments */
 
-int
-thread_new (struct thread_args *args)
+struct thread *
+thread_create (struct thread_args *args)
 {
-  struct thread *thread;
-  struct thread **queue;
-  thread_switch_lock = 1;
-
-  thread = malloc (sizeof (struct thread));
+  struct thread *thread = malloc (sizeof (struct thread));
   if (UNLIKELY (!thread))
-    goto err0;
-
+    return NULL;
   thread->tid = alloc_pid ();
   if (UNLIKELY (!thread->tid))
     goto err0;
-  thread->process = THIS_PROCESS;
-  thread->args.pml4t = args->pml4t;
-  thread->args.stack = args->stack;
-  thread->args.stack_base = args->stack_base;
-  thread->args.stack_size = args->stack_size;
+  thread->process = NULL;
+  memcpy (&thread->args, args, sizeof (struct thread_args));
   thread->state = THREAD_STATE_RUNNING;
+  return thread;
 
-  /* Add thread to the process thread queue */
-  queue = realloc (THIS_PROCESS->threads.queue,
-		   sizeof (struct thread *) * ++THIS_PROCESS->threads.len);
+ err0:
+  free (thread);
+  return NULL;
+}
+
+/* Destroys a thread. Its thread ID will be unallocated for use by other
+   threads or processes, and its stack and any thread-local data will
+   be unallocated. The thread will not be removed from its parent's queue.
+   @thread: the thread to destroy */
+
+void
+thread_free (struct thread *thread)
+{
+  /* Unallocate the thread's ID */
+  free_pid (thread->tid);
+
+  /* Unallocate the thread's stack and TLS */
+  if (thread->args.pml4t[507] & PAGE_FLAG_PRESENT)
+    {
+      uintptr_t tlp_phys = ALIGN_DOWN (thread->args.pml4t[507], PAGE_SIZE);
+      uintptr_t *tlp = (uintptr_t *) PHYS_REL (tlp_phys);
+      free_pdpt (tlp);
+      free_page (tlp_phys);
+    }
+  free_page ((uintptr_t) thread->args.pml4t - KERNEL_VMA);
+
+  /* Free the thread structure */
+  free (thread);
+}
+
+/* Attaches a thread as a child of a process.
+   @process: target process
+   @thread: target thread */
+
+int
+thread_attach_process (struct process *process, struct thread *thread)
+{
+  struct thread **queue;
+  thread_switch_lock = 1;
+  thread->process = process;
+  queue = realloc (process->threads.queue,
+		   sizeof (struct thread *) * ++process->threads.len);
   if (UNLIKELY (!queue))
-    goto err1;
-  THIS_PROCESS->threads.queue = queue;
-  queue[THIS_PROCESS->threads.len - 1] = thread;
+    goto err0;
+  process->threads.queue = queue;
+  process->threads.queue[process->threads.len - 1] = thread;
   thread_switch_lock = 0;
   return 0;
 
- err1:
-  free_pid (thread->tid);
  err0:
-  free (thread);
   thread_switch_lock = 0;
   return -1;
 }
 
-/* Clones the current thread and begins execution at @entry. */
+/* Adds a new thread to the current process.
+   @tid: pointer to store the thread ID of the new thread
+   @func: function to begin execution in new thread
+   @arg: argument passed to @func */
 
 int
-thread_clone (void *entry)
+thread_exec (pid_t *tid, int (*func) (void *), void *arg)
 {
+  struct thread *thread;
   struct thread_args args;
   uintptr_t pml4t_phys;
   uint64_t *pml4t;
@@ -132,96 +172,25 @@ thread_clone (void *entry)
   pml4t = (uint64_t *) PHYS_REL (pml4t_phys);
   memcpy (pml4t, THIS_THREAD->args.pml4t, PAGE_STRUCT_SIZE);
 
-  /* Duplicate the stack */
-  if (thread_dup_stack (&stack_pdpt))
-    goto err0;
-  pml4t[505] = stack_pdpt | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+  /* Create new thread */
   args.pml4t = pml4t;
   args.stack = THIS_THREAD->args.stack;
   args.stack_base = THIS_THREAD->args.stack_base;
   args.stack_size = THIS_THREAD->args.stack_size;
-  return thread_new (&args);
-
- err0:
-  free_page (pml4t_phys);
-  return 0;
-}
-
-/* Duplicates the current thread's stack. @result is set to the physical 
-   address of the new PDPT. */
-
-int
-thread_dup_stack (uintptr_t *result)
-{
-  uintptr_t pdpt_phys = alloc_page ();
-  uintptr_t pdt_phys;
-  uint64_t *pdpt;
-  uint64_t *pdt;
-  uintptr_t addr;
-  uintptr_t stack_end;
-  uintptr_t i = 0;
-  if (UNLIKELY (!pdpt_phys))
-    return -1;
-  pdpt = (uint64_t *) PHYS_REL (pdpt_phys);
-  memcpy (pdpt, kernel_stack_pdpt, PAGE_STRUCT_SIZE);
-
-  pdt_phys = alloc_page ();
-  if (UNLIKELY (!pdt_phys))
+  thread = thread_create (&args);
+  if (UNLIKELY (!thread))
     goto err0;
-  pdt = (uint64_t *) PHYS_REL (pdt_phys);
-  pdpt[511] = pdt_phys | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+  if (thread_attach_process (THIS_PROCESS, thread))
+    goto err1;
 
-  addr = (uintptr_t) THIS_THREAD->args.stack_base;
-  stack_end = addr + THIS_THREAD->args.stack_size;
-  for (; addr < stack_end; addr += PAGE_SIZE)
-    {
-      unsigned int pde = (addr >> 21) & 0x1ff;
-      unsigned int pte = (addr >> 12) & 0x1ff;
-      uint64_t *pt;
-      void *page;
-      if (!pdt[pde])
-	{
-	  /* Allocate a new page directory table */
-	  pdt[pde] = alloc_page ();
-	  if (UNLIKELY (!pdt[pde]))
-	    goto err1;
-	  pdt[pde] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
-	}
-
-      /* Allocate a new page and copy the corresponding stack contents */
-      pt = (uint64_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
-      pt[pte] = alloc_page ();
-      if (UNLIKELY (!pt[pte]))
-	goto err1;
-      pt[pte] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
-      page = (void *) PHYS_REL (ALIGN_DOWN (pt[pte], PAGE_SIZE));
-      memcpy (page, (void *) addr, PAGE_SIZE);
-    }
-  *result = pdpt_phys;
+  /* TODO Duplicate the stack */
+  /* pml4t[507] = stack_pdpt | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER; */
+  *tid = thread->tid;
   return 0;
 
  err1:
-  /* Memory allocation failed in loop, free all previously allocated pages */
-  while (i < addr)
-    {
-      unsigned int pde = (addr >> 21) & 0x1ff;
-      if (pdt[pde])
-	{
-	  uint64_t *pt =
-	    (uint64_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
-	  int j;
-	  for (j = 0; j < PAGE_STRUCT_ENTRIES; j++)
-	    {
-	      if (pt[j])
-		free_page (pt[j]);
-	    }
-	  free_page (pdt[pde]);
-	  pdt[pde] = 0;
-	}
-      i = ALIGN_UP (i, LARGE_PAGE_SIZE);
-    }
-  free_page (pdt_phys);
+  thread_free (thread);
  err0:
-  free_page (pdpt_phys);
-  return -1;
+  free_page (pml4t_phys);
+  return 0;
 }

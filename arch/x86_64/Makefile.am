@@ -14,6 +14,7 @@ nodist_libarch_a_SOURCES = \
 	systab.c
 
 libarch_a_SOURCES =	\
+	clone.c		\
 	exceptions.c	\
 	gdt.c		\
 	hwirq.c		\

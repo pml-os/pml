@@ -18,7 +18,6 @@
 #define __PML_THREAD_H
 
 #define THREAD_QUANTUM          20
-#define DEFAULT_STACK_VMA       0xfffffcfffffffff0
 
 #define PRIO_MIN                19
 #define PRIO_MAX                -20
@@ -89,11 +88,13 @@ extern struct process_queue process_queue;
 void sched_init (void);
 void sched_yield (void);
 void sched_yield_to (void *addr) __noreturn;
+
 void thread_save_stack (void *stack);
 void thread_switch (void **stack, uintptr_t *pml4t_phys);
-int thread_new (struct thread_args *args);
-int thread_clone (void *entry);
-int thread_dup_stack (uintptr_t *result);
+struct thread *thread_create (struct thread_args *args);
+void thread_free (struct thread *thread);
+int thread_attach_process (struct process *process, struct thread *thread);
+int thread_exec (pid_t *tid, int (*func) (void *), void *arg);
 
 void init_pid_allocator (void);
 pid_t alloc_pid (void);

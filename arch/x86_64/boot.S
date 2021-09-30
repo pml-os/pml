@@ -178,7 +178,7 @@ ASM_FUNC_BEGIN (high_start):
 
 	/* Initialize virtual memory layout */
 	call	vm_init
-	movabs	$DEFAULT_STACK_VMA, %rsp
+	movabs	$PROCESS_STACK_TOP_VMA, %rsp
 
 	/* Initialize interrupts */
 	call	init_idt

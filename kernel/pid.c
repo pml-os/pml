@@ -26,6 +26,7 @@
 static void *pid_bitmap;        /* Bitmap of allocated PIDs */
 static size_t next_pid;         /* PID to start searching from */
 static size_t pid_bitmap_size;  /* Size of bitmap in bytes */
+static lock_t pid_bitmap_lock;
 
 /* Initializes the PID allocator by marking PIDs 0 and 1 as used and allocating
    the PID bitmap. */
@@ -50,14 +51,17 @@ pid_t
 alloc_pid (void)
 {
   void *temp;
+  spinlock_acquire (&pid_bitmap_lock);
   while (pid_bitmap_size < PID_BITMAP_SIZE_LIMIT)
     {
       for (; next_pid < pid_bitmap_size * 8; next_pid++)
 	{
 	  if (!test_bit (pid_bitmap, next_pid))
 	    {
-	      set_bit (pid_bitmap, next_pid);
-	      return next_pid++;
+	      pid_t pid = next_pid++;
+	      set_bit (pid_bitmap, pid);
+	      spinlock_release (&pid_bitmap_lock);
+	      return pid;
 	    }
 	}
 
@@ -65,13 +69,16 @@ alloc_pid (void)
       pid_bitmap_size += PID_BITMAP_INCREMENT;
       temp = realloc (pid_bitmap, pid_bitmap_size);
       if (UNLIKELY (!temp))
-	return -1;
+	{
+	  spinlock_release (&pid_bitmap_lock);
+	  return -1;
+	}
       pid_bitmap = temp;
       memset (pid_bitmap + pid_bitmap_size - PID_BITMAP_INCREMENT, 0,
 	      PID_BITMAP_INCREMENT);
     }
-  errno = ENOMEM;
-  return -1;
+  spinlock_release (&pid_bitmap_lock);
+  RETV_ERROR (ENOMEM, -1);
 }
 
 /* Unallocates the given PID so it can be reused by other processes. */
@@ -81,7 +88,9 @@ free_pid (pid_t pid)
 {
   if (UNLIKELY (pid < 0))
     return;
+  spinlock_acquire (&pid_bitmap_lock);
   clear_bit (pid_bitmap, pid);
   if ((size_t) pid < next_pid)
     next_pid = pid;
+  spinlock_release (&pid_bitmap_lock);
 }

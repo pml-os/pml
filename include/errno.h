@@ -20,6 +20,20 @@
 #include <pml/cdefs.h>
 #include <pml/errno.h>
 
+#define RET_ERROR(e) do				\
+    {						\
+      errno = (e);				\
+      return;					\
+    }						\
+  while (0)
+
+#define RETV_ERROR(e, r) do			\
+    {						\
+      errno = (e);				\
+      return (r);				\
+    }						\
+  while (0)
+
 __BEGIN_DECLS
 
 extern int errno;

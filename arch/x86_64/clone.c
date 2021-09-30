@@ -1,4 +1,4 @@
-/* page-fault.c -- This file is part of PML.
+/* clone.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,14 +14,21 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/interrupt.h>
-#include <pml/panic.h>
+#include <pml/thread.h>
+#include <errno.h>
+#include "syscall.h"
 
-void
-int_page_fault (unsigned long err)
+pid_t
+sys_fork (void)
 {
-  void *addr;
-  __asm__ volatile ("mov %%cr2, %0" : "=r" (addr));
-  panic ("CPU exception: page fault\n"
-	 "Virtual address: %p\n", addr);
+  RETV_ERROR (ENOSYS, -1);
+}
+
+pid_t
+sys_clone (int (*func) (void *), void *arg)
+{
+  pid_t tid;
+  if (thread_exec (&tid, func, arg))
+    return -1;
+  return tid;
 }

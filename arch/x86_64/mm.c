@@ -18,13 +18,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern void *boot_stack;
+
 static uintptr_t kernel_stack_pdt[PAGE_STRUCT_ENTRIES] __page_align;
 static uintptr_t kernel_stack_pt[PAGE_STRUCT_ENTRIES] __page_align;
 
-extern void *boot_stack;
-
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];
-uintptr_t kernel_stack_pdpt[PAGE_STRUCT_ENTRIES];
+uintptr_t kernel_thread_local_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
 
 struct page_stack phys_page_stack;
@@ -32,7 +32,9 @@ uintptr_t next_phys_addr;
 uintptr_t total_phys_mem;
 
 /* Returns the physical address of the virtual address, or zero if the
-   virtual address is not mapped to a physical address. */
+   virtual address is not mapped to a physical address.
+   @pml4t: the PML4T to use to lookup virtual address translations
+   @addr: the virtual address to lookup */
 
 uintptr_t
 vm_phys_addr (uintptr_t *pml4t, void *addr)
@@ -92,7 +94,9 @@ alloc_page (void)
   return addr;
 }
 
-/* Frees the page frame at the specified physical address. */
+/* Frees the page frame containing the given physical address. The address
+   does not need to be page-aligned.
+   @addr: the physical address to free */
 
 void
 free_page (uintptr_t addr)
@@ -101,6 +105,66 @@ free_page (uintptr_t addr)
     return;
   addr = ALIGN_DOWN (addr, PAGE_SIZE);
   *phys_page_stack.ptr++ = addr;
+}
+
+/* Frees all physical memory contained in a page table. The page table
+   itself is not freed.
+   @pt: the page table to free */
+
+void
+free_pt (uintptr_t *pt)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if (pt[i] & PAGE_FLAG_PRESENT)
+	free_page (pt[i]);
+      pt[i] = 0;
+    }
+}
+
+/* Frees all physical memory contained in a page directory table. The
+   page directory table itself is not freed, but any page tables it contains
+   are freed.
+   @pdt: the page directory table to free */
+
+void
+free_pdt (uintptr_t *pdt)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if ((pdt[i] & PAGE_FLAG_PRESENT) && !(pdt[i] & PAGE_FLAG_SIZE))
+	{
+	  uintptr_t pt_phys = ALIGN_DOWN (pdt[i], PAGE_SIZE);
+	  uintptr_t *pt = (uintptr_t *) PHYS_REL (pt_phys);
+	  free_pt (pt);
+	  free_page (pt_phys);
+	}
+      pdt[i] = 0;
+    }
+}
+
+/* Frees all physical memory contained in a page directory pointer table (PDPT).
+   The structure itself is not freed, but any page tables or directories it
+   contains are freed.
+   @pdpt: the PDPT to free */
+
+void
+free_pdpt (uintptr_t *pdpt)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if ((pdpt[i] & PAGE_FLAG_PRESENT) && !(pdpt[i] & PAGE_FLAG_SIZE))
+	{
+	  uintptr_t pdt_phys = ALIGN_DOWN (pdpt[i], PAGE_SIZE);
+	  uintptr_t *pdt = (uintptr_t *) PHYS_REL (pdt_phys);
+	  free_pdt (pdt);
+	  free_page (pdt_phys);
+	}
+      pdpt[i] = 0;
+    }
 }
 
 /* Initializes the kernel virtual address space. See <pml/x86_64/memory.h>
@@ -122,9 +186,9 @@ vm_init (void)
     phys_map_pdpt[i] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_SIZE;
 
   /* Map kernel stack to correct address space */
-  kernel_pml4t[505] = ((uintptr_t) kernel_stack_pdpt - KERNEL_VMA)
+  kernel_pml4t[507] = ((uintptr_t) kernel_thread_local_pdpt - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
-  kernel_stack_pdpt[511] = ((uintptr_t) kernel_stack_pdt - KERNEL_VMA)
+  kernel_thread_local_pdpt[511] = ((uintptr_t) kernel_stack_pdt - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   kernel_stack_pdt[511] = ((uintptr_t) kernel_stack_pt - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
