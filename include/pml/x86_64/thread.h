@@ -94,6 +94,7 @@ void thread_switch (void **stack, uintptr_t *pml4t_phys);
 struct thread *thread_create (struct thread_args *args);
 void thread_free (struct thread *thread);
 int thread_attach_process (struct process *process, struct thread *thread);
+int thread_clone_stack (struct thread *thread, uintptr_t *pdpt);
 int thread_exec (pid_t *tid, int (*func) (void *), void *arg);
 
 void init_pid_allocator (void);
