@@ -17,6 +17,7 @@
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <pml/thread.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -151,6 +152,18 @@ thread_attach_process (struct process *process, struct thread *thread)
   return -1;
 }
 
+/* Clones a thread's stack and updates a PDPT.
+   @thread: the thread whose stack will be cloned
+   @pdpt: the PDPT used to update the stack pointer entries */
+
+int
+thread_clone_stack (struct thread *thread, uintptr_t *pdpt)
+{
+  uintptr_t *stack_pdpt =
+    (uintptr_t *) PHYS_REL (ALIGN_DOWN (thread->args.pml4t[507], PAGE_SIZE));
+  RETV_ERROR (ENOSYS, -1);
+}
+
 /* Adds a new thread to the current process.
    @tid: pointer to store the thread ID of the new thread
    @func: function to begin execution in new thread
@@ -180,12 +193,12 @@ thread_exec (pid_t *tid, int (*func) (void *), void *arg)
   thread = thread_create (&args);
   if (UNLIKELY (!thread))
     goto err0;
-  if (thread_attach_process (THIS_PROCESS, thread))
-    goto err1;
 
   /* TODO Duplicate the stack */
   /* pml4t[507] = stack_pdpt | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER; */
   *tid = thread->tid;
+  if (thread_attach_process (THIS_PROCESS, thread))
+    goto err1;
   return 0;
 
  err1:

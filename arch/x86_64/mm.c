@@ -14,7 +14,9 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <pml/alloc.h>
 #include <pml/memory.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -75,6 +77,67 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
   return ALIGN_DOWN (pt[pte], PAGE_SIZE) | (v & (PAGE_SIZE - 1));
 }
 
+/* Maps the page at the virtual address to a physical address. The
+   virtual address must be in a page-aligned address.
+   @pml4t: the address space to perform the mapping
+   @phys_addr: the physical address to be mapped
+   @addr: the virtual address to map the physical address to
+   @flags: extra page flags */
+
+int
+vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
+	     unsigned int flags)
+{
+  uintptr_t v = (uintptr_t) addr;
+  unsigned int pml4e;
+  unsigned int pdpe;
+  unsigned int pde;
+  unsigned int pte;
+  uintptr_t *pdpt;
+  uintptr_t *pdt;
+  uintptr_t *pt;
+
+  pml4e = (v >> 39) & 0x1ff;
+  if (v >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
+    RETV_ERROR (EFAULT, -1);
+  if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
+    {
+      pml4t[pml4e] = alloc_page ();
+      if (UNLIKELY (!pml4t[pml4e]))
+	return -1;
+      pml4t[pml4e] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
+    }
+
+  pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
+  pdpe = (v >> 30) & 0x1ff;
+  if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
+    {
+      pdpt[pdpe] = alloc_page ();
+      if (UNLIKELY (!pdpt[pdpe]))
+	return -1;
+      pdpt[pdpe] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
+    }
+  if (pdpt[pdpe] & PAGE_FLAG_SIZE)
+    RETV_ERROR (EINVAL, -1);
+
+  pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
+  pde = (v >> 21) & 0x1ff;
+  if (!(pdt[pde] & PAGE_FLAG_PRESENT))
+    {
+      pdt[pde] = alloc_page ();
+      if (UNLIKELY (!pdt[pde]))
+	return -1;
+      pdt[pde] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
+    }
+  if (pdt[pde] & PAGE_FLAG_SIZE)
+    RETV_ERROR (EINVAL, -1);
+
+  pt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
+  pte = (v >> 12) & 0x1ff;
+  pt[pte] = ALIGN_DOWN (phys_addr, PAGE_SIZE) | PAGE_FLAG_PRESENT | flags;
+  return 0;
+}
+
 /* Allocates a page frame and returns its physical address. */
 
 uintptr_t
@@ -91,6 +154,7 @@ alloc_page (void)
       addr = next_phys_addr - LOW_PHYSICAL_BASE_VMA;
       next_phys_addr += PAGE_SIZE;
     }
+  vm_skip_holes ();
   return addr;
 }
 
