@@ -27,6 +27,7 @@ pmlinclude_HEADERS =	\
 	errno.h		\
 	cdefs.h		\
 	lock.h		\
+	pci.h		\
 	tty.h		\
 	types.h		\
 	$(arch_headers)
