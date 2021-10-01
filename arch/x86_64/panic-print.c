@@ -14,7 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/** @file */
+/*! @file */
 
 #include <stdio.h>
 #include <stdint.h>

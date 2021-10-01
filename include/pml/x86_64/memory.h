@@ -17,72 +17,94 @@
 #ifndef __PML_MEMORY_H
 #define __PML_MEMORY_H
 
-/* Virtual memory layout on x86_64
+/*!
+ * @file memory.h
+ * Virtual memory layout on x86_64
+ *
+ * 0x0000000000000000-0x00007fffffffffff  128T  User space memory
+ * 0xffff800000000000-0xfffffcffffffffff ~126T  Reserved kernel memory
+ * 0xfffffd8000000000-0xfffffdffbfffffff  511G  Thread-local storage
+ * 0xfffffdffc0000000-0xfffffdffffffffff    1G  Thread stack space
+ * 0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
+ *
+ * A maximum of 2 TiB of physical memory is supported. PML will not be able
+ * to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT).
+ */
 
-   0x0000000000000000-0x00007fffffffffff  128T  User space memory
-   0xffff800000000000-0xfffffcffffffffff ~126T  Reserved kernel memory
-   0xfffffd8000000000-0xfffffdffbfffffff  511G  Thread-local storage
-   0xfffffdffc0000000-0xfffffdffffffffff    1G  Thread stack space
-   0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
-
-   A maximum of 2 TiB of physical memory is supported. PML will not be able
-   to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT). */
-
-/* Virtual addresses of memory regions */
-
+/*! Base virtual address of thread-local storage */
 #define THREAD_LOCAL_BASE_VMA   0xfffffd8000000000
+/*! Base virtual address of process stack */
 #define PROCESS_STACK_BASE_VMA  0xfffffdffc0000000
+/*! Starting virtual address of the stack */
 #define PROCESS_STACK_TOP_VMA   0xfffffdfffffffff8
+/*! Base of physical memory map */
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
-/* Memory limits */
-
+/*! First memory address in upper memory */
 #define LOW_MEMORY_LIMIT        0x0000000000100000
+/*! Maximum addressible physical address supported */
 #define PHYS_ADDR_LIMIT         0x0000020000000000
 
-/* Page structure constants */
-
+/*! Required alignment of page structures */
 #define PAGE_STRUCT_ALIGN       4096
+/*! Size of page structures */
 #define PAGE_STRUCT_SIZE        4096
+/*! Number of 8-byte entries in page structures */
 #define PAGE_STRUCT_ENTRIES     512
 
-/* Page structure entry flags */
-
+/*! Page present */
 #define PAGE_FLAG_PRESENT       (1 << 0)
+/*! Read and write access */
 #define PAGE_FLAG_RW            (1 << 1)
+/*! User-accessible page */
 #define PAGE_FLAG_USER          (1 << 2)
+/*! Write-through page caching */
 #define PAGE_FLAG_WTHRU         (1 << 3)
+/*! Prevent TLB from caching page */
 #define PAGE_FLAG_NOCACHE       (1 << 4)
+/*! Set when page is accessed */
 #define PAGE_FLAG_ACCESS        (1 << 5)
+/*! Set when page is written to */
 #define PAGE_FLAG_DIRTY         (1 << 6)
+/*! Use larger page size */
 #define PAGE_FLAG_SIZE          (1 << 7)
+/*! Prevent TLB from invalidating page */
 #define PAGE_FLAG_GLOBAL        (1 << 8)
 
-/* Page structure entry flags for non-present pages, used in the
-   page fault handler to determine the action to take when encountering
-   a non-present page. The copy-on-write flag is for read-only pages
-   that should be copied upon write. */
+/*! Allocate page on access */
+#define PAGE_NP_FLAG_AOA        (1 << 1)
+/*! Fetch page from swap space */
+#define PAGE_NP_FLAG_SWAP       (1 << 2)
+/*! Copy page on write */
+#define PAGE_NP_FLAG_COW        (1 << 9)
 
-#define PAGE_NP_FLAG_AOA        (1 << 1) /* Allocate on access */
-#define PAGE_NP_FLAG_SWAP       (1 << 2) /* Swap from swap partition */
-#define PAGE_NP_FLAG_COW        (1 << 9) /* Copy-on-write */
-
-/* Page sizes */
-
+/*! Standard page size (4 kilobytes) */
 #define PAGE_SIZE               0x1000
+/*! Large page size (2 megabytes), used when PDT.S is set */
 #define LARGE_PAGE_SIZE         0x200000
+/*! Huge page size (1 gigabyte), used when PDPT.S is set */
 #define HUGE_PAGE_SIZE          0x40000000
 
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>
 
+/*! Offset in virtual memory of physical memory map */
 #define KERNEL_VMA              ((uintptr_t) &__kernel_vma)
+/*! Start of kernel text segment in virtual memory */
 #define KERNEL_START            ((uintptr_t) &__kernel_start)
+/*! End of kernel data segment in virtual memory */
 #define KERNEL_END              ((uintptr_t) &__kernel_end)
 
+/*!
+ * Relocates a physical address into a virtual address.
+ *
+ * @param x the address to relocate
+ * @return the virtual address
+ */
 #define PHYS_REL(x) ((__typeof__ (x)) ((uintptr_t) (x) + LOW_PHYSICAL_BASE_VMA))
 
+/*! Page-align a variable */
 #define __page_align            __attribute__ ((aligned (PAGE_SIZE)))
 
 struct page_stack
@@ -91,17 +113,33 @@ struct page_stack
   uintptr_t *ptr;
 };
 
+/*!
+ * Clears all entries in the TLB by reloading the CR3 register.
+ */
+
 __always_inline static inline void
 vm_clear_tlb (void)
 {
   __asm__ volatile ("mov %%cr3, %%rax\nmov %%rax, %%cr3" ::: "memory");
 }
 
+/*!
+ * Invalidates a single page in the TLB.
+ *
+ * @param addr address of page to invalidate
+ */
+
 __always_inline static inline void
 vm_clear_page (void *addr)
 {
   __asm__ volatile ("invlpg (%0)" :: "r" (addr) : "memory");
 }
+
+/*!
+ * Changes the PML4T to use for the current address space.
+ *
+ * @param addr address of new PML4T
+ */
 
 __always_inline static inline void
 vm_set_cr3 (uintptr_t addr)
