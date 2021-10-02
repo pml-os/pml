@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <pml/acpi.h>
 #include <pml/memory.h>
 #include <pml/panic.h>

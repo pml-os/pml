@@ -17,9 +17,13 @@
 #ifndef __PML_TTY_H
 #define __PML_TTY_H
 
+/*! @file */
+
 #include <pml/cdefs.h>
 
 struct tty;
+
+/*! Vector of functions used by a TTY output backend. */
 
 struct tty_output
 {
@@ -29,15 +33,20 @@ struct tty_output
   int (*scroll_down) (struct tty *);
 };
 
+/*!
+ * Represents a teletypewriter (TTY). Used for displaying output to
+ * the VGA text mode console or a terminal-like device.
+ */
+
 struct tty
 {
-  unsigned char color;
-  size_t width;
-  size_t height;
-  size_t x;
-  size_t y;
-  void *screen;
-  const struct tty_output *output;
+  unsigned char color;              /*!< Currently selected color */
+  size_t width;                     /*!< Total number of columns */
+  size_t height;                    /*!< Total number of rows */
+  size_t x;                         /*!< Current column number */
+  size_t y;                         /*!< Current row number */
+  void *screen;                     /*!< Buffer containing contents of screen */
+  const struct tty_output *output;  /*!< Output function vector */
 };
 
 __BEGIN_DECLS

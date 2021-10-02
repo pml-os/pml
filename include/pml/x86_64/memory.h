@@ -20,15 +20,15 @@
 /*!
  * @file memory.h
  * Virtual memory layout on x86_64
- *
+ * @code{.unparsed}
  * 0x0000000000000000-0x00007fffffffffff  128T  User space memory
  * 0xffff800000000000-0xfffffcffffffffff ~126T  Reserved kernel memory
  * 0xfffffd8000000000-0xfffffdffbfffffff  511G  Thread-local storage
  * 0xfffffdffc0000000-0xfffffdffffffffff    1G  Thread stack space
  * 0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
- *
+ * @endcode
  * A maximum of 2 TiB of physical memory is supported. PML will not be able
- * to access physical memory beyond the 2 TiB address (PHYS_ADDR_LIMIT).
+ * to access physical memory beyond the 2 TiB address (@ref PHYS_ADDR_LIMIT).
  */
 
 /*! Base virtual address of thread-local storage */

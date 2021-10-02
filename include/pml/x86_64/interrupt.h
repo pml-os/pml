@@ -17,6 +17,8 @@
 #ifndef __PML_INTERRUPT_H
 #define __PML_INTERRUPT_H
 
+/*! @file */
+
 #define PIC_8259_MASTER_COMMAND 0x20
 #define PIC_8259_MASTER_DATA    0x21
 #define PIC_8259_SLAVE_COMMAND  0xa0
@@ -37,14 +39,16 @@
 
 #include <pml/cdefs.h>
 
+/*! Format of an entry in the long mode interrupt descriptor table (IDT). */
+
 struct idt_entry
 {
-  uint16_t offset_low;
-  uint16_t selector;
+  uint16_t offset_low;          /*!< Bits 0-15 of interrupt handler address */
+  uint16_t selector;            /*!< Code segment to use for interrupt */
   unsigned char ist;
   unsigned char type_attr;
-  uint16_t offset_mid;
-  uint32_t offset_high;
+  uint16_t offset_mid;          /*!< Bits 16-31 of interrupt handler address */
+  uint32_t offset_high;         /*!< Bits 32-63 of interrupt handler address */
   uint32_t reserved;
 };
 
@@ -54,17 +58,31 @@ struct idt_ptr
   struct idt_entry *addr;
 } __packed;
 
+/*!
+ * Loads the interrupt descriptor table referenced by the given pointer.
+ *
+ * @param ptr the IDT pointer to load
+ */
+
 __always_inline static inline void
 load_idt (struct idt_ptr ptr)
 {
   __asm__ volatile ("lidt %0" :: "m" (ptr));
 }
 
+/*!
+ * Disables hardware-generated interrupts.
+ */
+
 __always_inline static inline void
 int_disable (void)
 {
   __asm__ volatile ("cli");
 }
+
+/*!
+ * Enables hardware-generated interrupts.
+ */
 
 __always_inline static inline void
 int_enable (void)

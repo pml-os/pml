@@ -17,9 +17,17 @@
 #ifndef __PML_PANIC_H
 #define __PML_PANIC_H
 
+/*! @file */
+
 #include <pml/cdefs.h>
 
-/* Kernel panic routine for x86_64 */
+/*!
+ * Raises a kernel panic. Before halting the processor, this macro prints
+ * an informative message to the kernel console and displays the value of
+ * all general-purpose registers.
+ *
+ * @param fmt the printf-style format string to print
+ */
 
 #define panic(fmt, ...) do						\
     {									\

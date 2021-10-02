@@ -17,16 +17,24 @@
 #ifndef __PML_LOCK_H
 #define __PML_LOCK_H
 
+/*! @file */
+
 #include <pml/cdefs.h>
 
+/*! Integer type for spinlocks. */
 typedef volatile int lock_t;
 
 struct thread_list;
 
+/*!
+ * Represents a semaphore. Stores a spinlock object internally and
+ * a list of threads blocked waiting for the semaphore.
+ */
+
 struct semaphore
 {
-  lock_t lock;                  /* The actual locked object */
-  struct thread_list *blocked;  /* Threads blocked for acquiring mutex */
+  lock_t lock;                  /*!< The actual locked object */
+  struct thread_list *blocked;  /*!< Threads blocked for wait */
 };
 
 __BEGIN_DECLS

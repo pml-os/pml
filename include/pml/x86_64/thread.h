@@ -17,12 +17,19 @@
 #ifndef __PML_THREAD_H
 #define __PML_THREAD_H
 
+/*! @file */
+
+/*! Milliseconds of CPU time given to each thread */
 #define THREAD_QUANTUM          20
 
+/*! Minimum process priority value */
 #define PRIO_MIN                19
+/*! Maximum process priority value */
 #define PRIO_MAX                -20
 
+/*! Expands to a pointer to the currently running process */
 #define THIS_PROCESS (process_queue.queue[process_queue.front])
+/*! Expands to a pointer to the currently running thread */
 #define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
 
 #ifndef __ASSEMBLER__
@@ -32,25 +39,39 @@
 
 enum
 {
-  THREAD_STATE_RUNNING,
-  THREAD_STATE_BLOCKED
+  THREAD_STATE_RUNNING,         /*!< Thread is unblocked */
+  THREAD_STATE_BLOCKED,         /*!< Thread is waiting for a semaphore */
+  THREAD_STATE_IO               /*!< Thread is waiting for an I/O operation */
 };
+
+/*! Arguments used to create a new thread. */
 
 struct thread_args
 {
-  uint64_t *pml4t;              /* Address of PML4T */
-  void *stack;                  /* Address of stack pointer */
-  void *stack_base;             /* Pointer to bottom of stack */
-  size_t stack_size;            /* Size of stack */
+  uint64_t *pml4t;              /*!< Address of PML4T */
+  void *stack;                  /*!< Address of stack pointer */
+  void *stack_base;             /*!< Pointer to bottom of stack */
+  size_t stack_size;            /*!< Size of stack */
 };
+
+/*!
+ * Represents a thread. Processes can have multiple threads, which share
+ * the same process ID but have unique thread IDs. Threads have individual
+ * page structures and stacks.
+ */
 
 struct thread
 {
-  pid_t tid;                    /* Thread ID */
-  struct process *process;      /* Process this thread belongs to */
-  struct thread_args args;      /* Properties of thread */
-  int state;                    /* Thread state */
+  pid_t tid;                    /*!< Thread ID */
+  struct process *process;      /*!< Process this thread belongs to */
+  struct thread_args args;      /*!< Properties of thread */
+  int state;                    /*!< Thread state */
 };
+
+/*!
+ * Queue of threads, used by processes to keep track of their threads
+ * and to schedule the next thread within a process.
+ */
 
 struct thread_queue
 {
@@ -59,19 +80,34 @@ struct thread_queue
   size_t front;
 };
 
+/*!
+ * Linked list of threads, used by semaphores to keep track of which threads
+ * are blocked waiting for them.
+ */
+
 struct thread_list
 {
   struct thread *thread;
   struct thread_list *next;
 };
 
+/*!
+ * Represents a process. Processes have a unique ID and also store their
+ * parent process's ID. Each process is assigned a priority, but currently
+ * process priorities are not implemented and are ignored.
+ */
+
 struct process
 {
-  pid_t pid;                    /* Process ID */
-  pid_t ppid;                   /* Parent process ID */
-  struct thread_queue threads;  /* Process thread queue */
-  int priority;                 /* Process priority */
+  pid_t pid;                    /*!< Process ID */
+  pid_t ppid;                   /*!< Parent process ID */
+  struct thread_queue threads;  /*!< Process thread queue */
+  int priority;                 /*!< Process priority */
 };
+
+/*!
+ * Queue of processes, used by the scheduler to schedule the next process.
+ */
 
 struct process_queue
 {
