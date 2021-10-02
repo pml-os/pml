@@ -50,12 +50,27 @@ struct acpi_table_header
   uint32_t creator_revision;
 };
 
+struct acpi_rsdt
+{
+  struct acpi_table_header header;
+  uint32_t tables[];
+};
+
+struct acpi_xsdt
+{
+  struct acpi_table_header header;
+  uint64_t tables[];
+};
+
 __BEGIN_DECLS
 
 extern struct acpi_rsdp *acpi_rsdp;
 
 void acpi_init (void);
-int acpi_rsdp_checksum (const struct acpi_rsdp *rsdp);
+void acpi_parse_table (const struct acpi_table_header *header);
+void acpi_parse_rsdt (const struct acpi_rsdt *rsdt);
+void acpi_parse_xsdt (const struct acpi_xsdt *xsdt);
+int acpi_rsdp_checksum (const struct acpi_rsdp *rsdp, int acpi2);
 int acpi_table_checksum (const struct acpi_table_header *header);
 
 __END_DECLS

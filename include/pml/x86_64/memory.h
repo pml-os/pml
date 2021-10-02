@@ -97,12 +97,22 @@
 #define KERNEL_END              ((uintptr_t) &__kernel_end)
 
 /*!
- * Relocates a physical address into a virtual address.
+ * Relocates a 64-bit physical address into a virtual address.
  *
  * @param x the address to relocate
  * @return the virtual address
  */
+
 #define PHYS_REL(x) ((__typeof__ (x)) ((uintptr_t) (x) + LOW_PHYSICAL_BASE_VMA))
+
+/*!
+ * Relocates a 32-bit physical address into a virtual address.
+ *
+ * @param x the address to relocate
+ * @return the virtual address
+ */
+
+#define PHYS32_REL(x) (PHYS_REL ((uintptr_t) (x)))
 
 /*! Page-align a variable */
 #define __page_align            __attribute__ ((aligned (PAGE_SIZE)))
