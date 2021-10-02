@@ -89,10 +89,10 @@ multiboot_init (uintptr_t addr)
 	  printf ("Boot loader name: %s\n",
 		  ((struct mb_str_tag *) tag)->string);
 	  break;
-/*	case MULTIBOOT_TAG_TYPE_ACPI_OLD:
+	case MULTIBOOT_TAG_TYPE_ACPI_OLD:
 	case MULTIBOOT_TAG_TYPE_ACPI_NEW:
-	  acpi_rsdp = &((struct mb_acpi_rsdp_tag *) tag)->rsdp;
-	  break; */
+	  acpi_rsdp = PHYS_REL (&((struct mb_acpi_rsdp_tag *) tag)->rsdp);
+	  break;
 	}
     }
   if (UNLIKELY (!multiboot_mmap))

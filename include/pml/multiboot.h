@@ -81,7 +81,7 @@
 
 #ifndef __ASSEMBLER__
 
-#include <pml/cdefs.h>
+#include <pml/acpi.h>
 
 struct mb_tag
 {
@@ -122,7 +122,7 @@ struct mb_mmap_tag
 struct mb_acpi_rsdp_tag
 {
   struct mb_tag tag;
-  unsigned char rsdp[];
+  struct acpi_rsdp rsdp;
 };
 
 __BEGIN_DECLS

@@ -51,7 +51,7 @@ __BEGIN_DECLS
 
 extern uint64_t panic_registers[8];
 
-void __panic (const char *__restrict__ fmt, ...) __noreturn;
+void __panic (const char *__restrict__ fmt, ...) __cold __noreturn;
 
 __END_DECLS
 

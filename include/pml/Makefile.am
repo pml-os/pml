@@ -22,6 +22,7 @@ nodist_pmlinclude_HEADERS = \
 	thread.h
 
 pmlinclude_HEADERS =	\
+	acpi.h		\
 	alloc.h		\
 	asm.h		\
 	errno.h		\

@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/acpi.h>
 #include <pml/alloc.h>
 #include <pml/cmos.h>
 #include <pml/memory.h>
@@ -41,4 +42,5 @@ arch_init (void)
   sched_init ();
   real_time = cmos_read_real_time ();
   cmos_enable_rtc_int ();
+  acpi_init ();
 }
