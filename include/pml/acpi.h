@@ -90,6 +90,109 @@ struct acpi_xsdt
   uint64_t tables[];
 };
 
+/*! Values for possible types for MADT entries. */
+
+enum acpi_madt_entry_type
+{
+  ACPI_MADT_ENTRY_LOCAL_APIC = 0,   /*!< Processor local APIC */
+  ACPI_MADT_ENTRY_IOAPIC,           /*!< I/O APIC */
+  ACPI_MADT_ENTRY_INT_SOURCE_OVR,   /*!< I/O APIC interrupt source override */
+  ACPI_MADT_ENTRY_NMI_SOURCE,       /*!< I/O APIC NMI source */
+  ACPI_MADT_ENTRY_LOCAL_APIC_NMI,   /*!< Local APIC NMI */
+  ACPI_MADT_ENTRY_LOCAL_APIC_ADDR_OVR, /*!< Local APIC address override */
+  ACPI_MADT_ENTRY_IOSAPIC,
+  ACPI_MADT_ENTRY_LOCAL_SAPIC,
+  ACPI_MADT_ENTRY_PLATFORM_INT_SOURCES,
+  ACPI_MADT_ENTRY_LOCAL_X2APIC,     /*!< Processor local x2APIC */
+  ACPI_MADT_ENTRY_LOCAL_X2APIC_NMI,
+  ACPI_MADT_GIC_CPU_INTERFACE,
+  ACPI_MADT_GIC_DISTRIBUTOR,
+  ACPI_MADT_GIC_MSI_FRAME,
+  ACPI_MADT_GIC_REDISTRIBUTOR,
+  ACPI_MADT_GIC_INT_TRANSLATE_SERVICE
+};
+
+struct acpi_madt_entry
+{
+  unsigned char type;   /*!< Type of entry (see @ref acpi_madt_entry_type) */
+  unsigned char len;    /*!< Length of entry */
+};
+
+/*! Set if the processor is ready to use */
+#define ACPI_MADT_LOCAL_APIC_ENABLED        (1 << 0)
+/*! Set if the processor can be enabled by system hardware */
+#define ACPI_MADT_LOCAL_APIC_ONLINE_CAP     (1 << 1)
+
+/*!
+ * Format of the processor local APIC MADT entry. This entry corresponds
+ * to a type of @ref ACPI_MADT_ENTRY_LOCAL_APIC and contains the processor UID
+ * and local APIC ID.
+ */
+
+struct acpi_madt_local_apic
+{
+  struct acpi_madt_entry entry;     /*!< MADT entry header */
+  unsigned char proc_uid;           /*!< ACPI processor UID */
+  unsigned char local_apic_id;      /*!< Processor local APIC ID */
+  uint32_t flags;                   /*!< Local APIC flags */
+};
+
+/*!
+ * Format of the I/O APIC MADT entry. This entry corresponds to a type of
+ * @ref ACPI_MADT_ENTRY_IOAPIC and contains the I/O APIC ID and physical
+ * address.
+ */
+
+struct acpi_madt_ioapic
+{
+  struct acpi_madt_entry entry;     /*!< MADT entry header */
+  unsigned char ioapic_id;          /*!< I/O APIC ID */
+  unsigned char reserved;
+  uint32_t ioapic_addr;             /*!< 32-bit physical address of I/O APIC */
+  uint32_t gsi_base;                /*!< Global system interrupt base number */
+};
+
+/*!
+ * Format of an I/O APIC interrupt source override MADT entry. This entry
+ * corresponds to a type of @ref ACPI_MADT_ENTRY_INT_SOURCE_OVR and maps
+ * an IRQ source to a global system interrupt.
+ */
+
+struct acpi_madt_int_source_ovr
+{
+  struct acpi_madt_entry entry;     /*!< MADT entry header */
+  unsigned char bus;
+  unsigned char source;             /*!< IRQ source */
+  uint32_t gsi;                     /*!< Global system interrupt to signal */
+  uint16_t flags;                   /*!< MPS INTI flags */
+};
+
+/*!
+ * Format of a local APIC address override MADT entry. This entry corresponds
+ * to a type of @ref ACPI_MADT_ENTRY_LOCAL_APIC_ADDR_OVR and contains the
+ * 64-bit physical address of a local APIC.
+ */
+
+struct acpi_madt_local_apic_addr_ovr
+{
+  struct acpi_madt_entry entry;     /*!< MADT entry header */
+  uint16_t reserved;
+  uint64_t local_apic_addr;         /*!< Physical address of local APIC */
+};
+
+/*!
+ * Format of the MADT. Contains a header followed by several variabl-length
+ * entries.
+ */
+
+struct acpi_madt
+{
+  struct acpi_table_header header;  /*!< ACPI table header */
+  uint32_t local_apic_addr;         /*!< Physical address of local APIC */
+  uint32_t flags;                   /*!< MADT flags */
+  unsigned char entries[];          /*!< Pointer to start of MADT entries */
+};
+
 __BEGIN_DECLS
 
 extern struct acpi_rsdp *acpi_rsdp;
@@ -98,6 +201,7 @@ void acpi_init (void);
 void acpi_parse_table (const struct acpi_table_header *header);
 void acpi_parse_rsdt (const struct acpi_rsdt *rsdt);
 void acpi_parse_xsdt (const struct acpi_xsdt *xsdt);
+void acpi_parse_madt (const struct acpi_madt *madt);
 int acpi_rsdp_checksum (const struct acpi_rsdp *rsdp, int acpi2);
 int acpi_table_checksum (const struct acpi_table_header *header);
 

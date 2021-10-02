@@ -61,7 +61,17 @@ acpi_parse_table (const struct acpi_table_header *header)
   char buffer[5];
   strncpy (buffer, header->signature, 4);
   buffer[4] = '\0';
+
+  if (UNLIKELY (acpi_table_checksum (header)))
+    {
+      printf ("ACPI: ignoring %s table with bad checksum at %p\n", buffer,
+	      header);
+      return;
+    }
   printf ("ACPI: found table with signature %s at %p\n", buffer, header);
+
+  if (!strncmp (header->signature, "APIC", 4))
+    acpi_parse_madt ((const struct acpi_madt *) header);
 }
 
 /*!

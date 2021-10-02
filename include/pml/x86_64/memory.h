@@ -52,31 +52,19 @@
 /*! Number of 8-byte entries in page structures */
 #define PAGE_STRUCT_ENTRIES     512
 
-/*! Page present */
-#define PAGE_FLAG_PRESENT       (1 << 0)
-/*! Read and write access */
-#define PAGE_FLAG_RW            (1 << 1)
-/*! User-accessible page */
-#define PAGE_FLAG_USER          (1 << 2)
-/*! Write-through page caching */
-#define PAGE_FLAG_WTHRU         (1 << 3)
-/*! Prevent TLB from caching page */
-#define PAGE_FLAG_NOCACHE       (1 << 4)
-/*! Set when page is accessed */
-#define PAGE_FLAG_ACCESS        (1 << 5)
-/*! Set when page is written to */
-#define PAGE_FLAG_DIRTY         (1 << 6)
-/*! Use larger page size */
-#define PAGE_FLAG_SIZE          (1 << 7)
-/*! Prevent TLB from invalidating page */
-#define PAGE_FLAG_GLOBAL        (1 << 8)
+#define PAGE_FLAG_PRESENT       (1 << 0)  /*!< Page present */
+#define PAGE_FLAG_RW            (1 << 1)  /*!< Read and write access */
+#define PAGE_FLAG_USER          (1 << 2)  /*!< User-accessible page */
+#define PAGE_FLAG_WTHRU         (1 << 3)  /*!< Write-through page caching */
+#define PAGE_FLAG_NOCACHE       (1 << 4)  /*!< Prevent TLB from caching page */
+#define PAGE_FLAG_ACCESS        (1 << 5)  /*!< Set when page is accessed */
+#define PAGE_FLAG_DIRTY         (1 << 6)  /*!< Set when page is written to */
+#define PAGE_FLAG_SIZE          (1 << 7)  /*!< Use larger page size */
+#define PAGE_FLAG_GLOBAL        (1 << 8)  /*!< Global page */
 
-/*! Allocate page on access */
-#define PAGE_NP_FLAG_AOA        (1 << 1)
-/*! Fetch page from swap space */
-#define PAGE_NP_FLAG_SWAP       (1 << 2)
-/*! Copy page on write */
-#define PAGE_NP_FLAG_COW        (1 << 9)
+#define PAGE_NP_FLAG_AOA        (1 << 1)  /*!< Allocate page on access */
+#define PAGE_NP_FLAG_SWAP       (1 << 2)  /*!< Fetch page from swap space */
+#define PAGE_NP_FLAG_COW        (1 << 9)  /*!< Copy page on write */
 
 /*! Standard page size (4 kilobytes) */
 #define PAGE_SIZE               0x1000
