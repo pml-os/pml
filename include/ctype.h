@@ -17,7 +17,11 @@
 #ifndef __CTYPE_H
 #define __CTYPE_H
 
-/* Macros for character classification. These only work for ASCII. */
+/*!
+ * @file
+ * Macros for character classification. The macros in this file will only
+ * work properly on ASCII characters.
+ */
 
 #define isascii(c)              ((c) >= 0 && (c) < 0x80)
 #define isblank(c)              ((c) == ' ' || (c) == '\t')

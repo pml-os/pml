@@ -17,10 +17,20 @@
 #ifndef __STDIO_H
 #define __STDIO_H
 
+/*! @file */
+
 #include <pml/cdefs.h>
 #include <stdarg.h>
 
+/*! Indicates the end of input. */
 #define EOF                     (-1)
+
+/*!
+ * printf() wrapper used for debugging. The printed message contains
+ * the source file and line number of the statement that calls this macro.
+ *
+ * @param fmt the printf-style format string
+ */
 
 #define debug_printf(fmt, ...)					\
   printf ("%s:%d: " fmt, __FILE__, __LINE__,  ## __VA_ARGS__ )

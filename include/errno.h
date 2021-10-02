@@ -17,8 +17,20 @@
 #ifndef __ERRNO_H
 #define __ERRNO_H
 
+/*!
+ * @file
+ * @brief Kernel error constants and macros
+ */
+
 #include <pml/cdefs.h>
 #include <pml/errno.h>
+
+/*!
+ * Sets the kernel @c errno value and returns from the calling function.
+ * This macro is designed to be called from a function returning @c void.
+ *
+ * @param e the error value
+ */
 
 #define RET_ERROR(e) do				\
     {						\
@@ -26,6 +38,15 @@
       return;					\
     }						\
   while (0)
+
+/*!
+ * Sets the kernel @c errno value and returns the given value from the
+ * calling function. This macro is designed to be called from a function
+ * that returns a value.
+ *
+ * @param e the error value
+ * @param r the return value
+ */
 
 #define RETV_ERROR(e, r) do			\
     {						\

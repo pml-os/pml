@@ -17,22 +17,91 @@
 #ifndef __STDLIB_H
 #define __STDLIB_H
 
+/*! @file */
+
 #include <pml/cdefs.h>
 #include <pml/types.h>
 
+/*!
+ * Determines whether an integer or pointer value is aligned.
+ *
+ * @param x the value to test
+ * @param s the required alignment
+ * @return nonzero if aligned
+ */
+
 #define ALIGNED(x, s) (!((uintptr_t) (x) & ((s) - 1)))
+
+/*!
+ * Determines whether a NUL character @c '\0' is present in a @c long value.
+ *
+ * @param x the value to test
+ * @return nonzero if a NUL character is present
+ */
+
 #define LONG_NULL(x) (((x) - 0x0101010101010101) & ~(x) & 0x8080808080808080)
+
+/*!
+ * Determines whether a specific character is present in a @c long value.
+ *
+ * @param x the value to test
+ * @param c the character to test for
+ * @return nonzero if the character is present
+ */
+
 #define LONG_CHAR(x, c) LONG_NULL ((x) ^ (c))
 
+/*!
+ * Aligns an integer or pointer value down.
+ *
+ * @param x the value to align
+ * @param a the required alignment
+ * @return an aligned value of the same type
+ */
+
 #define ALIGN_DOWN(x, a) ((__typeof__ (x)) ((uintptr_t) (x) & ~((a) - 1)))
+
+/*!
+ * Aligns an integer or pointer value up.
+ *
+ * @param x the value to align
+ * @param a the required alignment
+ * @return an aligned value of the same type
+ */
+
 #define ALIGN_UP(x, a)						\
   ((__typeof__ (x)) ((((uintptr_t) (x) - 1) | ((a) - 1)) + 1))
+
+/*!
+ * Determines whether an integer value is a power of two.
+ *
+ * @param x the value to test
+ * @return nonzero if the value is a power of two
+ */
+
 #define IS_P2(x) ((x) != 0 && !((x) & ((x) - 1)))
 
+/*! Marks a condition as likely to occur to the branch predictor. */
 #define LIKELY(x)               (__builtin_expect (!!(x), 1))
+/*! Marks a condition as unlikely to occur to the branch predictor. */
 #define UNLIKELY(x)             (__builtin_expect (!!(x), 0))
 
+/*!
+ * Creates a symbol alias. The targeted symbol must appear in the same
+ * translation unit.
+ *
+ * @param old the existing symbol to alias
+ * @param new the name of the new symbol
+ */
+
 #define ALIAS(old, new)         extern __typeof__ (old) new __alias (old)
+
+/*!
+ * Sets a bit in a bitmap.
+ *
+ * @param bitmap the bitmap
+ * @param index the index of the bit to set
+ */
 
 static inline void
 set_bit (void *bitmap, size_t index)
@@ -40,11 +109,26 @@ set_bit (void *bitmap, size_t index)
   ((unsigned char *) bitmap)[index / 8] |= 1 << (7 - index % 8);
 }
 
+/*!
+ * Clears a bit in a bitmap.
+ *
+ * @param bitmap the bitmap
+ * @param index the index of the bit to clear
+ */
+
 static inline void
 clear_bit (void *bitmap, size_t index)
 {
   ((unsigned char *) bitmap)[index / 8] &= ~(1 << (7 - index % 8));
 }
+
+/*!
+ * Tests whether a bit in a bitmap is set.
+ *
+ * @param bitmap the bitmap
+ * @param index the index of the bit to test
+ * @return nonzero if the bit is set
+ */
 
 static inline int
 test_bit (const void *bitmap, size_t index)
@@ -58,7 +142,6 @@ extern time_t real_time;
 
 unsigned long strtoul (const char *__restrict__ str, char **__restrict__ end,
 		       int base) __pure;
-void abort (void) __noreturn;
 
 void *malloc (size_t size);
 void *calloc (size_t block, size_t size);

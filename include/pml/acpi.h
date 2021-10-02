@@ -193,16 +193,115 @@ struct acpi_madt
   unsigned char entries[];          /*!< Pointer to start of MADT entries */
 };
 
+/*!
+ * Possible values for an ACPI address space.
+ */
+
+enum acpi_addr_space
+{
+  ACPI_ADDR_SPACE_MEMORY = 0,       /*!< System memory */
+  ACPI_ADDR_SPACE_IO,               /*!< System I/O ports */
+  ACPI_ADDR_SPACE_PCI_CONFIG,       /*!< PCI configuration space */
+  ACPI_ADDR_SPACE_EMBEDDED,         /*!< Embedded controller */
+  ACPI_ADDR_SPACE_SMB,              /*!< System management bus */
+  ACPI_ADDR_SPACE_CMOS,             /*!< System CMOS */
+  ACPI_ADDR_SPACE_PCI_BAR,          /*!< PCI device BAR */
+  ACPI_ADDR_SPACE_IPMI,             /*!< System IPMI */
+  ACPI_ADDR_SPACE_GPIO,             /*!< General purpose I/O */
+  ACPI_ADDR_SPACE_SERIAL,           /*!< Serial bus */
+  ACPI_ADDR_SPACE_COMM              /*!< Platform communication channel */
+};
+
+/*!
+ * Format of a 12-byte ACPI extended address.
+ */
+
+struct acpi_addr
+{
+  unsigned char addr_space;     /*!< Address space, see @ref acpi_addr_space */
+  unsigned char bit_width;
+  unsigned char bit_offset;
+  unsigned char access_size;    /*!< Required memory access size */
+  uint64_t addr;                /*!< 64-bit physical address */
+};
+
+/*!
+ * Format of the FADT since ACPI 2.0.
+ */
+
+struct acpi_fadt
+{
+  struct acpi_table_header header;  /*!< ACPI table header */
+  uint32_t firmware_control;
+  uint32_t dsdt;                    /*!< Physical address of the DSDT */
+  unsigned char reserved;
+  unsigned char power_profile;      /*!< Power management profile to use */
+  uint16_t sci_int;
+  uint32_t smi_command;
+  unsigned char acpi_enable;
+  unsigned char acpi_disable;
+  unsigned char s4bios_req;
+  unsigned char pstate_control;
+  uint32_t pm1a_event_block;
+  uint32_t pm1b_event_block;
+  uint32_t pm1a_control_block;
+  uint32_t pm1b_control_block;
+  uint32_t pm2_control_block;
+  uint32_t pm_timer_block;
+  uint32_t gpe0_block;
+  uint32_t gpe1_block;
+  unsigned char pm1_event_len;
+  unsigned char pm1_control_len;
+  unsigned char pm2_control_len;
+  unsigned char pm_timer_len;
+  unsigned char gpe0_len;
+  unsigned char gpe1_len;
+  unsigned char gpe1_base;
+  unsigned char cstate_control;
+  uint16_t c2_latency;
+  uint16_t c3_latency;
+  uint16_t flush_size;
+  uint16_t flush_stride;
+  unsigned char duty_offset;
+  unsigned char duty_width;
+  unsigned char day_alarm;
+  unsigned char month_alarm;
+  unsigned char century;
+  unsigned char iapc_boot_flags[2];
+  unsigned char reserved2;
+  uint32_t flags;
+  struct acpi_addr reset_reg;
+  unsigned char reset_value;
+  unsigned char reserved3[3];
+  uint64_t x_firmware_control;
+  uint64_t x_dsdt;                  /*!< 64-bit physical address of the DSDT */
+  struct acpi_addr x_pm1a_event_block;
+  struct acpi_addr x_pm1b_event_block;
+  struct acpi_addr x_pm1a_control_block;
+  struct acpi_addr x_pm1b_control_block;
+  struct acpi_addr x_pm2_control_block;
+  struct acpi_addr x_pm_timer_block;
+  struct acpi_addr x_gpe0_block;
+  struct acpi_addr x_gpe1_block;
+  struct acpi_addr sleep_control_reg;
+  struct acpi_addr sleep_status_reg;
+  uint64_t hyperv_id;
+};
+
 __BEGIN_DECLS
 
+extern int acpi2;
 extern struct acpi_rsdp *acpi_rsdp;
+extern struct acpi_fadt *acpi_fadt;
+extern struct acpi_table_header *acpi_dsdt;
 
 void acpi_init (void);
 void acpi_parse_table (const struct acpi_table_header *header);
 void acpi_parse_rsdt (const struct acpi_rsdt *rsdt);
 void acpi_parse_xsdt (const struct acpi_xsdt *xsdt);
+void acpi_parse_fadt (const struct acpi_fadt *fadt);
 void acpi_parse_madt (const struct acpi_madt *madt);
-int acpi_rsdp_checksum (const struct acpi_rsdp *rsdp, int acpi2);
+int acpi_rsdp_checksum (const struct acpi_rsdp *rsdp);
 int acpi_table_checksum (const struct acpi_table_header *header);
 
 __END_DECLS

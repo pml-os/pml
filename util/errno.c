@@ -14,6 +14,13 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <errno.h>
+
+/*!
+ * The kernel-mode @c errno variable. Stores the reason why a previous
+ * function call was unsuccessful.
+ */
 
 int errno;

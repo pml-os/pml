@@ -414,6 +414,16 @@ print_internal (out_func_t func, char *buffer, size_t maxlen, const char *fmt,
   return index;
 }
 
+/*!
+ * Kernel-space version of the C standard @c printf function. This
+ * implementation writes to the kernel console and supports most of the
+ * features of POSIX @c printf except for printing floating-point numbers.
+ * As an extension, the @c %H format specifier prints a human-readable size.
+ *
+ * @param fmt the printf-style format string
+ * @return the number of characters printed
+ */
+
 int
 printf (const char *fmt, ...)
 {

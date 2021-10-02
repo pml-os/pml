@@ -23,7 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*! Nonzero if ACPI 2.0 or newer is available. */
+int acpi2;
+
 struct acpi_rsdp *acpi_rsdp;
+struct acpi_fadt *acpi_fadt;
+struct acpi_table_header *acpi_dsdt;
 
 /*!
  * Initializes the ACPI driver and panics if no RSDP was detected during
@@ -33,11 +38,10 @@ struct acpi_rsdp *acpi_rsdp;
 void
 acpi_init (void)
 {
-  int acpi2;
   if (UNLIKELY (!acpi_rsdp))
     panic ("No ACPI RSDP found");
   acpi2 = acpi_rsdp->old.revision;
-  if (UNLIKELY (acpi_rsdp_checksum (acpi_rsdp, acpi2)))
+  if (UNLIKELY (acpi_rsdp_checksum (acpi_rsdp)))
     panic ("Bad checksum or signature on ACPI RSDP");
   if (acpi2 && acpi_rsdp->xsdt_addr)
     {
@@ -72,6 +76,8 @@ acpi_parse_table (const struct acpi_table_header *header)
 
   if (!strncmp (header->signature, "APIC", 4))
     acpi_parse_madt ((const struct acpi_madt *) header);
+  else if (!strncmp (header->signature, "FACP", 4))
+    acpi_parse_fadt ((const struct acpi_fadt *) header);
 }
 
 /*!
@@ -113,6 +119,25 @@ acpi_parse_xsdt (const struct acpi_xsdt *xsdt)
 }
 
 /*!
+ * Parses the Fixed ACPI Description Table (FADT). Saves a pointer to the FADT
+ * and the DSDT.
+ *
+ * @param fadt the address of the FADT
+ */
+
+void
+acpi_parse_fadt (const struct acpi_fadt *fadt)
+{
+  acpi_fadt = (struct acpi_fadt *) fadt;
+  if (acpi2 && fadt->x_dsdt)
+    acpi_dsdt = (struct acpi_table_header *) PHYS_REL (fadt->x_dsdt);
+  else
+    acpi_dsdt = (struct acpi_table_header *) PHYS32_REL (fadt->dsdt);
+  if (UNLIKELY (acpi_table_checksum (acpi_dsdt)))
+    panic ("ACPI: bad checksum on DSDT");
+}
+
+/*!
  * Verifies the checksum and signature of the ACPI RSDP.
  *
  * @param rsdp the RSDP pointer to verify
@@ -121,7 +146,7 @@ acpi_parse_xsdt (const struct acpi_xsdt *xsdt)
  */
 
 int
-acpi_rsdp_checksum (const struct acpi_rsdp *rsdp, int acpi2)
+acpi_rsdp_checksum (const struct acpi_rsdp *rsdp)
 {
   const unsigned char *ptr = (const unsigned char *) rsdp;
   unsigned char c = 0;
