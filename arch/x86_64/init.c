@@ -63,4 +63,7 @@ arch_init (void)
   /* Start interrupts */
   int_start ();
   int_enable ();
+
+  /* Start multiple cores if SMP is supported */
+  smp_init ();
 }

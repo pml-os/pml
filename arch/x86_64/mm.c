@@ -275,7 +275,8 @@ vm_init (void)
       | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
   for (addr = 0, i = 0; i < PAGE_STRUCT_ENTRIES * 4;
        addr += HUGE_PAGE_SIZE, i++)
-    phys_map_pdpt[i] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_SIZE;
+    phys_map_pdpt[i] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_RW
+      | PAGE_FLAG_SIZE | PAGE_FLAG_GLOBAL;
 
   /* Map kernel stack to correct address space */
   kernel_pml4t[507] = ((uintptr_t) kernel_thread_local_pdpt - KERNEL_VMA)

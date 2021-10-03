@@ -39,12 +39,13 @@ case "$bootdir" in
 esac
 AC_SUBST([bootdir])
 
-AC_ARG_ENABLE([apic],
-AS_HELP_STRING([--disable-apic], [don't use the APIC for interrupt management]),
-[use_apic="$enableval"], [use_apic=yes])
-if test "x$use_apic" != xno; then
-    AC_DEFINE([USE_APIC], [1], [Use the APIC for interrupt management])
-fi
+PML_DEFAULT_FEATURE([apic], [USE_APIC],
+[disable interrupt management with the APIC],
+[Use the APIC for interrupt management])
+
+PML_DEFAULT_FEATURE([smp], [ENABLE_SMP],
+[disable support for multiple processors],
+[Enable symmetric multiprocessing])
 
 PML_CC_VEC
 

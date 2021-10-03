@@ -24,8 +24,8 @@
 #include <stdlib.h>
 
 static uint64_t ioapic_irq_map[IOAPIC_IRQ_COUNT];
-static apic_id_t bsp_id;
 
+apic_id_t bsp_id;
 apic_id_t local_apics[MAX_CORES];   /*!< IDs of local APICs */
 size_t local_apic_count;            /*!< Number of local APICs */
 void *local_apic_addr;              /*!< Address of CPU local APIC */
@@ -127,6 +127,40 @@ local_apic_eoi (void)
 }
 
 /*!
+ * Sends an interprocessor interrupt through the local APIC.
+ *
+ * @param vector the interrupt vector number
+ * @param apic_id the ID of the destination APIC
+ * @param mode the interrupt delivery mode
+ * @param deassert whether to use @c INIT level de-assert
+ * @param level_trigger whether the interrupt should be level triggered,
+ * ignored for all modes except @ref ACPI_MODE_INIT
+ */
+
+void
+local_apic_int (unsigned char vector, apic_id_t apic_id, apic_mode_t mode,
+		int deassert, int level_trigger)
+{
+  LOCAL_APIC_REG (LOCAL_APIC_REG_ICR_HIGH) = apic_id << 24;
+  LOCAL_APIC_REG (LOCAL_APIC_REG_ICR_LOW) = vector
+    | (mode << 8)
+    | ((mode == APIC_MODE_INIT && !deassert) << 14)
+    | (!!level_trigger << 15);
+  local_apic_wait_deliver ();
+}
+
+/*!
+ * Waits until the local APIC reports that an interrupt was accepted.
+ */
+
+void
+local_apic_wait_deliver (void)
+{
+  while (LOCAL_APIC_REG (LOCAL_APIC_REG_ICR_LOW) & LOCAL_APIC_ICR_DELIVERED)
+    ;
+}
+
+/*!
  * Sets up an IRQ override on the I/O APIC from an interrupt source override
  * MADT entry.
  *
@@ -140,7 +174,7 @@ ioapic_override_int (const struct acpi_madt_int_source_ovr *entry)
   int low_active = IOAPIC_FLAG_LOW_ACTIVE (entry->flags) == 3;
   int level_trigger = IOAPIC_FLAG_LEVEL_TRIGGER (entry->flags) == 3;
   ioapic_irq_map[irq] =
-    ioapic_entry (0x20 + entry->source, bsp_id, IOAPIC_MODE_FIXED, low_active,
+    ioapic_entry (0x20 + entry->source, bsp_id, APIC_MODE_FIXED, low_active,
 		  level_trigger);
 }
 
@@ -156,7 +190,7 @@ ioapic_override_int (const struct acpi_madt_int_source_ovr *entry)
  */
 
 uint64_t
-ioapic_entry (unsigned char vector, apic_id_t apic_id, ioapic_mode_t mode,
+ioapic_entry (unsigned char vector, apic_id_t apic_id, apic_mode_t mode,
 	      int low_active, int level_trigger)
 {
   return vector
@@ -201,7 +235,7 @@ acpi_parse_madt (const struct acpi_madt *madt)
   /* Identity map I/O APIC IRQ mappings to legacy values by default */
   for (i = 0; i < IOAPIC_IRQ_COUNT; i++)
     ioapic_irq_map[i] =
-      ioapic_entry (0x20 + i, bsp_id, IOAPIC_MODE_FIXED, 0, 0);
+      ioapic_entry (0x20 + i, bsp_id, APIC_MODE_FIXED, 0, 0);
   ioapic_irq_map[2] = 0; /* ISA IRQ2 doesn't exist */
 
   /* Parse MADT entries */
@@ -230,5 +264,5 @@ acpi_parse_madt (const struct acpi_madt *madt)
   /* If no local APIC address was given, guess */
   if (!local_apic_addr)
     local_apic_addr = (void *) PHYS32_REL (LOCAL_APIC_DEFAULT_ADDR);
-#endif
+#endif /* USE_APIC */
 }

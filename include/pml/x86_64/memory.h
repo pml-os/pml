@@ -88,16 +88,18 @@
  * Relocates a 64-bit physical address into a virtual address.
  *
  * @param x the address to relocate
- * @return the virtual address
+ * @return the virtual address as the same type as the input
  */
 
 #define PHYS_REL(x) ((__typeof__ (x)) ((uintptr_t) (x) + LOW_PHYSICAL_BASE_VMA))
 
 /*!
- * Relocates a 32-bit physical address into a virtual address.
+ * Relocates a 32-bit physical address into a virtual address. This function
+ * is the only function that will work for relocating low memory physical
+ * addresses represented by integer literals.
  *
  * @param x the address to relocate
- * @return the virtual address
+ * @return the virtual address as a 64-bit integer
  */
 
 #define PHYS32_REL(x) (PHYS_REL ((uintptr_t) (x)))

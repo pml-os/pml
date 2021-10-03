@@ -38,6 +38,12 @@
 /*! Maximum number of CPUs supported for SMP */
 #define MAX_CORES               16
 
+/*! Physical address of starting AP code */
+#define SMP_AP_START_ADDR       0x8000
+
+/*! Physical address of pointer to kernel PML4T for AP bootstrapping. */
+#define SMP_AP_KERNEL_PML4T     0x7ffc
+
 /*! Number of IRQs handled by an I/O APIC */
 #define IOAPIC_IRQ_COUNT        24
 
@@ -46,6 +52,9 @@
 
 #define LOCAL_APIC_FLAG_ENABLED             (1 << 0)
 #define LOCAL_APIC_FLAG_ONLINE_CAP          (1 << 1)
+
+/*! This bit is cleared in the local APIC ICR when an interrupt is accepted. */
+#define LOCAL_APIC_ICR_DELIVERED            (1 << 12)
 
 #define LOCAL_APIC_REG_ID                   0x020
 #define LOCAL_APIC_REG_VERSION              0x030
@@ -62,7 +71,8 @@
 #define LOCAL_APIC_REG_IRR_BASE             0x200
 #define LOCAL_APIC_REG_ERR_STATUS           0x280
 #define LOCAL_APIC_REG_LVT_CMCI             0x2f0
-#define LOCAL_APIC_REG_ICR_BASE             0x300
+#define LOCAL_APIC_REG_ICR_LOW              0x300
+#define LOCAL_APIC_REG_ICR_HIGH             0x310
 #define LOCAL_APIC_REG_LVT_TIMER            0x320
 #define LOCAL_APIC_REG_LVT_THERMAL_SENSOR   0x330
 #define LOCAL_APIC_REG_LVT_PMC              0x340
@@ -123,18 +133,18 @@ typedef unsigned char apic_id_t;
  * I/O APIC delivery modes.
  */
 
-enum ioapic_mode
+enum apic_mode
 {
-  IOAPIC_MODE_FIXED = 0,        /*!< Fixed interrupt */
-  IOAPIC_MODE_LOW_PRIORITY,     /*!< Low-priority interrupt */
-  IOAPIC_MODE_SMI,              /*!< System management interrupt */
-  IOAPIC_MODE_NMI,              /*!< Non-maskable interrupt */
-  IOAPIC_MODE_INIT,             /*!< @c INIT interrupt */
-  IOAPIC_MODE_EXTERNAL          /*!< External interrupt */
+  APIC_MODE_FIXED = 0,          /*!< Fixed interrupt */
+  APIC_MODE_LOW_PRIORITY,       /*!< Low-priority interrupt */
+  APIC_MODE_SMI,                /*!< System management interrupt */
+  APIC_MODE_NMI = 4,            /*!< Non-maskable interrupt */
+  APIC_MODE_INIT,               /*!< @c INIT interrupt */
+  APIC_MODE_STARTUP             /*!< Startup IPI */
 };
 
 /*! Represents an I/O APIC delivery mode. */
-typedef enum ioapic_mode ioapic_mode_t;
+typedef enum apic_mode apic_mode_t;
 
 /*!
  * Loads the interrupt descriptor table referenced by the given pointer.
@@ -170,6 +180,7 @@ int_enable (void)
 
 __BEGIN_DECLS
 
+extern apic_id_t bsp_id;
 extern apic_id_t local_apics[MAX_CORES];
 extern size_t local_apic_count;
 extern void *local_apic_addr;
@@ -183,9 +194,12 @@ void pic_8259_eoi (unsigned char irq);
 
 void local_apic_clear_errors (void);
 void local_apic_eoi (void);
+void local_apic_int (unsigned char vector, apic_id_t apic_id, apic_mode_t mode,
+		     int deassert, int level_trigger);
+void local_apic_wait_deliver (void);
 
 uint64_t ioapic_entry (unsigned char vector, apic_id_t apic_id,
-		       ioapic_mode_t mode, int low_active, int level_trigger);
+		       apic_mode_t mode, int low_active, int level_trigger);
 void ioapic_set_irq (unsigned char irq, uint64_t entry);
 
 void set_int_vector (unsigned char num, void *addr, unsigned char privilege,
@@ -194,6 +208,7 @@ void fill_idt_vectors (void);
 void init_idt (void);
 
 void int_start (void);
+void smp_init (void);
 
 __END_DECLS
 

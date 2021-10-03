@@ -35,6 +35,8 @@ libarch_a_SOURCES =	\
 	rtc.c		\
 	save-reg.S	\
 	sched-tick.S	\
+	smp.c		\
+	smp-init.S	\
 	syscall.S	\
 	thread.c
 

@@ -16,6 +16,17 @@ dnl -*- Autoconf -*-
 # You should have received a copy of the GNU General Public License
 # along with PML. If not, see <https://www.gnu.org/licenses/>.
 
+# PML_DEFAULT_FEATURE(NAME, MACRO, HELP, DESC)
+# ------------------------------------------------------------------------------
+# Adds a default option that defines a C preprocessor macro and can be disabled
+# with a configure option.
+AC_DEFUN([PML_DEFAULT_FEATURE],
+[AC_ARG_ENABLE([$1], AS_HELP_STRING([--disable-$1], [$3]),
+[pml_ft_$1="$enableval"], [pml_ft_$1=yes])
+if test "x$pml_ft_$1" != xno; then
+    AC_DEFINE([$2], [1], [$4])
+fi])
+
 # PML_CC_VEC
 # ------------------------------------------------------------------------------
 # Adds an option to enable vectorization.
