@@ -59,4 +59,8 @@ arch_init (void)
 
   /* Initialize the scheduler */
   sched_init ();
+
+  /* Start interrupts */
+  int_start ();
+  int_enable ();
 }

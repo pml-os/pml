@@ -41,9 +41,38 @@
 /*! Default address of local APIC */
 #define LOCAL_APIC_DEFAULT_ADDR 0xfee00000
 
+#define LOCAL_APIC_REG_ID                   0x020
+#define LOCAL_APIC_REG_VERSION              0x030
+#define LOCAL_APIC_REG_TPR                  0x080
+#define LOCAL_APIC_REG_APR                  0x090
+#define LOCAL_APIC_REG_PPR                  0x0a0
+#define LOCAL_APIC_REG_EOI                  0x0b0
+#define LOCAL_APIC_REG_RRD                  0x0c0
+#define LOCAL_APIC_REG_LOGICAL_DEST         0x0d0
+#define LOCAL_APIC_REG_DEST_FORMAT          0x0e0
+#define LOCAL_APIC_REG_SPURIOUS_INT_VEC     0x0f0
+#define LOCAL_APIC_REG_ISR_BASE             0x100
+#define LOCAL_APIC_REG_TMR_BASE             0x180
+#define LOCAL_APIC_REG_IRR_BASE             0x200
+#define LOCAL_APIC_REG_ERR_STATUS           0x280
+#define LOCAL_APIC_REG_LVT_CMCI             0x2f0
+#define LOCAL_APIC_REG_ICR_BASE             0x300
+#define LOCAL_APIC_REG_LVT_TIMER            0x320
+#define LOCAL_APIC_REG_LVT_THERMAL_SENSOR   0x330
+#define LOCAL_APIC_REG_LVT_PMC              0x340
+#define LOCAL_APIC_REG_LVT_LINT0            0x350
+#define LOCAL_APIC_REG_LVT_LINT1            0x360
+#define LOCAL_APIC_REG_LVT_ERROR            0x370
+#define LOCAL_APIC_REG_INIT_COUNT           0x380
+#define LOCAL_APIC_REG_CURR_COUNT           0x390
+#define LOCAL_APIC_REG_DIVIDE_CONFIG        0x3e0
+
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>
+
+#define LOCAL_APIC_REG(reg)						\
+  (*((volatile uint32_t *) ((uintptr_t) local_apic_addr + (reg))))
 
 /*! Format of an entry in the long mode interrupt descriptor table (IDT). */
 
@@ -115,6 +144,8 @@ void set_int_vector (unsigned char num, void *addr, unsigned char privilege,
 		     unsigned char type);
 void fill_idt_vectors (void);
 void init_idt (void);
+
+void int_start (void);
 
 __END_DECLS
 

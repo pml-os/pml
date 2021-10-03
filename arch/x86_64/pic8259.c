@@ -62,3 +62,12 @@ pic_8259_eoi (unsigned char irq)
     outb (PIC_8259_EOI, PIC_8259_SLAVE_COMMAND);
   outb (PIC_8259_EOI, PIC_8259_MASTER_COMMAND);
 }
+
+#ifndef USE_APIC
+
+void
+int_start (void)
+{
+}
+
+#endif

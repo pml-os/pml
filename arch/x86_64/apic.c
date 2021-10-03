@@ -73,6 +73,21 @@ set_local_apic_addr (const struct acpi_madt_local_apic_addr_ovr *entry)
   local_apic_addr = (void *) PHYS_REL (entry->local_apic_addr);
 }
 
+#ifdef USE_APIC
+
+/*!
+ * Starts the local APIC. This function is only called for the bootstrap
+ * processor.
+ */
+
+void
+int_start (void)
+{
+  LOCAL_APIC_REG (LOCAL_APIC_REG_SPURIOUS_INT_VEC) = 0x1ff;
+}
+
+#endif
+
 /*!
  * Parses the ACPI MADT table to locate the address of the local APIC and
  * I/O APIC, and any interrupt source overrides.
