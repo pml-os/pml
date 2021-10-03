@@ -16,9 +16,11 @@
 
 /*! @file */
 
+#include <pml/alloc.h>
 #include <pml/interrupt.h>
 #include <pml/memory.h>
 #include <pml/pit.h>
+#include <stdlib.h>
 #include <string.h>
 
 extern void *smp_ap_start;
@@ -50,7 +52,13 @@ smp_init (void)
       apic_id_t id = local_apics[i];
       if (id != bsp_id)
 	{
+	  uintptr_t stack_page;
 	  smp_ap_setup_done = 0;
+	  stack_page = alloc_page ();
+	  if (UNLIKELY (!stack_page))
+	    continue; /* Couldn't allocate a stack for the new processor */
+	  *((uintptr_t *) PHYS32_REL (SMP_AP_INIT_STACK)) =
+	    PHYS_REL (stack_page) + 0xff8;
 	  local_apic_clear_errors ();
 	  local_apic_int (0, id, APIC_MODE_INIT, 0, 1);
 	  local_apic_int (0, id, APIC_MODE_INIT, 1, 1);

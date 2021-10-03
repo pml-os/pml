@@ -35,14 +35,19 @@ void
 vm_skip_holes (void)
 {
   struct mb_mmap_entry *entry = multiboot_mmap->entries + mmap_curr_region;
-  if (next_phys_addr >= entry->base + entry->len)
+  if (next_phys_addr - KERNEL_VMA >= entry->base + entry->len)
     {
       /* Move to the next region. If we reach the end of all memory regions
 	 there is no more physical memory left. */
-      if (UNLIKELY (++mmap_curr_region == mmap_region_count))
-	panic ("Physical memory exhausted");
+      do
+	{
+	  if (UNLIKELY (++mmap_curr_region == mmap_region_count))
+	    panic ("Physical memory exhausted");
+	}
+      while (multiboot_mmap->entries[mmap_curr_region].type != 1);
       next_phys_addr =
-	ALIGN_UP (multiboot_mmap->entries[mmap_curr_region].base, PAGE_SIZE);
+	PHYS_REL (ALIGN_UP (multiboot_mmap->entries[mmap_curr_region].base,
+			    PAGE_SIZE));
     }
 }
 
@@ -68,16 +73,16 @@ multiboot_init (uintptr_t addr)
 		  ((struct mb_str_tag *) tag)->string);
 	  break;
 	case MULTIBOOT_TAG_TYPE_MMAP:
-	  multiboot_mmap = (struct mb_mmap_tag *) tag;
+	  multiboot_mmap = (struct mb_mmap_tag *) PHYS_REL (tag);
 	  printf ("System memory map:\n");
 	  for (i = 0; i < multiboot_mmap->tag.size -
 		 sizeof (struct mb_mmap_tag); i += multiboot_mmap->entry_size)
 	    {
 	      struct mb_mmap_entry *entry =
 		(struct mb_mmap_entry *) ((char *) multiboot_mmap->entries + i);
+	      mmap_region_count++;
 	      if (entry->type == 1)
 		{
-		  mmap_region_count++;
 		  printf ("  %p-%p (%H)\n", (char *) entry->base,
 			  (char *) entry->base + entry->len, entry->len);
 		  if (entry->base >= LOW_MEMORY_LIMIT)
@@ -97,4 +102,14 @@ multiboot_init (uintptr_t addr)
     }
   if (UNLIKELY (!multiboot_mmap))
     panic ("No memory map provided by boot loader");
+  /* Skip memory regions in low memory */
+  while (multiboot_mmap->entries[mmap_curr_region].base < LOW_MEMORY_LIMIT)
+    {
+      do
+	{
+	  if (UNLIKELY (++mmap_curr_region == mmap_region_count))
+	    panic ("Physical memory exhausted");
+	}
+      while (multiboot_mmap->entries[mmap_curr_region].type != 1);
+    }
 }

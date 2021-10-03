@@ -93,6 +93,9 @@ ASM_FUNC_BEGIN (smp_ap_high_start):
 	sub	%rbx, %rax
 	mov	%rax, %cr3
 
+	/* Enable additional instruction sets */
+	call	enable_insn_sets
+
 	/* Set FSBASE to thread-local storage address */
 	mov	$MSR_FSBASE, %ecx
 	mov	$(THREAD_LOCAL_BASE_VMA >> 32), %edx
