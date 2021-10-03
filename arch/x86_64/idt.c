@@ -17,7 +17,6 @@
 /*! @file */
 
 #include <pml/interrupt.h>
-#include <pml/pit.h>
 
 static struct idt_entry idt_table[IDT_SIZE];
 static struct idt_ptr idt_ptr;
@@ -53,10 +52,6 @@ set_int_vector (unsigned char num, void *addr, unsigned char privilege,
 void
 init_idt (void)
 {
-  /* Remap the 8259 PIC and setup the PIT timer */
-  pic_8259_remap ();
-  pit_set_freq (0, 1000);
-
   /* Fill and load the IDT */
   fill_idt_vectors ();
   idt_ptr.size = sizeof (idt_table) - 1;

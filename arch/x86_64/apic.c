@@ -83,6 +83,7 @@ set_local_apic_addr (const struct acpi_madt_local_apic_addr_ovr *entry)
 void
 acpi_parse_madt (const struct acpi_madt *madt)
 {
+#ifdef USE_APIC
   const unsigned char *ptr = madt->entries;
   const struct acpi_madt_entry *entry = (const struct acpi_madt_entry *) ptr;
   size_t i;
@@ -112,4 +113,5 @@ acpi_parse_madt (const struct acpi_madt *madt)
   /* Make sure an I/O APIC is present */
   if (UNLIKELY (!ioapic_addr))
     panic ("No I/O APIC found");
+#endif
 }

@@ -19,7 +19,9 @@
 #include <pml/acpi.h>
 #include <pml/alloc.h>
 #include <pml/cmos.h>
+#include <pml/interrupt.h>
 #include <pml/memory.h>
+#include <pml/pit.h>
 #include <pml/thread.h>
 #include <stdlib.h>
 
@@ -38,9 +40,23 @@ init_kernel_heap (void)
 void
 arch_init (void)
 {
+  /* Initialize the heap first since it could be needed by other steps */
   init_kernel_heap ();
-  sched_init ();
+
+  /* Remap the 8259 PIC and disable it if using the APIC */
+  pic_8259_remap ();
+#ifdef USE_APIC
+  pic_8259_disable ();
+#endif
+
+  /* Initialize ACPI and related services */
+  pit_set_freq (0, THREAD_QUANTUM);
+  acpi_init ();
+
+  /* Initialize the real-time clock and enable interrupts */
   real_time = cmos_read_real_time ();
   cmos_enable_rtc_int ();
-  acpi_init ();
+
+  /* Initialize the scheduler */
+  sched_init ();
 }

@@ -39,6 +39,13 @@ case "$bootdir" in
 esac
 AC_SUBST([bootdir])
 
+AC_ARG_ENABLE([apic],
+AS_HELP_STRING([--disable-apic], [don't use the APIC for interrupt management]),
+[use_apic="$enableval"], [use_apic=yes])
+if test "x$use_apic" != xno; then
+    AC_DEFINE([USE_APIC], [1], [Use the APIC for interrupt management])
+fi
+
 PML_CC_VEC
 
 LDFLAGS="$save_LDFLAGS"
