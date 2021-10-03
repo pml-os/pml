@@ -23,6 +23,10 @@
 	.section .text
 	.global smp_ap_start
 ASM_FUNC_BEGIN (smp_ap_start):
+	ljmp	$0x00, $0x8005
+.start:
+	/* This is at address 0x8005 since this code is loaded at 0x8000 and
+	   the preceding ljmp instruction is 5 bytes wide. */
 	cli
 	cld
 1:
