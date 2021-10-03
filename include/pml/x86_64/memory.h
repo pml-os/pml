@@ -73,7 +73,13 @@
 /*! Huge page size (1 gigabyte), used when PDPT.S is set */
 #define HUGE_PAGE_SIZE          0x40000000
 
-#ifndef __ASSEMBLER__
+#ifdef __ASSEMBLER__
+
+#define KERNEL_VMA              __kernel_vma
+#define KERNEL_START            __kernel_start
+#define KERNEL_END              __kernel_end
+
+#else
 
 #include <pml/cdefs.h>
 

@@ -38,11 +38,14 @@
 /*! Maximum number of CPUs supported for SMP */
 #define MAX_CORES               16
 
+/*! Physical address of boostrap stack for APs */
+#define SMP_AP_INIT_STACK       0x7ff0
+/*! Physical address of bootstrap GDT for entering long mode */
+#define SMP_AP_INIT_GDT         0x7ff8
+/*! Physical address of pointer to kernel PML4T for AP bootstrapping. */
+#define SMP_AP_INIT_PML4T       0x7ffc
 /*! Physical address of starting AP code */
 #define SMP_AP_START_ADDR       0x8000
-
-/*! Physical address of pointer to kernel PML4T for AP bootstrapping. */
-#define SMP_AP_KERNEL_PML4T     0x7ffc
 
 /*! Number of IRQs handled by an I/O APIC */
 #define IOAPIC_IRQ_COUNT        24

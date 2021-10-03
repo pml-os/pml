@@ -24,10 +24,13 @@
 extern void *smp_ap_start;
 extern void *smp_ap_size;
 
+/*! Set to one when an application processor has been initialized. */
+volatile int smp_ap_setup_done;
+
 /*!
  * Initializes any additional processors using symmetric multiprocessing.
  * This function must be called with interrupts enabled since it relies on
- * a timer.
+ * the PIT timer for delays.
  */
 
 void
@@ -36,9 +39,7 @@ smp_init (void)
 #ifdef ENABLE_SMP
   size_t i;
 
-  /* Copy AP startup code and kernel PML4T pointer to low memory */
-  *((unsigned int *) PHYS32_REL (SMP_AP_KERNEL_PML4T)) =
-    (uintptr_t) kernel_pml4t - KERNEL_VMA;
+  /* Copy AP startup code to low memory */
   memcpy ((void *) PHYS32_REL (SMP_AP_START_ADDR), &smp_ap_start,
 	  (size_t) &smp_ap_size);
 
@@ -49,6 +50,7 @@ smp_init (void)
       apic_id_t id = local_apics[i];
       if (id != bsp_id)
 	{
+	  smp_ap_setup_done = 0;
 	  local_apic_clear_errors ();
 	  local_apic_int (0, id, APIC_MODE_INIT, 0, 1);
 	  local_apic_int (0, id, APIC_MODE_INIT, 1, 1);
@@ -58,6 +60,8 @@ smp_init (void)
 	  pit_sleep (10);
 	  local_apic_clear_errors ();
 	  local_apic_int (8, id, APIC_MODE_STARTUP, 0, 0);
+	  while (!smp_ap_setup_done)
+	    ;
 	}
     }
 #endif /* ENABLE_SMP */

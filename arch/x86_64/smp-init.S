@@ -15,7 +15,10 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/asm.h>
+#include <pml/ctlreg.h>
 #include <pml/interrupt.h>
+#include <pml/memory.h>
+#include <pml/msr.h>
 
 	/* Application processors start in real mode */
 	.code16
@@ -23,17 +26,81 @@
 	.section .text
 	.global smp_ap_start
 ASM_FUNC_BEGIN (smp_ap_start):
-	ljmp	$0x00, $0x8005
+	/* IMPORTANT:
+	   Absolute jumps are encoded with their exact destination address,
+	   since this code is meant to be executed at address 0x8000. Code
+	   above .start must not be modified, and the destinations of all ljmp
+	   instructions after this one will need to be updated. */
+	ljmp	$0x00, $(SMP_AP_START_ADDR + 0x5) /* .start */
 .start:
-	/* This is at address 0x8005 since this code is loaded at 0x8000 and
-	   the preceding ljmp instruction is 5 bytes wide. */
 	cli
 	cld
-1:
-	hlt
-	jmp	1b
-ASM_FUNC_END (smp_ap_start)
-smp_ap_end:
 
+	/* Load bootstrap PML4T */
+	mov	SMP_AP_INIT_PML4T, %eax
+	mov	%eax, %cr3
+
+	/* Enable physical address extension, required by long mode */
+	mov	%cr4, %eax
+	or	$CR4_PAE, %eax
+	mov	%eax, %cr4
+
+	/* Enable long mode in the EFER register */
+	mov	$MSR_EFER, %ecx
+	rdmsr
+	or	$(EFER_SCE | EFER_LME), %eax
+	wrmsr
+
+	/* Enable paging and protected mode, required by long mode */
+	mov	%cr0, %eax
+	or	$(CR0_PE | CR0_PG), %eax
+	mov	%eax, %cr0
+
+	/* Enter 64-bit submode and jump to long mode code */
+	mov	SMP_AP_INIT_GDT, %eax
+	lgdtl	(%eax)
+	ljmp	$0x08, $(SMP_AP_START_ADDR + 0x42) /* smp_ap_long_start */
+ASM_FUNC_END (smp_ap_start)
+
+	/* Remaining code is executed in long mode */
+	.code64
+
+ASM_FUNC_BEGIN (smp_ap_long_start):
+	/* 64-bit entry point for application processors */
+	mov	$0x10, %ax
+	mov	%ax, %ds
+	mov	%ax, %es
+	mov	%ax, %fs
+	mov	%ax, %gs
+	mov	%ax, %ss
+	mov	SMP_AP_INIT_STACK, %rsp
+	movabs	$smp_ap_high_start, %rax
+	jmp	*%rax
+ASM_FUNC_END (smp_ap_long_start)
+smp_ap_end:
 	.global smp_ap_size
 	.set smp_ap_size, smp_ap_end - smp_ap_start
+
+ASM_FUNC_BEGIN (smp_ap_high_start):
+	/* Notify the BSP that initialization is complete. */
+	movabs	$smp_ap_setup_done, %rax
+	lock
+	incl	(%rax)
+
+	/* Use the main virtual memory layout */
+	movabs	$kernel_pml4t, %rax
+	movabs	$KERNEL_VMA, %rbx
+	sub	%rbx, %rax
+	mov	%rax, %cr3
+
+	/* Set FSBASE to thread-local storage address */
+	mov	$MSR_FSBASE, %ecx
+	mov	$(THREAD_LOCAL_BASE_VMA >> 32), %edx
+	mov	$(THREAD_LOCAL_BASE_VMA & 0xffffffff), %eax
+	wrmsr
+
+	/* Nothing left to do, just busy-wait */
+.hang:
+	hlt
+	jmp	.hang
+ASM_FUNC_END (smp_ap_high_start)

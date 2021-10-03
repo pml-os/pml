@@ -16,6 +16,7 @@
 
 #include <pml/asm.h>
 #include <pml/ctlreg.h>
+#include <pml/interrupt.h>
 #include <pml/memory.h>
 #include <pml/msr.h>
 #include <pml/multiboot.h>
@@ -101,6 +102,7 @@ ASM_FUNC_BEGIN (_start):
 	movl	$(0xc0000000 | boot_pdpe_flags), boot_pdpt_high+24
 	mov	$boot_pml4t, %eax
 	mov	%eax, %cr3
+	mov	%eax, SMP_AP_INIT_PML4T /* Save the bootstrap PML4T */
 
 	/* Enable physical address extension, required by long mode */
 	mov	%cr4, %eax
@@ -120,6 +122,7 @@ ASM_FUNC_BEGIN (_start):
 
 	/* Enter 64-bit submode and jump to long mode code */
 	mov	$boot_gdt_ptr, %eax
+	mov	%eax, SMP_AP_INIT_GDT /* Save the bootstrap GDT */
 	lgdt	(%eax)
 	ljmp	$0x08, $long_start
 ASM_FUNC_END (_start)
