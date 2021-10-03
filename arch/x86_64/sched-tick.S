@@ -56,9 +56,13 @@ ASM_FUNC_BEGIN (sched_tick):
 	mov	(%rsp), %rsp
 
 .done:
-	mov	$8, %edi
 	call	cmos_rtc_finish_irq
+#ifdef USE_APIC
+	call	local_apic_eoi
+#else
+	mov	$8, %edi
 	call	pic_8259_eoi
+#endif
 	call	int_restore_registers
 	iretq
 ASM_FUNC_END (sched_tick)

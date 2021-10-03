@@ -38,8 +38,14 @@
 /*! Maximum number of CPUs supported for SMP */
 #define MAX_CORES               16
 
+/*! Number of IRQs handled by an I/O APIC */
+#define IOAPIC_IRQ_COUNT        24
+
 /*! Default address of local APIC */
 #define LOCAL_APIC_DEFAULT_ADDR 0xfee00000
+
+#define LOCAL_APIC_FLAG_ENABLED             (1 << 0)
+#define LOCAL_APIC_FLAG_ONLINE_CAP          (1 << 1)
 
 #define LOCAL_APIC_REG_ID                   0x020
 #define LOCAL_APIC_REG_VERSION              0x030
@@ -67,12 +73,29 @@
 #define LOCAL_APIC_REG_CURR_COUNT           0x390
 #define LOCAL_APIC_REG_DIVIDE_CONFIG        0x3e0
 
+#define IOAPIC_REG_ID                       0x00
+#define IOAPIC_REG_VERSION                  0x01
+#define IOAPIC_REG_MAX_ENTRIES              0x01
+#define IOAPIC_REG_APR                      0x02
+#define IOAPIC_REG_REDIR_BASE               0x10
+#define IOAPIC_REG_REDIR_LOW(x)             (IOAPIC_REG_REDIR_BASE + (x) * 2)
+#define IOAPIC_REG_REDIR_HIGH(x)            (IOAPIC_REG_REDIR_LOW (x) + 1)
+
+#define IOAPIC_FLAG_LOW_ACTIVE(f)           ((unsigned char) (f) & 3)
+#define IOAPIC_FLAG_LEVEL_TRIGGER(f)        (((unsigned char) (f) & 0xf) >> 2)
+
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>
 
 #define LOCAL_APIC_REG(reg)						\
   (*((volatile uint32_t *) ((uintptr_t) local_apic_addr + (reg))))
+
+#ifdef USE_APIC
+#define EOI(irq)                local_apic_eoi ()
+#else
+#define EOI(irq)                pic_8259_eoi (irq)
+#endif
 
 /*! Format of an entry in the long mode interrupt descriptor table (IDT). */
 
@@ -93,7 +116,25 @@ struct idt_ptr
   struct idt_entry *addr;
 } __packed;
 
+/*! Represents an APIC ID. */
 typedef unsigned char apic_id_t;
+
+/*!
+ * I/O APIC delivery modes.
+ */
+
+enum ioapic_mode
+{
+  IOAPIC_MODE_FIXED = 0,        /*!< Fixed interrupt */
+  IOAPIC_MODE_LOW_PRIORITY,     /*!< Low-priority interrupt */
+  IOAPIC_MODE_SMI,              /*!< System management interrupt */
+  IOAPIC_MODE_NMI,              /*!< Non-maskable interrupt */
+  IOAPIC_MODE_INIT,             /*!< @c INIT interrupt */
+  IOAPIC_MODE_EXTERNAL          /*!< External interrupt */
+};
+
+/*! Represents an I/O APIC delivery mode. */
+typedef enum ioapic_mode ioapic_mode_t;
 
 /*!
  * Loads the interrupt descriptor table referenced by the given pointer.
@@ -140,6 +181,13 @@ void pic_8259_remap (void);
 void pic_8259_disable (void);
 void pic_8259_eoi (unsigned char irq);
 
+void local_apic_clear_errors (void);
+void local_apic_eoi (void);
+
+uint64_t ioapic_entry (unsigned char vector, apic_id_t apic_id,
+		       ioapic_mode_t mode, int low_active, int level_trigger);
+void ioapic_set_irq (unsigned char irq, uint64_t entry);
+
 void set_int_vector (unsigned char num, void *addr, unsigned char privilege,
 		     unsigned char type);
 void fill_idt_vectors (void);
@@ -148,6 +196,36 @@ void init_idt (void);
 void int_start (void);
 
 __END_DECLS
+
+/*!
+ * Reads a value from an I/O APIC register.
+ *
+ * @param reg the register to read from
+ * @return the value that was read
+ */
+
+__always_inline static inline unsigned int
+ioapic_read (unsigned char reg)
+{
+  volatile unsigned int *ioapic = (volatile unsigned int *) ioapic_addr;
+  ioapic[0] = reg;
+  return ioapic[4];
+}
+
+/*!
+ * Writes a value to an I/O APIC register.
+ *
+ * @param reg the register to write to
+ * @param value the value to write
+ */
+
+__always_inline static inline void
+ioapic_write (unsigned char reg, unsigned int value)
+{
+  volatile unsigned int *ioapic = (volatile unsigned int *) ioapic_addr;
+  ioapic[0] = reg;
+  ioapic[4] = value;
+}
 
 #endif /* !__ASSEMBLER__ */
 

@@ -57,5 +57,5 @@ void
 int_pit_tick (void)
 {
   pit_ticks++;
-  pic_8259_eoi (0);
+  EOI (0);
 }

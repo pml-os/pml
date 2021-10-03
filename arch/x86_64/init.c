@@ -50,7 +50,7 @@ arch_init (void)
 #endif
 
   /* Initialize ACPI and related services */
-  pit_set_freq (0, THREAD_QUANTUM);
+  pit_set_freq (0, 1000);
   acpi_init ();
 
   /* Initialize the real-time clock and enable interrupts */
