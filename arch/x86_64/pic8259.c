@@ -39,6 +39,17 @@ pic_8259_remap (void)
 }
 
 /*!
+ * Disables the 8259 PIC by masking all interrupts.
+ */
+
+void
+pic_8259_disable (void)
+{
+  outb_p (0xff, PIC_8259_SLAVE_DATA);
+  outb_p (0xff, PIC_8259_MASTER_DATA);
+}
+
+/*!
  * Signals the 8259 PIC to resume generating interrupts.
  *
  * @param irq the IRQ number of the interrupt

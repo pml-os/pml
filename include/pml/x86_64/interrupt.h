@@ -35,6 +35,12 @@
 #define IDT_ATTR_PRESENT        (1 << 7)
 #define IDT_SIZE                256
 
+/*! Maximum number of CPUs supported for SMP */
+#define MAX_CORES               16
+
+/*! Default address of local APIC */
+#define LOCAL_APIC_DEFAULT_ADDR 0xfee00000
+
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>
@@ -57,6 +63,8 @@ struct idt_ptr
   uint16_t size;
   struct idt_entry *addr;
 } __packed;
+
+typedef unsigned char apic_id_t;
 
 /*!
  * Loads the interrupt descriptor table referenced by the given pointer.
@@ -92,8 +100,17 @@ int_enable (void)
 
 __BEGIN_DECLS
 
+extern apic_id_t local_apics[MAX_CORES];
+extern size_t local_apic_count;
+extern void *local_apic_addr;
+extern apic_id_t ioapic_id;
+extern void *ioapic_addr;
+extern unsigned int ioapic_gsi_base;
+
 void pic_8259_remap (void);
+void pic_8259_disable (void);
 void pic_8259_eoi (unsigned char irq);
+
 void set_int_vector (unsigned char num, void *addr, unsigned char privilege,
 		     unsigned char type);
 void fill_idt_vectors (void);
