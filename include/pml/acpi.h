@@ -288,6 +288,23 @@ struct acpi_fadt
   uint64_t hyperv_id;
 };
 
+/*!
+ * Format of the ACPI 2.0 table for the HPET.
+ */
+
+struct acpi_hpet
+{
+  struct acpi_table_header header;  /*!< ACPI table header */
+  uint16_t vendor;                  /*!< PCI vendor ID of timer block */
+  unsigned char count;              /*!< Comparator count and counter size */
+  unsigned char revision;           /*!< Hardware revision ID */
+  struct acpi_addr addr;            /*!< Address of event timer block */
+  unsigned char number;             /*!< HPET sequence number */
+  unsigned char clock_tick_high;    /*!< High byte of minimum clock ticks */
+  unsigned char clock_tick_low;     /*!< Low byte of minimum clock ticks */
+  unsigned char page_prot;          /*!< Page protection */
+};
+
 __BEGIN_DECLS
 
 extern int acpi2;
@@ -301,6 +318,7 @@ void acpi_parse_rsdt (const struct acpi_rsdt *rsdt);
 void acpi_parse_xsdt (const struct acpi_xsdt *xsdt);
 void acpi_parse_fadt (const struct acpi_fadt *fadt);
 void acpi_parse_madt (const struct acpi_madt *madt);
+void acpi_parse_hpet (const struct acpi_hpet *hpet);
 int acpi_rsdp_checksum (const struct acpi_rsdp *rsdp);
 int acpi_table_checksum (const struct acpi_table_header *header);
 

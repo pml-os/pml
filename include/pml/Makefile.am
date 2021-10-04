@@ -6,16 +6,14 @@ arch_headers =		\
 	cpuid.h		\
 	ctlreg.h	\
 	gdt.h		\
-	io.h		\
 	msr.h		\
-	multiboot.h	\
-	pit.h		\
-	vgatext.h
+	multiboot.h
 else
 arch_headers =
 endif
 
 nodist_pmlinclude_HEADERS = \
+	io.h		\
 	interrupt.h	\
 	memory.h	\
 	panic.h		\
@@ -29,8 +27,10 @@ pmlinclude_HEADERS =	\
 	cdefs.h		\
 	lock.h		\
 	pci.h		\
+	pit.h		\
 	tty.h		\
 	types.h		\
+	vgatext.h
 	$(arch_headers)
 
 EXTRA_DIST = x86_64

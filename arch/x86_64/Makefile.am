@@ -31,7 +31,6 @@ libarch_a_SOURCES =	\
 	panic.S		\
 	panic-print.c	\
 	pic8259.c	\
-	pit.c		\
 	rtc.c		\
 	save-reg.S	\
 	sched-tick.S	\

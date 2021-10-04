@@ -78,6 +78,8 @@ acpi_parse_table (const struct acpi_table_header *header)
     acpi_parse_madt ((const struct acpi_madt *) header);
   else if (!strncmp (header->signature, "FACP", 4))
     acpi_parse_fadt ((const struct acpi_fadt *) header);
+  else if (!strncmp (header->signature, "HPET", 4))
+    acpi_parse_hpet ((const struct acpi_hpet *) header);
 }
 
 /*!
