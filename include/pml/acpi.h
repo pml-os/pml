@@ -223,7 +223,7 @@ struct acpi_addr
   unsigned char bit_offset;
   unsigned char access_size;    /*!< Required memory access size */
   uint64_t addr;                /*!< 64-bit physical address */
-};
+} __packed;
 
 /*!
  * Format of the FADT since ACPI 2.0.
@@ -295,15 +295,14 @@ struct acpi_fadt
 struct acpi_hpet
 {
   struct acpi_table_header header;  /*!< ACPI table header */
-  uint16_t vendor;                  /*!< PCI vendor ID of timer block */
-  unsigned char count;              /*!< Comparator count and counter size */
   unsigned char revision;           /*!< Hardware revision ID */
+  unsigned char count;              /*!< Comparator count and counter size */
+  uint16_t vendor;                  /*!< PCI vendor ID of timer block */
   struct acpi_addr addr;            /*!< Address of event timer block */
   unsigned char number;             /*!< HPET sequence number */
-  unsigned char clock_tick_high;    /*!< High byte of minimum clock ticks */
-  unsigned char clock_tick_low;     /*!< Low byte of minimum clock ticks */
+  uint16_t clock_ticks;             /*!< Minimum clock ticks */
   unsigned char page_prot;          /*!< Page protection */
-};
+} __packed;
 
 __BEGIN_DECLS
 
