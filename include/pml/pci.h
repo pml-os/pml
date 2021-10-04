@@ -17,6 +17,8 @@
 #ifndef __PML_PCI_H
 #define __PML_PCI_H
 
+/*! @file */
+
 #include <pml/cdefs.h>
 
 #define PCI_PORT_ADDRESS        0xcf8
@@ -46,32 +48,55 @@
 #define PCI_SECONDARY_BUS       0x19
 #define PCI_BAR4                0x20
 
-struct pci_config
-{
-  uint16_t bus;
-  uint16_t device;
-  uint16_t function;
-};
+/* PCI device types */
 
-static inline unsigned int
-pci_address (struct pci_config config)
+#define PCI_DEVICE_BRIDGE       0x0604
+#define PCI_DEVICE_NONE         0xffff
+
+/*! Maximum number of PCI devices on a bus */
+#define PCI_DEVICES_PER_BUS     32
+
+/*! Maximum number of functions per PCI device */
+#define PCI_FUNCS_PER_DEVICE    8
+
+/*! Represents the location of a PCI configuration space. */
+typedef unsigned int pci_config_t;
+
+/*!
+ * Returns a value suitable for accessing the PCI configuration space through
+ * the PCI I/O functions given information about a PCI device.
+ *
+ * @param bus the PCI bus
+ * @param device the device number on the bus
+ * @param func the function number on the device
+ * @return the location of the configuration space
+ */
+
+static inline pci_config_t
+pci_config (unsigned char bus, unsigned char device, unsigned char func)
 {
-  return ((unsigned int) config.bus << 16)
-    | ((unsigned int) (config.device & 0x1f) << 11)
-    | ((unsigned int) (config.function & 7) << 8);
+  return ((unsigned int) bus << 16)
+    | ((unsigned int) (device & 0x1f) << 11)
+    | ((unsigned int) (func & 7) << 8);
 }
 
 __BEGIN_DECLS
 
-unsigned char pci_inb (struct pci_config config, unsigned char offset);
-unsigned short pci_inw (struct pci_config config, unsigned char offset);
-unsigned int pci_inl (struct pci_config config, unsigned char offset);
-void pci_outb (struct pci_config config, unsigned char offset,
-	       unsigned char value);
-void pci_outw (struct pci_config config, unsigned char offset,
-	       unsigned short value);
-void pci_outl (struct pci_config config, unsigned char offset,
-	       unsigned int value);
+unsigned char pci_inb (pci_config_t config, unsigned char offset);
+unsigned short pci_inw (pci_config_t config, unsigned char offset);
+unsigned int pci_inl (pci_config_t config, unsigned char offset);
+void pci_outb (pci_config_t config, unsigned char offset, unsigned char value);
+void pci_outw (pci_config_t config, unsigned char offset, unsigned short value);
+void pci_outl (pci_config_t config, unsigned char offset, unsigned int value);
+
+uint16_t pci_device_type (pci_config_t config);
+pci_config_t pci_check_config (uint16_t vendor_id, uint16_t device_id,
+			       pci_config_t config);
+pci_config_t pci_check_device (uint16_t vendor_id, uint16_t device_id,
+			       unsigned char bus, unsigned char device);
+pci_config_t pci_enumerate_bus (uint16_t vendor_id, uint16_t device_id,
+				unsigned char bus);
+pci_config_t pci_find_device (uint16_t vendor_id, uint16_t device_id);
 
 __END_DECLS
 

@@ -23,6 +23,7 @@ pmlinclude_HEADERS =	\
 	acpi.h		\
 	alloc.h		\
 	asm.h		\
+	ata.h		\
 	errno.h		\
 	cdefs.h		\
 	hpet.h		\
