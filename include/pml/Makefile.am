@@ -25,6 +25,7 @@ pmlinclude_HEADERS =	\
 	asm.h		\
 	errno.h		\
 	cdefs.h		\
+	hpet.h		\
 	lock.h		\
 	pci.h		\
 	pit.h		\

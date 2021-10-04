@@ -23,8 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static uint64_t ioapic_irq_map[IOAPIC_IRQ_COUNT];
-
 apic_id_t bsp_id;
 apic_id_t local_apics[MAX_CORES];   /*!< IDs of local APICs */
 size_t local_apic_count;            /*!< Number of local APICs */
@@ -32,6 +30,7 @@ void *local_apic_addr;              /*!< Address of CPU local APIC */
 apic_id_t ioapic_id;                /*!< ID of I/O APIC */
 void *ioapic_addr;                  /*!< Address of I/O APIC */
 unsigned int ioapic_gsi_base;       /*!< I/O APIC GSI base */
+uint64_t ioapic_irq_map[IOAPIC_IRQ_COUNT]; /*!< I/O APIC IRQ mappings */
 
 /*!
  * Registers a local APIC from a MADT processor local APIC entry.
@@ -176,6 +175,8 @@ ioapic_override_int (const struct acpi_madt_int_source_ovr *entry)
   ioapic_irq_map[irq] =
     ioapic_entry (0x20 + entry->source, bsp_id, APIC_MODE_FIXED, low_active,
 		  level_trigger);
+  if (irq != entry->source)
+    ioapic_irq_map[entry->source] = 0; /* Mark the old ISA IRQ as free */
 }
 
 /*!
@@ -233,7 +234,7 @@ acpi_parse_madt (const struct acpi_madt *madt)
   __asm__ volatile ("mov $1, %%eax; cpuid; shr $24, %%ebx" : "=b" (bsp_id));
 
   /* Identity map I/O APIC IRQ mappings to legacy values by default */
-  for (i = 0; i < IOAPIC_IRQ_COUNT; i++)
+  for (i = 0; i < 16; i++)
     ioapic_irq_map[i] =
       ioapic_entry (0x20 + i, bsp_id, APIC_MODE_FIXED, 0, 0);
   ioapic_irq_map[2] = 0; /* ISA IRQ2 doesn't exist */

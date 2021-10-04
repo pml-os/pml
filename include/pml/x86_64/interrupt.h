@@ -190,6 +190,7 @@ extern void *local_apic_addr;
 extern apic_id_t ioapic_id;
 extern void *ioapic_addr;
 extern unsigned int ioapic_gsi_base;
+extern uint64_t ioapic_irq_map[IOAPIC_IRQ_COUNT];
 
 void pic_8259_remap (void);
 void pic_8259_disable (void);
