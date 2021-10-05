@@ -228,7 +228,8 @@ struct ata_device
   unsigned int command_sets;    /*!< Supported command sets */
   unsigned int size;            /*!< Size of the drive in sectors */
   unsigned char model[41];      /*!< Drive model string */
-  struct ata_prdt *prdt;        /*!< Pointer to PRDT for DMA */
+  struct ata_prdt prdt;         /*!< PRDT for DMA */
+  unsigned char buffer[131072]; /*!< ATA device I/O buffer */
 };
 
 __BEGIN_DECLS

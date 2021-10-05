@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*! Buffer used to temporarily store ATA identification data */
 static unsigned char ata_buffer[2048];
@@ -155,7 +156,6 @@ ata_poll (unsigned char channel, unsigned char check_err)
 /*!
  * Performs an I/O operation on an ATA drive.
  *
- * @todo support DMA with buffers above 4G
  * @param op the operation to perform
  * @param channel the ATA channel of the target drive
  * @param drive the ATA drive
@@ -186,49 +186,9 @@ ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
   if (dma)
     {
       /* Setup PRDT for DMA */
-      struct ata_prdt *prdt = ata_devices[device].prdt;
-      char *ptr = buffer;
-      char *end = buffer + sectors * ATA_SECTOR_SIZE;
-      uintptr_t phys_addr = (uintptr_t) prdt - KERNEL_VMA;
-      uintptr_t prev;
-      unsigned int offset = (uintptr_t) buffer & 0x1ff;
-
-      /* Add initial entry to align the buffer to a sector boundary */
-      if (offset)
-	{
-	  /* TODO Support 64-bit DMA */
-	  prdt->addr = vm_phys_addr (THIS_THREAD->args.pml4t, buffer);
-	  prdt->len = ATA_SECTOR_SIZE - offset;
-	  prdt->end = 0;
-	  prev = prdt->addr + prdt->len;
-	  prdt++;
-	  ptr = (char *) ALIGN_DOWN ((uintptr_t) buffer, ATA_SECTOR_SIZE) +
-	    ATA_SECTOR_SIZE;
-	}
-      for (; ptr < end; ptr += ATA_SECTOR_SIZE)
-	{
-	  size_t len = ptr + ATA_SECTOR_SIZE > end ?
-	    (unsigned short) ((uintptr_t) buffer & (ATA_SECTOR_SIZE - 1)) :
-	    ATA_SECTOR_SIZE;
-	  uintptr_t addr = vm_phys_addr (THIS_THREAD->args.pml4t, buffer);
-	  if (prev == addr)
-	    prdt[-1].len += len;
-	  else
-	    {
-	      if (prdt - ata_devices[device].prdt >= ATA_PRDT_MAX)
-		{
-		  /* Too many entries in PRDT, try again with PIO mode */
-		  dma = 0;
-		  goto retry;
-		}
-	      prdt->addr = addr;
-	      prdt->len = len;
-	      prdt->end = 0;
-	      prdt++;
-	    }
-	  prev = prdt[-1].addr + prdt[-1].len;
-	}
-      prdt[-1].end = ATA_PRDT_END;
+      uintptr_t phys_addr;
+      ata_devices[device].prdt.len = sectors * ATA_SECTOR_SIZE;
+      phys_addr = (uintptr_t) &ata_devices[device].prdt - KERNEL_VMA;
       ata_write (channel, ATA_REG_BM_PRDT0, phys_addr & 0xff);
       ata_write (channel, ATA_REG_BM_PRDT1, (phys_addr >> 8) & 0xff);
       ata_write (channel, ATA_REG_BM_PRDT2, (phys_addr >> 16) & 0xff);
@@ -352,6 +312,9 @@ ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
       status = ata_read (channel, ATA_REG_STATUS);
       if ((status & ATA_SR_ERR) || (status & ATA_SR_DF))
 	return -1;
+
+      /* Copy the data to the user buffer */
+      memcpy (buffer, ata_devices[device].buffer, sectors * ATA_SECTOR_SIZE);
     }
   else
     {
@@ -532,7 +495,6 @@ ata_init (void)
 	  unsigned char err = 0;
 	  enum ata_mode type = ATA_MODE_ATA;
 	  unsigned char status;
-	  uintptr_t prdt_addr;
 	  int k;
 
 	  /* Select drive */
@@ -593,9 +555,10 @@ ata_init (void)
 	    }
 	  ata_devices[count].model[40] = '\0';
 
-	  /* Allocate a PRDT */
-	  prdt_addr = alloc_page ();
-	  ata_devices[count].prdt = (struct ata_prdt *) PHYS_REL (prdt_addr);
+	  /* Setup PRDT */
+	  ata_devices[count].prdt.addr =
+	    (uintptr_t) ata_devices[count].buffer - KERNEL_VMA;
+	  ata_devices[count].prdt.end = ATA_PRDT_END;
 
 	  count++;
 	}
