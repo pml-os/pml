@@ -45,13 +45,20 @@
 #define PCI_LATENCY_TIMER       0x0d
 #define PCI_HEADER_TYPE         0x0e
 #define PCI_BIST                0x0f
-#define PCI_SECONDARY_BUS       0x19
+#define PCI_BAR0                0x10
+#define PCI_BAR1                0x14
+#define PCI_BAR2                0x18
+#define PCI_BAR3                0x1c
 #define PCI_BAR4                0x20
+#define PCI_SECONDARY_BUS       0x19
 
 /* PCI device types */
 
 #define PCI_DEVICE_BRIDGE       0x0604
 #define PCI_DEVICE_NONE         0xffff
+
+/*! Set if PCI BAR is accessed through I/O */
+#define PCI_BAR_IO              (1 << 0)
 
 /*! Maximum number of PCI devices on a bus */
 #define PCI_DEVICES_PER_BUS     32

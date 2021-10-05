@@ -4,6 +4,7 @@ noinst_LIBRARIES = libdrivers.a
 
 libdrivers_a_SOURCES =	\
 	acpi.c		\
+	ata.c		\
 	hpet.c		\
 	pci.c		\
 	pit.c		\

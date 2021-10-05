@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <pml/ata.h>
 #include <pml/thread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,8 @@ splash (void)
 void
 kentry (void)
 {
+  ata_init ();
+
   splash ();
   init_pid_allocator ();
 }
