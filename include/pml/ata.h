@@ -24,6 +24,14 @@
 #define ATA_VENDOR_ID           0x8086    /*!< PCI vendor ID for PIIX3 IDE */
 #define ATA_DEVICE_ID           0x7010    /*!< PCI device ID for PIIX3 IDE */
 
+/* ATA PCI device programming interface bits */
+
+#define ATA_IF_PRIMARY_NATIVE   (1 << 0)  /*!< Primary in PCI native mode */
+#define ATA_IF_PRIMARY_TOGGLE   (1 << 1)  /*!< Primary mode toggleable */
+#define ATA_IF_SECONDARY_NATIVE (1 << 2)  /*!< Secondary in PCI native mode */
+#define ATA_IF_SECONDARY_TOGGLE (1 << 3)  /*!< Secondary mode toggleable */
+#define ATA_IF_BM_IDE           (1 << 7)  /*!< Bus master IDE controller */
+
 /* ATA status register bits */
 
 #define ATA_SR_ERR              (1 << 0)  /*!< Error occurred */
@@ -70,6 +78,11 @@
 #define ATA_CMD_PACKET          0xa0
 #define ATA_CMD_IDENTIFY_PACKET 0xa1
 #define ATA_CMD_IDENTIFY        0xec
+
+/* ATA bus master commands */
+
+#define ATA_BM_CMD_START        0x01
+#define ATA_BM_CMD_READ         0x08
 
 /* ATAPI commands */
 
@@ -175,9 +188,9 @@ enum ata_op
 
 enum ata_addr_mode
 {
-  ATA_MODE_CHS,
-  ATA_MODE_LBA28,
-  ATA_MODE_LBA48
+  ATA_ADDR_CHS,
+  ATA_ADDR_LBA28,
+  ATA_ADDR_LBA48
 };
 
 /*! Represents an entry in the ATA physical region descriptor table (PRDT). */
@@ -230,6 +243,15 @@ void ata_write (enum ata_channel channel, unsigned char reg,
 		unsigned char value);
 void ata_read_buffer (enum ata_channel channel, unsigned char reg, void *buffer,
 		      size_t quads);
+int ata_poll (unsigned char channel, unsigned char check_err);
+int ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
+		unsigned int lba, unsigned char sectors, void *buffer);
+void ata_await (void);
+int ata_read_sectors (enum ata_channel channel, enum ata_drive drive,
+		      unsigned char sectors, unsigned int lba, void *buffer);
+int ata_write_sectors (enum ata_channel channel, enum ata_drive drive,
+		       unsigned char sectors, unsigned int lba,
+		       const void *buffer);
 void ata_init (void);
 
 __END_DECLS

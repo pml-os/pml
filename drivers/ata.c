@@ -19,13 +19,19 @@
 #include <pml/alloc.h>
 #include <pml/ata.h>
 #include <pml/io.h>
+#include <pml/interrupt.h>
 #include <pml/memory.h>
 #include <pml/pit.h>
+#include <pml/thread.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 /*! Buffer used to temporarily store ATA identification data */
 static unsigned char ata_buffer[2048];
+
+/*! Whether ATA DMA is supported */
+static int ata_dma_support;
 
 struct ata_registers ata_channels[2];
 struct ata_device ata_devices[4];
@@ -112,6 +118,318 @@ ata_read_buffer (enum ata_channel channel, unsigned char reg, void *buffer,
 }
 
 /*!
+ * Polls an ATA drive and optionally checks for any errors.
+ *
+ * @param channel the channel of the ATA drive to poll
+ * @param check_err whether to check for errors
+ * @return <table>
+ * <tr><th>Status bit</th><th>Value</th></tr>
+ * <tr><td>No error</td><td>0</td></tr>
+ * <tr><td>@ref ATA_SR_ERR</td><td>1</td></tr>
+ * <tr><td>@ref ATA_SR_DF</td><td>2</td></tr>
+ * <tr><td>@ref ATA_SR_DRQ</td><td>3</td></tr>
+ * </table>
+ */
+
+int
+ata_poll (unsigned char channel, unsigned char check_err)
+{
+  int i;
+  for (i = 0; i < 4; i++)
+    ata_read (channel, ATA_REG_ALT_STATUS);
+  while (ata_read (channel, ATA_REG_STATUS) & ATA_SR_BSY)
+    ;
+  if (check_err)
+    {
+      unsigned char status = ata_read (channel, ATA_REG_STATUS);
+      if (status & ATA_SR_ERR)
+	return 1;
+      if (status & ATA_SR_DF)
+	return 2;
+      if (!(status & ATA_SR_DRQ))
+	return 3;
+    }
+  return 0;
+}
+
+/*!
+ * Performs an I/O operation on an ATA drive.
+ *
+ * @todo support DMA with buffers above 4G
+ * @param op the operation to perform
+ * @param channel the ATA channel of the target drive
+ * @param drive the ATA drive
+ * @param lba the LBA of the first sector
+ * @param sectors the number of sectors to read or write
+ * @param buffer the buffer to read the sectors to or write from
+ * @return zero on success
+ */
+
+int
+ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
+	    unsigned int lba, unsigned char sectors, void *buffer)
+{
+  enum ata_addr_mode lba_mode;
+  unsigned char lba_io[6];
+  unsigned int device = channel * 2 + drive;
+  unsigned int bus = ata_channels[channel].base;
+  unsigned int words = ATA_SECTOR_SIZE / 2;
+  unsigned short cylinder;
+  unsigned char head;
+  unsigned char sector;
+  int err;
+  char cmd;
+  unsigned short i;
+  unsigned char dma = ata_dma_support;
+
+ retry:
+  if (dma)
+    {
+      /* Setup PRDT for DMA */
+      struct ata_prdt *prdt = ata_devices[device].prdt;
+      char *ptr = buffer;
+      char *end = buffer + sectors * ATA_SECTOR_SIZE;
+      uintptr_t phys_addr = (uintptr_t) prdt - KERNEL_VMA;
+      uintptr_t prev;
+      unsigned int offset = (uintptr_t) buffer & 0x1ff;
+
+      /* Add initial entry to align the buffer to a sector boundary */
+      if (offset)
+	{
+	  /* TODO Support 64-bit DMA */
+	  prdt->addr = vm_phys_addr (THIS_THREAD->args.pml4t, buffer);
+	  prdt->len = ATA_SECTOR_SIZE - offset;
+	  prdt->end = 0;
+	  prev = prdt->addr + prdt->len;
+	  prdt++;
+	  ptr = (char *) ALIGN_DOWN ((uintptr_t) buffer, ATA_SECTOR_SIZE) +
+	    ATA_SECTOR_SIZE;
+	}
+      for (; ptr < end; ptr += ATA_SECTOR_SIZE)
+	{
+	  size_t len = ptr + ATA_SECTOR_SIZE > end ?
+	    (unsigned short) ((uintptr_t) buffer & (ATA_SECTOR_SIZE - 1)) :
+	    ATA_SECTOR_SIZE;
+	  uintptr_t addr = vm_phys_addr (THIS_THREAD->args.pml4t, buffer);
+	  if (prev == addr)
+	    prdt[-1].len += len;
+	  else
+	    {
+	      if (prdt - ata_devices[device].prdt >= ATA_PRDT_MAX)
+		{
+		  /* Too many entries in PRDT, try again with PIO mode */
+		  dma = 0;
+		  goto retry;
+		}
+	      prdt->addr = addr;
+	      prdt->len = len;
+	      prdt->end = 0;
+	      prdt++;
+	    }
+	  prev = prdt[-1].addr + prdt[-1].len;
+	}
+      prdt[-1].end = ATA_PRDT_END;
+      ata_write (channel, ATA_REG_BM_PRDT0, phys_addr & 0xff);
+      ata_write (channel, ATA_REG_BM_PRDT1, (phys_addr >> 8) & 0xff);
+      ata_write (channel, ATA_REG_BM_PRDT2, (phys_addr >> 16) & 0xff);
+      ata_write (channel, ATA_REG_BM_PRDT3, (phys_addr >> 24) & 0xff);
+    }
+  else
+    {
+      /* Turn off interrupts */
+      ata_irq_recv = 0;
+      ata_channels[channel].nien = ATA_CTL_NIEN;
+      ata_write (channel, ATA_REG_CONTROL, ata_channels[channel].nien);
+    }
+
+  /* Set parameters depending on addressing mode */
+  if (lba >= 0x10000000)
+    {
+      /* Address is over 128G, require LBA48 */
+      lba_mode = ATA_ADDR_LBA48;
+      lba_io[0] = lba & 0xff;
+      lba_io[1] = (lba >> 8) & 0xff;
+      lba_io[2] = (lba >> 16) & 0xff;
+      lba_io[3] = (lba >> 24) & 0xff;
+      lba_io[4] = 0;
+      lba_io[5] = 0;
+      head = 0;
+    }
+  else if (ata_devices[device].capabilities & (1 << 9))
+    {
+      /* Use LBA28 if supported */
+      lba_mode = ATA_ADDR_LBA28;
+      lba_io[0] = lba & 0xff;
+      lba_io[1] = (lba >> 8) & 0xff;
+      lba_io[2] = (lba >> 16) & 0xff;
+      lba_io[3] = 0;
+      lba_io[4] = 0;
+      lba_io[5] = 0;
+      head = (lba >> 24) & 0xf;
+    }
+  else
+    {
+      /* Use CHS */
+      lba_mode = ATA_ADDR_CHS;
+      sector = lba % 63 + 1;
+      cylinder = (lba - sector + 1) / 1008;
+      lba_io[0] = sector;
+      lba_io[1] = cylinder & 0xff;
+      lba_io[2] = (cylinder >> 8) & 0xff;
+      lba_io[3] = 0;
+      lba_io[4] = 0;
+      lba_io[5] = 0;
+      head = (lba - sector + 1) % 1008 / 63;
+    }
+
+  /* Wait until the drive is not busy */
+  while (ata_read (channel, ATA_REG_STATUS) & ATA_SR_BSY)
+    ;
+
+  /* Clear bus master error and interrupt if doing a DMA operation */
+  if (dma)
+    ata_write (channel, ATA_REG_BM_STATUS,
+	       ata_read (channel, ATA_REG_BM_STATUS) &
+	       ~(ATA_BM_SR_ERR | ATA_BM_SR_INT));
+
+  /* Select drive */
+  if (lba_mode == ATA_ADDR_CHS)
+    ata_write (channel, ATA_REG_DEVICE_SELECT,
+	       0xa0 | (ata_devices[device].drive << 4) | head);
+  else
+    ata_write (channel, ATA_REG_DEVICE_SELECT,
+	       0xe0 | (ata_devices[device].drive << 4) | head);
+
+  /* Write LBA and sector count */
+  if (lba_mode == ATA_ADDR_LBA48)
+    {
+      ata_write (channel, ATA_REG_SECTOR_COUNT1, 0);
+      ata_write (channel, ATA_REG_LBA3, lba_io[3]);
+      ata_write (channel, ATA_REG_LBA4, lba_io[4]);
+      ata_write (channel, ATA_REG_LBA5, lba_io[5]);
+    }
+  ata_write (channel, ATA_REG_SECTOR_COUNT0, sectors);
+  ata_write (channel, ATA_REG_LBA0, lba_io[0]);
+  ata_write (channel, ATA_REG_LBA1, lba_io[1]);
+  ata_write (channel, ATA_REG_LBA2, lba_io[2]);
+
+  /* Set the command */
+  if (lba_mode == ATA_ADDR_LBA48)
+    {
+      if (dma)
+	cmd = op == ATA_OP_WRITE ? ATA_CMD_WRITE_DMA_EXT : ATA_CMD_READ_DMA_EXT;
+      else
+	cmd = op == ATA_OP_WRITE ? ATA_CMD_WRITE_PIO_EXT : ATA_CMD_READ_PIO_EXT;
+    }
+  else
+    {
+      if (dma)
+	cmd = op == ATA_OP_WRITE ? ATA_CMD_WRITE_DMA : ATA_CMD_READ_DMA;
+      else
+	cmd = op == ATA_OP_WRITE ? ATA_CMD_WRITE_PIO : ATA_CMD_READ_PIO;
+    }
+  ata_write (channel, ATA_REG_COMMAND, cmd);
+
+  /* Run the command */
+  if (dma)
+    {
+      /* Send the DMA command and wait for IRQ */
+      int flags = ATA_BM_CMD_START;
+      if (op == ATA_OP_READ)
+	flags |= ATA_BM_CMD_READ;
+      while (!(ata_read (channel, ATA_REG_STATUS) & ATA_SR_DRQ))
+	;
+      ata_write (channel, ATA_REG_BM_COMMAND, flags);
+      ata_await ();
+      ata_write (channel, ATA_REG_BM_COMMAND, 0);
+    }
+  else
+    {
+      /* Read/write data from I/O ports */
+      if (op == ATA_OP_WRITE)
+	{
+	  for (i = 0; i < sectors; i++)
+	    {
+	      ata_poll (channel, 0);
+	      outsw (bus, buffer, words);
+	      buffer += words * 2;
+	    }
+	  ata_write (channel, ATA_REG_COMMAND,
+		     lba_mode == ATA_ADDR_LBA48 ? ATA_CMD_CACHE_FLUSH_EXT :
+		     ATA_CMD_CACHE_FLUSH);
+	  ata_poll (channel, 0);
+	}
+      else
+	{
+	  for (i = 0; i < sectors; i++)
+	    {
+	      err = ata_poll (channel, 1);
+	      if (err)
+		return err;
+	      insw (bus, buffer, words);
+	      buffer += words * 2;
+	    }
+	}
+    }
+  return 0;
+}
+
+/*!
+ * Waits until an ATA IRQ is issued, signaling the end of a DMA transfer.
+ */
+
+void
+ata_await (void)
+{
+  while (!ata_irq_recv)
+    ;
+  ata_irq_recv = 0;
+}
+
+/*!
+ * Reads sectors from an ATA drive.
+ *
+ * @param channel the channel of the ATA drive
+ * @param drive the ATA drive
+ * @param sectors number of sectors to read
+ * @param lba LBA of first sector
+ * @param buffer the buffer to store the data read
+ * @return zero on sucess
+ */
+
+int
+ata_read_sectors (enum ata_channel channel, enum ata_drive drive,
+		  unsigned char sectors, unsigned int lba, void *buffer)
+{
+  unsigned int device = channel * 2 + drive;
+  if (!ata_devices[device].exists || lba + sectors > ata_devices[device].size)
+    RETV_ERROR (EINVAL, -1);
+  return ata_access (ATA_OP_READ, channel, drive, lba, sectors, buffer);
+}
+
+/*!
+ * Writes sectors to an ATA drive.
+ *
+ * @param channel the channel of the ATA drive
+ * @param drive the ATA drive
+ * @param sectors number of sectors to write
+ * @param lba LBA of first sector
+ * @param buffer the buffer containing the data to write
+ * @return zero on sucess
+ */
+
+int
+ata_write_sectors (enum ata_channel channel, enum ata_drive drive,
+		   unsigned char sectors, unsigned int lba, const void *buffer)
+{
+  unsigned int device = channel * 2 + drive;
+  if (!ata_devices[device].exists || lba + sectors > ata_devices[device].size)
+    RETV_ERROR (EINVAL, -1);
+  return ata_access (ATA_OP_WRITE, channel, drive, lba, sectors,
+		     (void *) buffer);
+}
+
+/*!
  * Initializes the ATA driver. ATA devices connected to the system are polled
  * and prepared for I/O.
  */
@@ -125,6 +443,7 @@ ata_init (void)
   unsigned int bar3;
   unsigned int bar4;
   unsigned short pci_cmd;
+  unsigned char prog_if;
   int count = 0;
   int i;
 
@@ -153,6 +472,28 @@ ata_init (void)
       printf ("ATA: could not locate PCI BAR4\n");
       return;
     }
+
+  /* Read the program interface byte from the PCI configuration space to
+     determine if DMA is supported. DMA requires the controller to support
+     bus mastering IDE and not be in native mode. */
+  prog_if = pci_inb (ata_pci_config, PCI_PROG_IF);
+  ata_dma_support = !!(prog_if & ATA_IF_BM_IDE);
+  if (prog_if & ATA_IF_PRIMARY_NATIVE)
+    {
+      if (prog_if & ATA_IF_PRIMARY_TOGGLE)
+	prog_if &= ~ATA_IF_PRIMARY_NATIVE;
+      else
+	ata_dma_support = 0;
+    }
+  if (prog_if & ATA_IF_SECONDARY_NATIVE)
+    {
+      if (prog_if & ATA_IF_SECONDARY_TOGGLE)
+	prog_if &= ~ATA_IF_SECONDARY_NATIVE;
+      else
+	ata_dma_support = 0;
+    }
+  if (ata_dma_support)
+    pci_outb (ata_pci_config, PCI_PROG_IF, prog_if);
 
   /* Enable PCI bus mastering */
   pci_cmd = pci_inw (ata_pci_config, PCI_COMMAND);
@@ -259,4 +600,26 @@ ata_init (void)
 		ata_devices[i].drive ? "slave" : "master",
 		ata_devices[i].type ? "ATAPI" : "ATA", ata_devices[i].size);
     }
+}
+
+void
+int_ata_primary (void)
+{
+  if (ata_read (ATA_CHANNEL_PRIMARY, ATA_REG_BM_STATUS) & ATA_BM_SR_INT)
+    {
+      ata_irq_recv = 1;
+      inb (ATA_REG_BM_STATUS);
+    }
+  EOI (14);
+}
+
+void
+int_ata_secondary (void)
+{
+  if (ata_read (ATA_CHANNEL_SECONDARY, ATA_REG_BM_STATUS) & ATA_BM_SR_INT)
+    {
+      ata_irq_recv = 1;
+      inb (ATA_REG_BM_STATUS);
+    }
+  EOI (15);
 }

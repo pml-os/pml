@@ -85,15 +85,3 @@ int_coprocessor (void)
 {
   EOI (13);
 }
-
-void
-int_ata_primary (void)
-{
-  EOI (14);
-}
-
-void
-int_ata_secondary (void)
-{
-  EOI (15);
-}
