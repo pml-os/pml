@@ -333,15 +333,25 @@ ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
   /* Run the command */
   if (dma)
     {
-      /* Send the DMA command and wait for IRQ */
       int flags = ATA_BM_CMD_START;
+      unsigned char status;
       if (op == ATA_OP_READ)
 	flags |= ATA_BM_CMD_READ;
+
+      /* Enable interrupts */
+      ata_channels[channel].nien = 0;
+      ata_write (channel, ATA_REG_CONTROL, ata_channels[channel].nien);
+
+      /* Send the DMA command and wait for IRQ */
       while (!(ata_read (channel, ATA_REG_STATUS) & ATA_SR_DRQ))
 	;
       ata_write (channel, ATA_REG_BM_COMMAND, flags);
       ata_await ();
       ata_write (channel, ATA_REG_BM_COMMAND, 0);
+
+      status = ata_read (channel, ATA_REG_STATUS);
+      if ((status & ATA_SR_ERR) || (status & ATA_SR_DF))
+	return -1;
     }
   else
     {
