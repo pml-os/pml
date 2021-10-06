@@ -17,7 +17,10 @@
 #ifndef __PML_INTERRUPT_H
 #define __PML_INTERRUPT_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Definitions for interrupts and multiprocessing
+ */
 
 #if defined ENABLE_SMP && !defined USE_APIC
 #error "SMP requires APIC support"

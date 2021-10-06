@@ -17,29 +17,48 @@
 #ifndef __PML_ALLOC_H
 #define __PML_ALLOC_H
 
+/*!
+ * @file
+ * @brief Kernel memory allocation routines
+ */
+
 #include <pml/cdefs.h>
 
 /* Kernel heap definitions */
 
+/*! Must be in @ref kh_header.magic */
 #define KH_HEADER_MAGIC         0x07242005
+/*! Must be in @ref kh_tail.magic */
 #define KH_TAIL_MAGIC           0xdeadc0de
+/*! Default alignment of kernel heap objects */
 #define KH_DEFAULT_ALIGN        16
+/*! Minimum size of block to split during allocations */
 #define KH_MIN_BLOCK_SPLIT_SIZE 32
 
-#define KH_FLAG_ALLOC           (1 << 0)
+#define KH_FLAG_ALLOC           (1 << 0)    /*!< Block is allocated */
+
+/*!
+ * Header for a block in the kernel heap. This structure is placed in front
+ * of every allocated and free block.
+ */
 
 struct kh_header
 {
-  uint32_t magic;
-  uint32_t flags;
-  uint64_t size;
+  uint32_t magic;               /*!< Must be @ref KH_HEADER_MAGIC */
+  uint32_t flags;               /*!< Block flags */
+  uint64_t size;                /*!< Size of block data in bytes */
 };
+
+/*!
+ * Tail for a block in the kernel heap. This structure is placed behind
+ * every allocated and free block.
+ */
 
 struct kh_tail
 {
-  uint32_t magic;
-  uint32_t reserved;
-  struct kh_header *header;
+  uint32_t magic;               /*!< Must be @ref KH_TAIL_MAGIC */
+  uint32_t reserved;            /*!< Reserved, must be zero */
+  struct kh_header *header;     /*!< Pointer to the corresponding header */
 };
 
 __BEGIN_DECLS

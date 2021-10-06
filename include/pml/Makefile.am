@@ -24,6 +24,7 @@ pmlinclude_HEADERS =	\
 	alloc.h		\
 	asm.h		\
 	ata.h		\
+	device.h	\
 	errno.h		\
 	cdefs.h		\
 	hpet.h		\

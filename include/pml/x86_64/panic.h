@@ -17,7 +17,10 @@
 #ifndef __PML_PANIC_H
 #define __PML_PANIC_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Contains a kernel panic function
+ */
 
 #include <pml/cdefs.h>
 

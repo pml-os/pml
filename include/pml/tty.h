@@ -17,7 +17,10 @@
 #ifndef __PML_TTY_H
 #define __PML_TTY_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Definitions for TTY interfaces
+ */
 
 #include <pml/cdefs.h>
 
@@ -27,9 +30,13 @@ struct tty;
 
 struct tty_output
 {
+  /*! Writes a character to the TTY at a specific location */
   int (*write_char) (struct tty *, size_t, size_t, unsigned char);
+  /*! Clears the TTY screen */
   int (*clear) (struct tty *);
+  /*! Updates the position of the cursor, if supported */
   int (*update_cursor) (struct tty *);
+  /*! Scrolls down one line */
   int (*scroll_down) (struct tty *);
 };
 

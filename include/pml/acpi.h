@@ -17,7 +17,10 @@
 #ifndef __PML_ACPI_H
 #define __PML_ACPI_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief ACPI macros and structure definitions
+ */
 
 #include <pml/cdefs.h>
 

@@ -17,7 +17,10 @@
 #ifndef __PML_THREAD_H
 #define __PML_THREAD_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Macros and functions for threading support
+ */
 
 /*! Milliseconds of CPU time given to each thread */
 #define THREAD_QUANTUM          20

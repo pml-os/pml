@@ -17,7 +17,10 @@
 #ifndef __PML_ATA_H
 #define __PML_ATA_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Definitions for the ATA driver
+ */
 
 #include <pml/pci.h>
 

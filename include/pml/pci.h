@@ -17,7 +17,10 @@
 #ifndef __PML_PCI_H
 #define __PML_PCI_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Routines for interacting with PCI devices
+ */
 
 #include <pml/cdefs.h>
 

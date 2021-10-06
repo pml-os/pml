@@ -17,7 +17,10 @@
 #ifndef __PML_LOCK_H
 #define __PML_LOCK_H
 
-/*! @file */
+/*!
+ * @file
+ * @brief Synchronization object definitions
+ */
 
 #include <pml/cdefs.h>
 

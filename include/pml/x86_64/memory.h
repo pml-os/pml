@@ -19,7 +19,8 @@
 
 /*!
  * @file memory.h
- * Virtual memory layout on x86_64
+ * @brief Memory management macros and functions
+ * <br>Virtual memory layout on x86_64:
  * @code{.unparsed}
  * 0x0000000000000000-0x00007fffffffffff  128T  User space memory
  * 0xffff800000000000-0xfffffcffffffffff ~126T  Reserved kernel memory
