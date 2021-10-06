@@ -51,6 +51,13 @@
 /*! Physical address of starting AP code */
 #define SMP_AP_START_ADDR       0x8000
 
+/*!
+ * Physical address of starting AP long mode code. This address must not
+ * overlap with code loaded at @ref SMP_AP_START_ADDR.
+ */
+
+#define SMP_AP_LONG_START_ADDR  0x8100
+
 /*! Number of IRQs handled by an I/O APIC */
 #define IOAPIC_IRQ_COUNT        24
 

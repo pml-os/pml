@@ -26,7 +26,7 @@ ASM_FUNC_BEGIN (load_gdt):
 	mov	%ax, %fs
 	mov	%ax, %gs
 	mov	%ax, %ss
-	pushq	$8
+	pushq	$0x08
 	movabs	$.flush, %rax
 	push	%rax
 	lretq

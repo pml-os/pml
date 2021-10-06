@@ -26,13 +26,7 @@
 	.section .text
 	.global smp_ap_start
 ASM_FUNC_BEGIN (smp_ap_start):
-	/* IMPORTANT:
-	   Absolute jumps are encoded with their exact destination address,
-	   since this code is meant to be executed at address 0x8000. Code
-	   above .start must not be modified, and the destinations of all ljmp
-	   instructions after this one will need to be updated. */
-	ljmp	$0x00, $(SMP_AP_START_ADDR + 0x5) /* .start */
-.start:
+	ljmp	$0x00, $(SMP_AP_START_ADDR + 5)
 	cli
 	cld
 
@@ -56,17 +50,19 @@ ASM_FUNC_BEGIN (smp_ap_start):
 	or	$(CR0_PE | CR0_PG), %eax
 	mov	%eax, %cr0
 
-	/* Enter 64-bit submode and jump to long mode code */
+	/* Enter 64-bit submode */
 	mov	SMP_AP_INIT_GDT, %eax
 	lgdtl	(%eax)
-	ljmp	$0x08, $(SMP_AP_START_ADDR + 0x42) /* smp_ap_long_start */
+	ljmp	$0x08, $SMP_AP_LONG_START_ADDR
 ASM_FUNC_END (smp_ap_start)
+	.global smp_ap_size
+	.set smp_ap_size, . - smp_ap_start
 
-	/* Remaining code is executed in long mode */
+	/* Remaining code runs in long mode */
 	.code64
 
+	.global smp_ap_long_start
 ASM_FUNC_BEGIN (smp_ap_long_start):
-	/* 64-bit entry point for application processors */
 	mov	$0x10, %ax
 	mov	%ax, %ds
 	mov	%ax, %es
@@ -77,9 +73,8 @@ ASM_FUNC_BEGIN (smp_ap_long_start):
 	movabs	$smp_ap_high_start, %rax
 	jmp	*%rax
 ASM_FUNC_END (smp_ap_long_start)
-smp_ap_end:
-	.global smp_ap_size
-	.set smp_ap_size, smp_ap_end - smp_ap_start
+	.global smp_ap_long_size
+	.set smp_ap_long_size, . - smp_ap_long_start
 
 ASM_FUNC_BEGIN (smp_ap_high_start):
 	/* Notify the BSP that initialization is complete. */

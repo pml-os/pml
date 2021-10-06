@@ -25,6 +25,8 @@
 
 extern void *smp_ap_start;
 extern void *smp_ap_size;
+extern void *smp_ap_long_start;
+extern void *smp_ap_long_size;
 
 /*! Set to one when an application processor has been initialized. */
 volatile int smp_ap_setup_done;
@@ -44,6 +46,8 @@ smp_init (void)
   /* Copy AP startup code to low memory */
   memcpy ((void *) PHYS32_REL (SMP_AP_START_ADDR), &smp_ap_start,
 	  (size_t) &smp_ap_size);
+  memcpy ((void *) PHYS32_REL (SMP_AP_LONG_START_ADDR), &smp_ap_long_start,
+	  (size_t) &smp_ap_long_size);
 
   for (i = 0; i < local_apic_count; i++)
     {
