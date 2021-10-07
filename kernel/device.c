@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*! Buffer for reading the master boot record of a drive. */
+static struct mbr mbr_buffer;
+
 /*! Hashmap of special device files with device names as keys. */
 struct hashmap *device_name_map;
 
@@ -118,6 +121,14 @@ device_ata_init (void)
 	  device->block_size = ATA_SECTOR_SIZE;
 	  device->read = ata_device_read;
 	  device->write = ata_device_write;
+
+	  if (ata_devices[i].size > 0
+	      && !ata_read_sectors (ata_devices[i].channel,
+				    ata_devices[i].drive, 1, 0, &mbr_buffer)
+	      && mbr_buffer.magic == 0xaa55)
+	    {
+	      debug_printf ("Found an MBR on drive %d\n", i);
+	    }
 	}
     }
 }

@@ -85,6 +85,34 @@ struct char_device
   ssize_t (*write) (struct char_device *, unsigned char *, int);
 };
 
+/*!
+ * Format of an entry in an MBR partition table.
+ */
+
+struct mbr_part
+{
+  unsigned char attr;               /*!< Drive attributes */
+  unsigned char chs_start[3];       /*!< CHS address of start of partition */
+  unsigned char type;               /*!< Partition type */
+  unsigned char chs_end[3];         /*!< CHS address of end of partition */
+  uint32_t lba;                     /*!< LBA of start of partition */
+  uint32_t sectors;                 /*!< Number of sectors in partition */
+};
+
+/*!
+ * Format of the master boot record, the first block of a disk partitioned
+ * using the MBR format.
+ */
+
+struct mbr
+{
+  unsigned char bootstrap[440];     /*!< MBR bootstrap code */
+  uint32_t disk_id;                 /*!< Unique disk ID or signature */
+  uint16_t reserved;
+  struct mbr_part part_table[4];    /*!< Partition table */
+  uint16_t magic;                   /*!< Must be @c 0x55 @c 0xaa */
+} __packed;
+
 __BEGIN_DECLS
 
 extern struct hashmap *device_name_map;
