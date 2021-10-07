@@ -1,13 +1,15 @@
 include $(top_srcdir)/compile.mk
 
-if ARCH_X86_64
-arch_headers =		\
+arch_x86_64_headers =	\
 	cmos.h		\
 	cpuid.h		\
 	ctlreg.h	\
 	gdt.h		\
 	msr.h		\
 	multiboot.h
+
+if ARCH_X86_64
+arch_headers = $(arch_x86_64_headers)
 else
 arch_headers =
 endif
@@ -38,4 +40,5 @@ pmlinclude_HEADERS =	\
 	vgatext.h
 	$(arch_headers)
 
-EXTRA_DIST = x86_64
+EXTRA_DIST = \
+	x86_64 $(arch_x86_64_headers)
