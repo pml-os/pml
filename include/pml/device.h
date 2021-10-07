@@ -86,6 +86,17 @@ struct char_device
 };
 
 /*!
+ * Structure used as private data for an ATA drive block device.
+ */
+
+struct disk_device_data
+{
+  struct ata_device *device;        /*!< Pointer to ATA device */
+  unsigned long lba;                /*!< LBA corresponding to start of device */
+  size_t len;                       /*!< Number of bytes accessible to device */
+};
+
+/*!
  * Format of an entry in an MBR partition table.
  */
 

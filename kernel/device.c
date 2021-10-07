@@ -105,29 +105,84 @@ device_ata_init (void)
     {
       if (ata_devices[i].exists)
 	{
-	  char name[] = "sdxxx";
+	  char name[] = "sdxx";
 	  struct block_device *device;
+	  struct disk_device_data *data;
 	  name[2] = 'a' + count++;
 	  name[3] = '\0';
+
+	  /* Data for drive block device */
+	  data = malloc (sizeof (struct disk_device_data));
+	  if (UNLIKELY (!data))
+	    {
+	      debug_printf ("failed to allocate device info structure for "
+			    "IDE drive %d\n", i);
+	      continue;
+	    }
+	  data->device = ata_devices + i;
+	  data->lba = 0; /* Direct mapping to blocks on drive */
+	  data->len = ata_devices[i].size * ATA_SECTOR_SIZE;
+
+	  /* Add device for drive */
 	  device = (struct block_device *) device_add (name, i + 1, 0,
 						       DEVICE_TYPE_BLOCK);
 	  if (UNLIKELY (!device))
 	    {
 	      debug_printf ("failed to add device for IDE drive %d\n", i);
+	      free (data);
 	      continue;
 	    }
-
-	  device->device.data = ata_devices + i;
+	  device->device.data = data;
 	  device->block_size = ATA_SECTOR_SIZE;
 	  device->read = ata_device_read;
 	  device->write = ata_device_write;
+	  printf ("ATA: /dev/%s: IDE drive %d (LBA: %lu, size: %H)\n", name, i,
+		  data->lba, data->len);
 
 	  if (ata_devices[i].size > 0
 	      && !ata_read_sectors (ata_devices[i].channel,
 				    ata_devices[i].drive, 1, 0, &mbr_buffer)
 	      && mbr_buffer.magic == 0xaa55)
 	    {
-	      debug_printf ("Found an MBR on drive %d\n", i);
+	      size_t p;
+	      for (p = 0; p < 4; p++)
+		{
+		  if (!mbr_buffer.part_table[p].type)
+		    continue;
+
+		  /* Set partition data */
+		  data = malloc (sizeof (struct disk_device_data));
+		  if (UNLIKELY (!data))
+		    {
+		      debug_printf ("failed to allocate partition info for "
+				    "IDE drive %d partition %d\n", i, p);
+		      continue;
+		    }
+		  data->device = ata_devices + i;
+		  data->lba = mbr_buffer.part_table[p].lba;
+		  data->len =
+		    mbr_buffer.part_table[p].sectors * ATA_SECTOR_SIZE;
+
+		  /* Add partition device */
+		  name[3] = '1' + p;
+		  device =
+		    (struct block_device *) device_add (name, i + 1, p + 1,
+							DEVICE_TYPE_BLOCK);
+		  if (UNLIKELY (!device))
+		    {
+		      debug_printf ("failed to add device for IDE drive %d "
+				    "partition %d\n", i, p);
+		      free (data);
+		      continue;
+		    }
+		  device->device.data = data;
+		  device->block_size = ATA_SECTOR_SIZE;
+		  device->read = ata_device_read;
+		  device->write = ata_device_write;
+		  printf ("ATA: /dev/%s: IDE drive %d partition %d "
+			  "(LBA: %lu, size: %H)\n", name, i, p, data->lba,
+			  data->len);
+		}
 	    }
 	}
     }
