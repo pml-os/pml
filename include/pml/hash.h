@@ -1,4 +1,4 @@
-/* entry.c -- This file is part of PML.
+/* hash.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,26 +14,24 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/ata.h>
-#include <pml/device.h>
-#include <pml/thread.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef __PML_HASH_H
+#define __PML_HASH_H
 
-static void
-splash (void)
-{
-  printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
-	  "System time: %ld\n", real_time);
-}
+/*!
+ * @file
+ * @brief Hash function implementations
+ */
 
-void
-kentry (void)
-{
-  ata_init ();
-  device_map_init ();
-  device_ata_init ();
+#include <pml/cdefs.h>
+#include <pml/types.h>
 
-  splash ();
-  init_pid_allocator ();
-}
+/*! Type used for representing a hash. */
+typedef unsigned long hash_t;
+
+__BEGIN_DECLS
+
+hash_t siphash (const void *buffer, size_t len, uint128_t key);
+
+__END_DECLS
+
+#endif

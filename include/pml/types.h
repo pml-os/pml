@@ -17,6 +17,11 @@
 #ifndef __PML_TYPES_H
 #define __PML_TYPES_H
 
+/*!
+ * @file
+ * @brief Defines POSIX types and other helper types
+ */
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -53,6 +58,15 @@ typedef long                    pml_blksize_t;
 typedef long                    pml_ssize_t;
 typedef struct pml_fsid_t       pml_fsid_t;
 
+/* GCC 128-bit integer extensions */
+
+#ifdef __GNUC__
+
+typedef __int128_t              pml_int128_t;
+typedef __uint128_t             pml_uint128_t;
+
+#endif /* __GNUC__ */
+
 /* If included in kernel code, define the real type names for convenience. */
 
 #ifdef PML_KERNEL
@@ -81,6 +95,13 @@ typedef pml_timer_t             timer_t;
 typedef pml_blksize_t           blksize_t;
 typedef pml_ssize_t             ssize_t;
 typedef pml_fsid_t              fsid_t;
+
+#ifdef __GNUC__
+
+typedef pml_int128_t            int128_t;
+typedef pml_uint128_t           uint128_t;
+
+#endif /* __GNUC__ */
 
 #endif /* PML_KERNEL */
 

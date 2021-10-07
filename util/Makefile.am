@@ -6,9 +6,11 @@ libutil_a_SOURCES =	\
 	errno.c		\
 	lock.c		\
 	malloc.c	\
+	map.c		\
 	memcmp.c	\
 	memmove.c	\
 	printf.c	\
+	siphash.c	\
 	strcat.c	\
 	strchr.c	\
 	strcmp.c	\

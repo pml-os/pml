@@ -1,4 +1,4 @@
-/* entry.c -- This file is part of PML.
+/* device.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,26 +14,36 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <pml/ata.h>
 #include <pml/device.h>
-#include <pml/thread.h>
-#include <stdio.h>
+#include <pml/panic.h>
 #include <stdlib.h>
 
-static void
-splash (void)
-{
-  printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
-	  "System time: %ld\n", real_time);
-}
+/*! Hashmap of all registered special device files on the system. */
+struct hashmap *device_map;
+
+/*!
+ * Allocates the device hashmap @ref device_map and adds basic device files
+ * to it.
+ */
 
 void
-kentry (void)
+device_map_init (void)
 {
-  ata_init ();
-  device_map_init ();
-  device_ata_init ();
+  device_map = hashmap_create ();
+  if (UNLIKELY (!device_map))
+    panic ("Failed to create device map");
+}
 
-  splash ();
-  init_pid_allocator ();
+/*!
+ * Creates block devices for ATA devices. A block device representing the
+ * entire disk drive is created, and additional block devices for each MBR
+ * partition of the drive are also created.
+ */
+
+void
+device_ata_init (void)
+{
 }

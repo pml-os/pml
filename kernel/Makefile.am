@@ -11,6 +11,7 @@ link_script = $(top_srcdir)/$(ARCH_DIR)/link.ld
 
 kernel_SOURCES =	\
 	boot.S		\
+	device.c	\
 	entry.c		\
 	heap.c		\
 	pid.c

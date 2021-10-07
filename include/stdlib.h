@@ -136,6 +136,62 @@ test_bit (const void *bitmap, size_t index)
   return ((unsigned char *) bitmap)[index / 8] & (1 << (7 - index % 8));
 }
 
+/*!
+ * Rotates a 32-bit unsigned integer left.
+ *
+ * @param x the number to rotate
+ * @param n the number of bits to rotate by
+ * @return the rotated number
+ */
+
+static inline unsigned int
+roll (unsigned int x, int n)
+{
+  return (x << n) | (x >> (32 - n));
+}
+
+/*!
+ * Rotates a 32-bit unsigned integer right.
+ *
+ * @param x the number to rotate
+ * @param n the number of bits to rotate by
+ * @return the rotated number
+ */
+
+static inline unsigned int
+rorl (unsigned int x, int n)
+{
+  return (x >> n) | (x << (32 - n));
+}
+
+/*!
+ * Rotates a 64-bit unsigned integer left.
+ *
+ * @param x the number to rotate
+ * @param n the number of bits to rotate by
+ * @return the rotated number
+ */
+
+static inline unsigned long
+rolq (unsigned long x, int n)
+{
+  return (x << n) | (x >> (64 - n));
+}
+
+/*!
+ * Rotates a 64-bit unsigned integer right.
+ *
+ * @param x the number to rotate
+ * @param n the number of bits to rotate by
+ * @return the rotated number
+ */
+
+static inline unsigned long
+rorq (unsigned long x, int n)
+{
+  return (x >> n) | (x << (64 - n));
+}
+
 __BEGIN_DECLS
 
 extern time_t real_time;

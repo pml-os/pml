@@ -27,8 +27,10 @@ pmlinclude_HEADERS =	\
 	device.h	\
 	errno.h		\
 	cdefs.h		\
+	hash.h		\
 	hpet.h		\
 	lock.h		\
+	map.h		\
 	pci.h		\
 	pit.h		\
 	tty.h		\

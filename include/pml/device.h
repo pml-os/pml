@@ -22,7 +22,7 @@
  * @brief Definitions for special device files
  */
 
-#include <pml/cdefs.h>
+#include <pml/map.h>
 #include <pml/types.h>
 
 /*! Types of special device files */
@@ -57,9 +57,9 @@ struct block_device
   blksize_t block_size;         /*!< Size of a block for I/O */
 
   /*! Read bytes from an offset in the device file */
-  ssize_t read (struct block_device *, void *, size_t, off_t, int);
+  ssize_t (*read) (struct block_device *, void *, size_t, off_t, int);
   /*! Write bytes to an offset in the device file */
-  ssize_t write (struct block_device *, const void *, size_t, off_t, int);
+  ssize_t (*write) (struct block_device *, const void *, size_t, off_t, int);
 };
 
 /*!
@@ -72,13 +72,18 @@ struct char_device
   struct device device;         /*!< Basic device structure */
 
   /*! Read a byte from the device file */
-  ssize_t read (struct char_device *, unsigned char *, int);
+  ssize_t (*read) (struct char_device *, unsigned char *, int);
 
   /*! Write a byte to the device file */
-  ssize_t write (struct char_device *, unsigned char *, int);
+  ssize_t (*write) (struct char_device *, unsigned char *, int);
 };
 
 __BEGIN_DECLS
+
+extern struct hashmap *device_map;
+
+void device_map_init (void);
+void device_ata_init (void);
 
 __END_DECLS
 
