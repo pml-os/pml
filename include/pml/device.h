@@ -20,6 +20,13 @@
 /*!
  * @file
  * @brief Definitions for special device files
+ *
+ * Device numbering namespace: <table>
+ * <tr><th>Major</th><th>Minor</th><th>Description</th></tr>
+ * <tr><td>0</td><td>*</td><td>Special character devices</td></tr>
+ * <tr><td>1-4</td><td>0</td><td>IDE devices</td></tr>
+ * <tr><td>1-4</td><td>1-4</td><td>IDE device partitions</td></tr>
+ * </table>
  */
 
 #include <pml/map.h>
@@ -80,10 +87,16 @@ struct char_device
 
 __BEGIN_DECLS
 
-extern struct hashmap *device_map;
+extern struct hashmap *device_name_map;
+extern struct hashmap *device_num_map;
 
 void device_map_init (void);
 void device_ata_init (void);
+
+ssize_t ata_device_read (struct block_device *device, void *buffer, size_t len,
+			 off_t offset, int block);
+ssize_t ata_device_write (struct block_device *device, const void *buffer,
+			  size_t len, off_t offset, int block);
 
 __END_DECLS
 

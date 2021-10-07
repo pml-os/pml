@@ -18,6 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/ata.h>
+#include <pml/device.h>
 #include <pml/io.h>
 #include <pml/interrupt.h>
 #include <pml/memory.h>
@@ -573,6 +574,20 @@ ata_init (void)
 		ata_devices[i].drive ? "slave" : "master",
 		ata_devices[i].type ? "ATAPI" : "ATA", ata_devices[i].size);
     }
+}
+
+ssize_t
+ata_device_read (struct block_device *device, void *buffer, size_t len,
+		 off_t offset, int block)
+{
+  RETV_ERROR (ENOSYS, -1);
+}
+
+ssize_t
+ata_device_write (struct block_device *device, const void *buffer, size_t len,
+		  off_t offset, int block)
+{
+  RETV_ERROR (ENOSYS, -1);
 }
 
 void

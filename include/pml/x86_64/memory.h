@@ -20,14 +20,21 @@
 /*!
  * @file memory.h
  * @brief Memory management macros and functions
- * <br>Virtual memory layout on x86_64:
- * @code{.unparsed}
- * 0x0000000000000000-0x00007fffffffffff  128T  User space memory
- * 0xffff800000000000-0xfffffcffffffffff ~126T  Reserved kernel memory
- * 0xfffffd8000000000-0xfffffdffbfffffff  511G  Thread-local storage
- * 0xfffffdffc0000000-0xfffffdffffffffff    1G  Thread stack space
- * 0xfffffe0000000000-0xffffffffffffffff    2T  Physical memory mappings
- * @endcode
+ *
+ * Virtual memory layout on x86_64: <table>
+ * <tr><th>Start address</th><th>End address</th><th>Size</th>
+ * <th>Description</th></tr>
+ * <tr><td>@c 0x0000000000000000</td><td>@c 0x00007fffffffffff</td><td>128T</td>
+ * <td>User space memory</td></tr>
+ * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffcffffffffff</td>
+ * <td>~126T</td><td>Reserved kernel memory</td></tr>
+ * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffdffbfffffff</td><td>511G</td>
+ * <td>Thread-local storage</td></tr>
+ * <tr><td>@c 0xfffffdffc0000000</td><td>@c 0xfffffdffffffffff</td><td>1G</td>
+ * <td>Thread stack space</td></tr>
+ * <tr><td>@c 0xfffffe0000000000</td><td>@c 0xffffffffffffffff</td><td>2T</td>
+ * <td>Physical memory mappings</td></tr>
+ * </table>
  * A maximum of 2 TiB of physical memory is supported. PML will not be able
  * to access physical memory beyond the 2 TiB address (@ref PHYS_ADDR_LIMIT).
  */

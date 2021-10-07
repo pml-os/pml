@@ -57,6 +57,8 @@ __BEGIN_DECLS
 struct hashmap *hashmap_create (void);
 void hashmap_free (struct hashmap *hashmap, hashmap_free_func_t free_func);
 int hashmap_insert (struct hashmap *hashmap, unsigned long key, void *value);
+void *hashmap_lookup (struct hashmap *hashmap, unsigned long key);
+int hashmap_remove (struct hashmap *hashmap, unsigned long key);
 
 __END_DECLS
 

@@ -168,3 +168,57 @@ hashmap_insert (struct hashmap *hashmap, unsigned long key, void *value)
     hashmap->buckets[index] = new_entry;
   return 0;
 }
+
+/*!
+ * Looks up the value of a key in a hashmap.
+ *
+ * @param hashmap the hashmap
+ * @param key the key to look up
+ * @return the value mapped to the key, or NULL if the key is not present
+ */
+
+void *
+hashmap_lookup (struct hashmap *hashmap, unsigned long key)
+{
+  hash_t index = siphash ((void *) &key, sizeof (unsigned long), 0) %
+    hashmap->bucket_count;
+  struct hashmap_entry *bucket;
+  for (bucket = hashmap->buckets[index]; bucket != NULL; bucket = bucket->next)
+    {
+      if (bucket->key == key)
+	return bucket->value;
+    }
+  return NULL;
+}
+
+/*!
+ * Removes an entry matching a key from a hashmap.
+ *
+ * @param hashmap the hashmap
+ * @param key the key to remove
+ * @return zero if the key was in the hashmap and successfully removed
+ */
+
+int
+hashmap_remove (struct hashmap *hashmap, unsigned long key)
+{
+  size_t i;
+  for (i = 0; i < hashmap->bucket_count; i++)
+    {
+      struct hashmap_entry *prev = NULL;
+      struct hashmap_entry *bucket;
+      for (bucket = hashmap->buckets[i]; bucket != NULL; bucket = bucket->next)
+	{
+	  if (bucket->key == key)
+	    {
+	      if (prev)
+		prev->next = bucket->next;
+	      else
+		hashmap->buckets[i] = bucket->next;
+	      return 0;
+	    }
+	  prev = bucket;
+	}
+    }
+  return -1;
+}
