@@ -25,11 +25,12 @@
 #include <pml/pit.h>
 #include <pml/thread.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/*! Buffer used to temporarily store ATA identification data */
+/*! Buffer used to temporarily store ATA identification and I/O data */
 static unsigned char ata_buffer[2048];
 
 /*! Whether ATA DMA is supported */
@@ -576,18 +577,189 @@ ata_init (void)
     }
 }
 
+/*!
+ * Reads data from a block device with an ATA drive backend.
+ *
+ * @param device the device to read from
+ * @param buffer the buffer to store the read data
+ * @param len number of bytes to read
+ * @param offset in device file to start reading from
+ * @param block whether to block while waiting for I/O
+ * @return the number of bytes read, or -1 on failure
+ */
+
 ssize_t
 ata_device_read (struct block_device *device, void *buffer, size_t len,
 		 off_t offset, int block)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct disk_device_data *data;
+  size_t start_diff;
+  size_t end_diff;
+  off_t start_lba;
+  off_t mid_lba;
+  off_t end_lba;
+  off_t part_offset;
+  size_t sectors;
+  if (!len)
+    return 0;
+
+  start_lba = offset / ATA_SECTOR_SIZE;
+  mid_lba = start_lba + !!(offset % ATA_SECTOR_SIZE);
+  end_lba = (offset + len) / ATA_SECTOR_SIZE;
+  sectors = end_lba - mid_lba;
+  start_diff = mid_lba * ATA_SECTOR_SIZE - offset;
+  end_diff = offset + len - end_lba * ATA_SECTOR_SIZE;
+
+  /* Calculate LBA offset */
+  data = device->device.data;
+  part_offset = data->lba;
+  if ((size_t) offset >= data->len)
+    RETV_ERROR (EINVAL, -1);
+  if (offset + len > data->len)
+    len = data->len - offset;
+
+  if (mid_lba > end_lba)
+    {
+      /* Completely contained in a single sector */
+      if (ata_read_sectors (data->device->channel, data->device->drive, 1,
+			    start_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      memcpy (buffer, ata_buffer + ATA_SECTOR_SIZE - start_diff, len);
+      return 0;
+    }
+
+  /* Read full sectors */
+  if (sectors)
+    {
+      /* The ATA driver can only read up to 255 sectors at a time, so read
+	 in 255-sector chunks, then read the final remaining sectors
+	 separately. */
+      size_t i;
+      for (i = 0; i + UCHAR_MAX < sectors; i += UCHAR_MAX)
+	{
+	  if (ata_read_sectors (data->device->channel, data->device->drive,
+				UCHAR_MAX, mid_lba + part_offset + i,
+				buffer + start_diff + i * ATA_SECTOR_SIZE))
+	    RETV_ERROR (EIO, -1);
+	}
+      if (ata_read_sectors (data->device->channel, data->device->drive,
+			    sectors - i, mid_lba + part_offset + i,
+			    buffer + start_diff + i * ATA_SECTOR_SIZE))
+	RETV_ERROR (EIO, -1);
+    }
+
+  /* Read unaligned starting bytes */
+  if (start_diff)
+    {
+      if (ata_read_sectors (data->device->channel, data->device->drive, 1,
+			    start_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      memcpy (buffer, ata_buffer + ATA_SECTOR_SIZE - start_diff, start_diff);
+    }
+
+  /* Read unaligned ending bytes */
+  if (end_diff)
+    {
+      if (ata_read_sectors (data->device->channel, data->device->drive, 1,
+			    end_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      memcpy (buffer + start_diff + sectors * ATA_SECTOR_SIZE, ata_buffer,
+	      end_diff);
+    }
+  return len;
 }
 
 ssize_t
 ata_device_write (struct block_device *device, const void *buffer, size_t len,
 		  off_t offset, int block)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct disk_device_data *data;
+  size_t start_diff;
+  size_t end_diff;
+  off_t start_lba;
+  off_t mid_lba;
+  off_t end_lba;
+  off_t part_offset;
+  size_t sectors;
+  if (!len)
+    return 0;
+
+  start_lba = offset / ATA_SECTOR_SIZE;
+  mid_lba = start_lba + !!(offset % ATA_SECTOR_SIZE);
+  end_lba = (offset + len) / ATA_SECTOR_SIZE;
+  sectors = end_lba - mid_lba;
+  start_diff = mid_lba * ATA_SECTOR_SIZE - offset;
+  end_diff = offset + len - end_lba * ATA_SECTOR_SIZE;
+
+  /* Calculate LBA offset */
+  data = device->device.data;
+  part_offset = data->lba;
+  if ((size_t) offset >= data->len)
+    RETV_ERROR (EINVAL, -1);
+  if (offset + len > data->len)
+    len = data->len - offset;
+
+  /* For writing data not on chunk boundaries, the original data is read
+     into a temporary buffer and is partially overwritten by the new data,
+     then the temporary buffer is written to disk. */
+  if (mid_lba > end_lba)
+    {
+      /* Completely contained in a single sector */
+      if (ata_read_sectors (data->device->channel, data->device->drive, 1,
+			    start_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      memcpy (ata_buffer + ATA_SECTOR_SIZE - start_diff, buffer, len);
+      if (ata_write_sectors (data->device->channel, data->device->drive, 1,
+			     start_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      return 0;
+    }
+
+  /* Write full sectors */
+  if (sectors)
+    {
+      /* The ATA driver can only write up to 255 sectors at a time, so write
+	 in 255-sector chunks, then write the final remaining sectors
+	 separately. */
+      size_t i;
+      for (i = 0; i + UCHAR_MAX < sectors; i += UCHAR_MAX)
+	{
+	  if (ata_write_sectors (data->device->channel, data->device->drive,
+				 UCHAR_MAX, mid_lba + part_offset + i,
+				 buffer + start_diff + i * ATA_SECTOR_SIZE))
+	    RETV_ERROR (EIO, -1);
+	}
+      if (ata_write_sectors (data->device->channel, data->device->drive,
+			     sectors - i, mid_lba + part_offset + i,
+			     buffer + start_diff + i * ATA_SECTOR_SIZE))
+	RETV_ERROR (EIO, -1);
+    }
+
+  /* Write unaligned starting bytes */
+  if (start_diff)
+    {
+      if (ata_read_sectors (data->device->channel, data->device->drive, 1,
+			    start_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      memcpy (ata_buffer + ATA_SECTOR_SIZE - start_diff, buffer, start_diff);
+      if (ata_write_sectors (data->device->channel, data->device->drive, 1,
+			     start_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+    }
+
+  /* Write unaligned ending bytes */
+  if (end_diff)
+    {
+      if (ata_read_sectors (data->device->channel, data->device->drive, 1,
+			    end_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+      memcpy (ata_buffer, buffer + start_diff + sectors * ATA_SECTOR_SIZE,
+	      end_diff);
+      if (ata_write_sectors (data->device->channel, data->device->drive, 1,
+			     end_lba + part_offset, ata_buffer))
+	RETV_ERROR (EIO, -1);
+    }
+  return 0;
 }
 
 void
