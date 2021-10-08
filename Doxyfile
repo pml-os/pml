@@ -834,6 +834,7 @@ INPUT                  = arch/x86_64 \
 		       	 build/arch/x86_64 \
 			 build/include/pml \
 			 drivers \
+			 drivers/fs \
 			 include \
 			 include/pml \
 			 kernel \

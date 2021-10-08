@@ -19,8 +19,10 @@
 
 /*!
  * @file
- * Macros for character classification. The macros in this file will only
- * work properly on ASCII characters.
+ * @brief Macros for character classification
+ *
+ * The macros in this file will only work properly on ASCII characters since
+ * they use the numerical values of character literals.
  */
 
 #define isascii(c)              ((c) >= 0 && (c) < 0x80)

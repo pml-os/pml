@@ -14,10 +14,17 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <pml/panic.h>
 #include <pml/vfs.h>
 
+/*! The directory entry representing the root of the VFS filesystem. */
 struct dentry *root_dentry;
+
+/*!
+ * Allocates and initializes the root directory entry @ref root_dentry.
+ */
 
 void
 mount_root (void)
@@ -25,4 +32,5 @@ mount_root (void)
   REF_OBJECT (root_dentry);
   if (UNLIKELY (!root_dentry))
     panic ("Failed to allocate root directory entry");
+  root_dentry->name = "/";
 }
