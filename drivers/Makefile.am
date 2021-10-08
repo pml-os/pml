@@ -10,3 +10,5 @@ libdrivers_a_SOURCES =	\
 	pit.c		\
 	tty-output.c	\
 	vgatext.c
+
+SUBDIRS = fs

@@ -1,4 +1,4 @@
-/* entry.c -- This file is part of PML.
+/* mount.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,28 +14,15 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/ata.h>
-#include <pml/device.h>
-#include <pml/thread.h>
+#include <pml/panic.h>
 #include <pml/vfs.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-static void
-splash (void)
-{
-  printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
-	  "System time: %ld\n", real_time);
-}
+struct dentry *root_dentry;
 
 void
-kentry (void)
+mount_root (void)
 {
-  ata_init ();
-  device_map_init ();
-  device_ata_init ();
-  mount_root ();
-
-  splash ();
-  init_pid_allocator ();
+  REF_OBJECT (root_dentry);
+  if (UNLIKELY (!root_dentry))
+    panic ("Failed to allocate root directory entry");
 }

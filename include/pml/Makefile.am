@@ -33,10 +33,12 @@ pmlinclude_HEADERS =	\
 	hpet.h		\
 	lock.h		\
 	map.h		\
+	object.h	\
 	pci.h		\
 	pit.h		\
 	tty.h		\
 	types.h		\
+	vfs.h		\
 	vgatext.h
 	$(arch_headers)
 
