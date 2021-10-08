@@ -31,10 +31,19 @@ ASM_FUNC_BEGIN (syscall):
 	push	%r11
 	mov	%r10, %rcx
 
+	movl	$0, errno
 	movabs	$syscall_table, %rbx
 	mov	(%rbx,%rax,8), %rax
 	call	*%rax
 
+	/* Error occurred, return errno value */
+	mov	errno, %ebx
+	test	%ebx, %ebx
+	jz	1f
+	xor	%eax, %eax
+	sub	%rbx, %rax
+
+1:
 	pop	%r11
 	pop	%r10
 	pop	%r9
