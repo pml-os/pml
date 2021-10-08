@@ -66,7 +66,7 @@ int
 vga_text_scroll_down (struct tty *tty)
 {
   size_t i;
-  memmove (current_tty->screen, current_tty->screen + VGA_TEXT_SCREEN_WIDTH,
+  memmove (current_tty->screen, current_tty->screen + VGA_TEXT_SCREEN_WIDTH * 2,
 	   (VGA_TEXT_SCREEN_SIZE - VGA_TEXT_SCREEN_WIDTH) * 2);
   for (i = 0; i < VGA_TEXT_SCREEN_WIDTH; i++)
     tty->output->write_char (tty, i, VGA_TEXT_SCREEN_HEIGHT - 1, ' ');
@@ -79,6 +79,8 @@ void
 vga_text_init (void)
 {
   current_tty->color = VGA_TEXT_DEFAULT_COLOR;
+  current_tty->width = VGA_TEXT_SCREEN_WIDTH;
+  current_tty->height = VGA_TEXT_SCREEN_HEIGHT;
   current_tty->screen = kernel_tty_screen;
   current_tty->output = &vga_text_output;
   current_tty->output->clear (current_tty);

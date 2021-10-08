@@ -163,7 +163,7 @@ print_human_size (out_func_t func, char *buffer, size_t index, size_t maxlen,
   size_t temp;
   for (temp = value; temp / 1024 > 0; temp /= 1024)
     i++;
-  if (value >> (10 * i) < 16)
+  if (i && value >> (10 * i) < 16)
     i--;
   value >>= 10 * i;
   input[len++] = ((char[]) {'B', 'K', 'M', 'G', 'T', 'P'})[i];
