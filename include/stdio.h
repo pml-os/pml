@@ -35,7 +35,21 @@
 #define debug_printf(fmt, ...)					\
   printf ("%s:%d: " fmt, __FILE__, __LINE__,  ## __VA_ARGS__ )
 
+/*!
+ * Various boot options that can be set on the command line.
+ */
+
+struct boot_options
+{
+  char *root_device;            /*!< Device to mount as root partition */
+};
+
 __BEGIN_DECLS
+
+extern char *command_line;
+extern struct boot_options boot_options;
+
+void init_command_line (void);
 
 int putchar (int c);
 

@@ -69,8 +69,9 @@ multiboot_init (uintptr_t addr)
       switch (tag->type)
 	{
 	case MULTIBOOT_TAG_TYPE_CMDLINE:
-	  printf ("Boot command line: %s\n",
-		  ((struct mb_str_tag *) tag)->string);
+	  command_line =
+	    PHYS_REL ((char *) ((struct mb_str_tag *) tag)->string);
+	  printf ("Boot command line: %s\n", command_line);
 	  break;
 	case MULTIBOOT_TAG_TYPE_MMAP:
 	  multiboot_mmap = (struct mb_mmap_tag *) PHYS_REL (tag);

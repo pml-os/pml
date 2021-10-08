@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void
+void
 splash (void)
 {
   printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
@@ -31,11 +31,12 @@ splash (void)
 void
 kentry (void)
 {
+  init_command_line ();
   ata_init ();
   device_map_init ();
   device_ata_init ();
   mount_root ();
+  init_pid_allocator ();
 
   splash ();
-  init_pid_allocator ();
 }
