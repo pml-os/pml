@@ -60,7 +60,8 @@
 
 /*!
  * Decrements the reference count of a pointer to a reference-counted object.
- * If the object has no remaining references, it is freed by a call to free().
+ * If the object has no remaining references, it is freed by a call to the
+ * free function set when the object was created with ALLOC_OBJECT().
  * The object passed to this macro may be evaluated more than once, so it
  * should not have any side effects.
  *
