@@ -104,6 +104,12 @@ struct process
 {
   pid_t pid;                    /*!< Process ID */
   pid_t ppid;                   /*!< Parent process ID */
+  pid_t pgid;                   /*!< Process group ID */
+  pid_t sid;                    /*!< Session ID */
+  uid_t uid;                    /*!< Real user ID */
+  uid_t euid;                   /*!< Effective user ID */
+  gid_t gid;                    /*!< Real group ID */
+  gid_t egid;                   /*!< Effective group ID */
   struct thread_queue threads;  /*!< Process thread queue */
   int priority;                 /*!< Process priority */
 };

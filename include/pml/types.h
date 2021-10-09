@@ -33,30 +33,29 @@ struct pml_fsid_t
   int __val[2];
 };
 
-typedef unsigned long           pml_dev_t;
-typedef unsigned int            pml_uid_t;
-typedef unsigned int            pml_gid_t;
-typedef unsigned long           pml_ino_t;
-typedef unsigned int            pml_mode_t;
-typedef unsigned long           pml_nlink_t;
-typedef long                    pml_fsword_t;
-typedef long                    pml_off_t;
-typedef int                     pml_pid_t;
-typedef unsigned long           pml_rlim_t;
-typedef long                    pml_blkcnt_t;
-typedef unsigned long           pml_fsblkcnt_t;
-typedef unsigned long           pml_fsfilcnt_t;
-typedef unsigned int            pml_id_t;
-typedef long                    pml_clock_t;
-typedef long                    pml_time_t;
-typedef unsigned int            pml_useconds_t;
-typedef long                    pml_suseconds_t;
-typedef int                     pml_key_t;
-typedef int                     pml_clockid_t;
-typedef void *                  pml_timer_t;
-typedef long                    pml_blksize_t;
-typedef long                    pml_ssize_t;
-typedef struct pml_fsid_t       pml_fsid_t;
+typedef unsigned long           pml_dev_t;        /*!< Device number */
+typedef unsigned int            pml_uid_t;        /*!< User ID */
+typedef unsigned int            pml_gid_t;        /*!< Group ID */
+typedef unsigned long           pml_ino_t;        /*!< Inode number */
+typedef unsigned int            pml_mode_t;       /*!< Type and permissions */
+typedef unsigned long           pml_nlink_t;      /*!< Hard link count */
+typedef long                    pml_off_t;        /*!< File offset */
+typedef int                     pml_pid_t;        /*!< Process ID */
+typedef unsigned long           pml_rlim_t;       /*!< Hard limit */
+typedef long                    pml_blkcnt_t;     /*!< File block count */
+typedef unsigned long           pml_fsblkcnt_t;   /*!< Filesystem block count */
+typedef unsigned long           pml_fsfilcnt_t;   /*!< Filesystem file count */
+typedef unsigned int            pml_id_t;         /*!< Generic ID */
+typedef long                    pml_clock_t;      /*!< Clock ticks */
+typedef long                    pml_time_t;       /*!< Timestamp value */
+typedef unsigned int            pml_useconds_t;   /*!< Microsecond value */
+typedef long                    pml_suseconds_t;  /*!< Signed microseconds */
+typedef int                     pml_key_t;        /*!< Key number */
+typedef int                     pml_clockid_t;    /*!< Clock ID */
+typedef void *                  pml_timer_t;      /*!< Timer number */
+typedef long                    pml_blksize_t;    /*!< Block size */
+typedef long                    pml_ssize_t;      /*!< Signed generic size */
+typedef struct pml_fsid_t       pml_fsid_t;       /*!< Filesystem ID */
 
 /* GCC 128-bit integer extensions */
 
@@ -77,7 +76,6 @@ typedef pml_gid_t               gid_t;
 typedef pml_ino_t               ino_t;
 typedef pml_mode_t              mode_t;
 typedef pml_nlink_t             nlink_t;
-typedef pml_fsword_t            fsword_t;
 typedef pml_off_t               off_t;
 typedef pml_pid_t               pid_t;
 typedef pml_rlim_t              rlim_t;
@@ -104,5 +102,52 @@ typedef pml_uint128_t           uint128_t;
 #endif /* __GNUC__ */
 
 #endif /* PML_KERNEL */
+
+
+/* Kernel versions of user-space structures, used for system calls. System
+   calls expect these structures to be used instead of any user-space ones,
+   and C libraries providing wrapper functions must translate the fields in
+   these structures to the user-space structures. */
+
+/*!
+ * Kernel equivalent of `struct timespec'. Represents a calendar time or
+ * elapsed time with nanosecond resolution.
+ */
+
+struct pml_timespec
+{
+  time_t sec;                   /*!< Seconds elapsed */
+  long nsec;                    /*!< Additional nanoseconds elapsed */
+};
+
+/*!
+ * Kernel equivalent of `struct stat'. Stores information about a file.
+ */
+
+struct pml_stat
+{
+  mode_t mode;                  /*!< File type and permissions */
+  nlink_t nlink;                /*!< Number of hard links to file */
+  ino_t ino;                    /*!< Inode number of file */
+  uid_t uid;                    /*!< User ID of file owner */
+  gid_t gid;                    /*!< Group ID of file owner */
+  dev_t dev;                    /*!< Device number of device containing file */
+  dev_t rdev;                   /*!< Device number (for special device files) */
+  struct pml_timespec atime;    /*!< Time of last access */
+  struct pml_timespec mtime;    /*!< Time of last data modification */
+  struct pml_timespec ctime;    /*!< Time of last metadata modification */
+  size_t size;                  /*!< Number of bytes in file */
+  blkcnt_t blocks;              /*!< Number of blocks allocated to file */
+  blksize_t blksize;            /*!< Optimal I/O block size */
+};
+
+struct pml_dirent
+{
+  ino_t ino;
+  uint16_t reclen;
+  uint16_t namlen;
+  unsigned char type;
+  char name[256];
+};
 
 #endif

@@ -26,34 +26,49 @@
 
 /*!
  * Marks a structure definition as a reference-counted object.
+ *
+ * @param t the type of the object this macro appears in
  */
 
-#define REF_COUNT               unsigned int __ref_count
+#define REF_COUNT(t)	    \
+  unsigned int __ref_count; \
+  void (*__ref_free) (t *)
+
+/*!
+ * Allocates a reference-counted object and sets its reference count to one.
+ * All other fields in the object are initialized to zero.
+ *
+ * @param x the object as an lvalue
+ * @param ff the function to call when the last reference is freed
+ * @return the allocated object
+ */
+
+#define ALLOC_OBJECT(x, ff)					\
+  (((x) = calloc (1, sizeof (*(x))))				\
+   && (++(x)->__ref_count, (x)->__ref_free = (ff)))
 
 /*!
  * Increments the reference count of a pointer to a reference-counted object.
- * If the object is NULL, it is allocated with a call to calloc() and will have
- * a reference count of one. The object passed to this macro will be evaluated
- * more than once, so it should not have any side effects.
- *
- * @param x the object
- * @return the reference count of the object
- */
-
-#define REF_OBJECT(x)							\
-  (((x) || ((x) = calloc (1, sizeof (*(x))))) && ++(x)->__ref_count)
-
-/*!
- * Decrements the reference count of a pointer to a reference-counted object.
- * If the object has no remaining references, it is freed by a call to free().
- * The object passed to this macro will be evaluated more than once, so it
+ * The object passed to this macro may be evaluated more than once, so it
  * should not have any side effects.
  *
  * @param x the object
  * @return the reference count of the object
  */
 
-#define UNREF_OBJECT(x)					\
-  (--(x)->__ref_count ? (x)->__ref_count : free (x), 0)
+#define REF_OBJECT(x)           (++(x)->__ref_count)
+
+/*!
+ * Decrements the reference count of a pointer to a reference-counted object.
+ * If the object has no remaining references, it is freed by a call to free().
+ * The object passed to this macro may be evaluated more than once, so it
+ * should not have any side effects.
+ *
+ * @param x the object
+ * @return the reference count of the object
+ */
+
+#define UNREF_OBJECT(x)							\
+  (--(x)->__ref_count ? (x)->__ref_count : (x)->__ref_free (x), 0)
 
 #endif

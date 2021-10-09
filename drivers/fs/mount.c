@@ -18,19 +18,20 @@
 
 #include <pml/panic.h>
 #include <pml/vfs.h>
+#include <stdio.h>
 
-/*! The directory entry representing the root of the VFS filesystem. */
-struct dentry *root_dentry;
+/*! The vnode representing the root of the VFS filesystem. */
+struct vnode *root_vnode;
 
 /*!
- * Allocates and initializes the root directory entry @ref root_dentry.
+ * Allocates and initializes the root vnode.
  */
 
 void
 mount_root (void)
 {
-  REF_OBJECT (root_dentry);
-  if (UNLIKELY (!root_dentry))
-    panic ("Failed to allocate root directory entry");
-  root_dentry->name = "/";
+  REF_OBJECT (root_vnode);
+  if (UNLIKELY (!root_vnode))
+    panic ("Failed to allocate root vnode");
+  root_vnode->name = "/";
 }

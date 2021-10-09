@@ -26,8 +26,13 @@
 
 #define HASHMAP_INIT_BUCKETS    16  /*!< Initial number of buckets in hashmap */
 
-/*! Callback function for freeing a value in a hashmap entry. */
-typedef void (*hashmap_free_func_t) (void *);
+/*!
+ * Callback function for freeing a value in a hashmap entry.
+ *
+ * @param value the value that was inserted into the hashmap
+ */
+
+typedef void (*hashmap_free_func_t) (void *value);
 
 /*!
  * Represents a linked list for a bucket in a hashmap. Contains a key and
