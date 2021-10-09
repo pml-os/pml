@@ -30,8 +30,26 @@ struct vnode *root_vnode;
 void
 mount_root (void)
 {
-  REF_OBJECT (root_vnode);
+  ALLOC_OBJECT (root_vnode, vfs_dealloc);
   if (UNLIKELY (!root_vnode))
     panic ("Failed to allocate root vnode");
   root_vnode->name = "/";
+}
+
+int
+vfs_mount (struct mount *mp, unsigned int flags)
+{
+  if (mp->ops->mount)
+    return mp->ops->mount (mp, flags);
+  else
+    return 0;
+}
+
+int
+vfs_unmount (struct mount *mp, unsigned int flags)
+{
+  if (mp->ops->unmount)
+    return mp->ops->unmount (mp, flags);
+  else
+    return 0;
 }

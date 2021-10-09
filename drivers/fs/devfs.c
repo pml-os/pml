@@ -17,11 +17,16 @@
 /*! @file */
 
 #include <pml/devfs.h>
+#include <pml/device.h>
 #include <errno.h>
 
-struct vnode_ops devfs_vnode_ops = {
+const struct mount_ops devfs_mount_ops = {
+  .mount = devfs_mount,
+  .unmount = devfs_unmount
+};
+
+const struct vnode_ops devfs_vnode_ops = {
   .lookup = devfs_lookup,
-  .getattr = devfs_getattr,
   .read = devfs_read,
   .write = devfs_write,
   .readdir = devfs_readdir,
@@ -29,13 +34,28 @@ struct vnode_ops devfs_vnode_ops = {
 };
 
 int
-devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
+devfs_mount (struct mount *mp, unsigned int flags)
 {
-  RETV_ERROR (ENOSYS, -1);
+  ALLOC_OBJECT (mp->root_vnode, vfs_dealloc);
+  if (UNLIKELY (!mp->root_vnode))
+    return -1;
+  mp->ops = &devfs_mount_ops;
+  mp->root_vnode->mode = __S_IFDIR
+    | __S_IRUSR | __S_IXUSR | __S_IRGRP | __S_IXGRP | __S_IROTH | __S_IXOTH;
+  mp->root_vnode->ino = DEVFS_ROOT_INO;
+  mp->root_vnode->ops = &devfs_vnode_ops;
+  return 0;
 }
 
 int
-devfs_getattr (struct pml_stat *stat, struct vnode *vp)
+devfs_unmount (struct mount *mp, unsigned int flags)
+{
+  UNREF_OBJECT (mp->root_vnode);
+  return 0;
+}
+
+int
+devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 {
   RETV_ERROR (ENOSYS, -1);
 }
@@ -43,13 +63,75 @@ devfs_getattr (struct pml_stat *stat, struct vnode *vp)
 ssize_t
 devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct device *device = hashmap_lookup (device_num_map, vp->rdev);
+  int block = !(vp->flags & VN_FLAG_NO_BLOCK);
+  if (!device)
+    RETV_ERROR (ENOENT, -1);
+  if (device->type == DEVICE_TYPE_BLOCK)
+    {
+      struct block_device *bdev = (struct block_device *) device;
+      return bdev->read (bdev, buffer, len, offset, block);
+    }
+  else
+    {
+      struct char_device *cdev = (struct char_device *) device;
+      unsigned char *ptr = buffer;
+      size_t i;
+      for (i = 0; i < len; i++)
+	{
+	  unsigned char c;
+	  switch (cdev->read (cdev, &c, block))
+	    {
+	    case 1:
+	      *ptr++ = c;
+	      break;
+	    case 0:
+	      if (!i)
+		RETV_ERROR (EAGAIN, -1);
+	      else
+		return i;
+	    default:
+	      return -1;
+	    }
+	}
+      return len;
+    }
 }
 
 ssize_t
 devfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct device *device = hashmap_lookup (device_num_map, vp->rdev);
+  int block = !(vp->flags & VN_FLAG_NO_BLOCK);
+  if (!device)
+    RETV_ERROR (ENOENT, -1);
+  if (device->type == DEVICE_TYPE_BLOCK)
+    {
+      struct block_device *bdev = (struct block_device *) device;
+      return bdev->write (bdev, buffer, len, offset, block);
+    }
+  else
+    {
+      struct char_device *cdev = (struct char_device *) device;
+      const unsigned char *ptr = buffer;
+      size_t i;
+      for (i = 0; i < len; i++)
+	{
+	  switch (cdev->write (cdev, *ptr++, block))
+	    {
+	    case 1:
+	      break;
+	    case 0:
+	      if (!i)
+		RETV_ERROR (EAGAIN, -1);
+	      else
+		return i;
+	    default:
+	      return -1;
+	    }
+	}
+      return len;
+    }
 }
 
 off_t

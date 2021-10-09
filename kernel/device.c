@@ -81,7 +81,7 @@ device_add (const char *name, dev_t major, dev_t minor, enum device_type type)
       free (device);
       return NULL;
     }
-  if (hashmap_insert (device_num_map, name_key, device))
+  if (hashmap_insert (device_num_map, num_key, device))
     {
       hashmap_remove (device_name_map, name_key);
       free (device);

@@ -24,12 +24,20 @@
 
 #include <pml/vfs.h>
 
+/*! Bitmask used in inode to indicate a non-device-file inode */
+#define DEVFS_SPECIAL_INO       0xffffffff00000000ULL
+
+/*! Root inode of the devfs filesystem */
+#define DEVFS_ROOT_INO          DEVFS_SPECIAL_INO
+
 __BEGIN_DECLS
 
-extern struct vnode_ops devfs_vnode_ops;
+extern const struct vnode_ops devfs_vnode_ops;
+
+int devfs_mount (struct mount *mp, unsigned int flags);
+int devfs_unmount (struct mount *mp, unsigned int flags);
 
 int devfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
-int devfs_getattr (struct pml_stat *stat, struct vnode *vp);
 ssize_t devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t devfs_write (struct vnode *vp, const void *buffer, size_t len,
 		     off_t offset);

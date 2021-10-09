@@ -63,10 +63,31 @@ struct block_device
   struct device device;         /*!< Basic device structure */
   blksize_t block_size;         /*!< Size of a block for I/O */
 
-  /*! Read bytes from an offset in the device file */
-  ssize_t (*read) (struct block_device *, void *, size_t, off_t, int);
-  /*! Write bytes to an offset in the device file */
-  ssize_t (*write) (struct block_device *, const void *, size_t, off_t, int);
+  /*!
+   * Read bytes from a block device file.
+   *
+   * @param dev the device to read from
+   * @param buffer the buffer to store the read data
+   * @param len number of bytes to read
+   * @param offset offset in file to start reading from
+   * @param block whether to block during I/O
+   * @return number of bytes read, or -1 on failure
+   */
+  ssize_t (*read) (struct block_device *dev, void *buffer, size_t len,
+		   off_t offset, int block);
+
+  /*!
+   * Write bytes to a block device file.
+   *
+   * @param dev the device to write to
+   * @param buffer the buffer containing the data to write
+   * @param len number of bytes to write
+   * @param offset offset in file to start writing to
+   * @param block whether to block during I/O
+   * @return number of bytes written, or -1 on failure
+   */
+  ssize_t (*write) (struct block_device *dev, const void *buffer, size_t len,
+		    off_t offset, int block);
 };
 
 /*!
@@ -78,11 +99,35 @@ struct char_device
 {
   struct device device;         /*!< Basic device structure */
 
-  /*! Read a byte from the device file */
-  ssize_t (*read) (struct char_device *, unsigned char *, int);
+  /*!
+   * Read a byte from a character device file.
+   *
+   * @param dev the device to read from
+   * @param c pointer to store character read
+   * @param block whether to block during I/O
+   * @return <table>
+   * <tr><th>Value</th><th>Description</th></tr>
+   * <tr><td>1</td><td>Byte was successfully read</td></tr>
+   * <tr><td>0</td><td>Couldn't read at this time and not blocking</td></tr>
+   * <tr><td>-1</td><td>Read error</td></tr>
+   * </table>
+   */
+  ssize_t (*read) (struct char_device *dev, unsigned char *c, int block);
 
-  /*! Write a byte to the device file */
-  ssize_t (*write) (struct char_device *, unsigned char *, int);
+  /*!
+   * Write a byte to a character device file.
+   *
+   * @param dev the device to write to
+   * @param c character to write
+   * @param block whether to block during I/O
+   * @return <table>
+   * <tr><th>Value</th><th>Description</th></tr>
+   * <tr><td>1</td><td>Byte was successfully written</td></tr>
+   * <tr><td>0</td><tr>Couldn't write at this time and not blocking</td></tr>
+   * <tr><td>-1</td><td>Write error</td></tr>
+   * </table>
+   */
+  ssize_t (*write) (struct char_device *dev, unsigned char c, int block);
 };
 
 /*!

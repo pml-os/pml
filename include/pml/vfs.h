@@ -61,23 +61,58 @@
 #define __S_ISLNK(x)            (((x) & __S_IFMT) == __S_IFLNK)
 #define __S_ISSOCK(x)           (((x) & __S_IFMT) == __S_IFSOCK)
 
+/* Vnode flags */
+
+#define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
+
 /*! Represents a block number in a filesystem. */
 typedef unsigned long block_t;
 
+struct mount;
+
 /*!
- * Possible types of @ref vnode objects.
+ * Vector of functions for performing operations on mounted filesystems.
  */
 
-enum vnode_type
+struct mount_ops
 {
-  VNODE_TYPE_NONE,              /*!< Unknown type */
-  VNODE_TYPE_REG,               /*!< Regular file */
-  VNODE_TYPE_DIR,               /*!< Directory */
-  VNODE_TYPE_CHR,               /*!< Character device */
-  VNODE_TYPE_BLK,               /*!< Block device */
-  VNODE_TYPE_LNK,               /*!< Symbolic link */
-  VNODE_TYPE_SOCK,              /*!< Socket */
-  VNODE_TYPE_FIFO               /*!< Named pipe */
+  /*!
+   * Performs any initialization required by a filesystem backend. This function
+   * is called when a filesystem is mounted.
+   *
+   * @param mp the mount structure
+   * @param flags mount options
+   * @param zero on success
+   */
+  int (*mount) (struct mount *mp, unsigned int flags);
+
+  /*!
+   * Performs any deallocation needed by a filesystem backend when unmounting
+   * a filesystem. The root vnode of a mount should be freed here.
+   *
+   * @param mp the mount structure
+   * @param flags mount options
+   * @return zero on success
+   */
+  int (*unmount) (struct mount *mp, unsigned int flags);
+};
+
+/*!
+ * Represents a mounted filesystem.
+ */
+
+struct mount
+{
+  /*!
+   * Pointer to the root vnode of a filesystem. This field must be set
+   * to a valid vnode pointer by a filesystem's implementation of
+   * the @ref mount_ops.mount function.
+   */
+  struct vnode *root_vnode;
+
+  dev_t device;                 /*!< Device number, if applicable */
+  const struct mount_ops *ops;  /*!< Mount operation vector */
+  void *data;                   /*!< Driver-specific private data */
 };
 
 struct vnode;
@@ -262,14 +297,24 @@ struct vnode_ops
 struct vnode
 {
   REF_COUNT (struct vnode);
-  enum vnode_type type;         /*!< Type of vnode */
-  mode_t mode;                  /*!< Permissions */
+  mode_t mode;                  /*!< Type and permissions */
+  ino_t ino;                    /*!< Inode number */
+  nlink_t nlink;                /*!< Number of hard links */
   uid_t uid;                    /*!< User ID of vnode owner */
   gid_t gid;                    /*!< Group ID of vnode owner */
-  struct vnode_ops *ops;        /*!< Vnode operation vector */
+  dev_t rdev;                   /*!< Device number (for special device files) */
+  struct pml_timespec atime;    /*!< Time of last access */
+  struct pml_timespec mtime;    /*!< Time of last data modification */
+  struct pml_timespec ctime;    /*!< Time of last metadata modification */
+  size_t size;                  /*!< Number of bytes in file */
+  blkcnt_t blocks;              /*!< Number of blocks allocated to file */
+  blksize_t blksize;            /*!< Optimal I/O block size */
+  const struct vnode_ops *ops;  /*!< Vnode operation vector */
   char *name;                   /*!< File name */
+  unsigned int flags;           /*!< Vnode flags */
   size_t child_count;           /*!< Number of children */
   struct vnode **children;      /*!< Array of child vnodes */
+  struct mount *mount;          /*!< Filesystem the vnode is on */
   void *data;                   /*!< Driver-specific private data */
 };
 
@@ -280,6 +325,28 @@ extern struct vnode *root_vnode;
 int vfs_can_read (struct vnode *vp, int real);
 int vfs_can_write (struct vnode *vp, int real);
 int vfs_can_exec (struct vnode *vp, int real);
+
+int vfs_mount (struct mount *mp, unsigned int flags);
+int vfs_unmount (struct mount *mp, unsigned int flags);
+
+int vfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
+int vfs_getattr (struct pml_stat *stat, struct vnode *vp);
+ssize_t vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
+ssize_t vfs_write (struct vnode *vp, const void *buffer, size_t len,
+		   off_t offset);
+void vfs_sync (struct vnode *vp);
+int vfs_create (struct vnode **result, struct vnode *dir, const char *name,
+		mode_t mode, dev_t rdev);
+int vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
+	       mode_t mode);
+int vfs_rename (struct vnode *vp, struct vnode *dir, const char *name);
+int vfs_link (struct vnode *dir, struct vnode *vp, const char *name);
+int vfs_symlink (struct vnode *dir, const char *name, const char *target);
+off_t vfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset);
+ssize_t vfs_readlink (struct vnode *vp, char *buffer, size_t len);
+int vfs_bmap (struct vnode *vp, block_t *result, block_t block, size_t num);
+int vfs_fill (struct vnode *vp);
+void vfs_dealloc (struct vnode *vp);
 
 void mount_root (void);
 

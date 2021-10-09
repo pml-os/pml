@@ -52,10 +52,23 @@ vfs_getattr (struct pml_stat *stat, struct vnode *vp)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
+  stat->mode = vp->mode;
+  stat->nlink = vp->nlink;
+  stat->ino = vp->ino;
+  stat->uid = vp->uid;
+  stat->gid = vp->gid;
+  stat->dev = vp->mount->device;
+  stat->rdev = vp->rdev;
+  stat->atime = vp->atime;
+  stat->mtime = vp->mtime;
+  stat->ctime = vp->ctime;
+  stat->size = vp->size;
+  stat->blocks = vp->blocks;
+  stat->blksize = vp->blksize;
   if (vp->ops->getattr)
     return vp->ops->getattr (stat, vp);
   else
-    RETV_ERROR (ENOTSUP, -1);
+    return 0;
 }
 
 /*!
@@ -73,6 +86,8 @@ vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
+  if (__S_ISDIR (vp->mode))
+    RETV_ERROR (EISDIR, -1);
   if (vp->ops->read)
     return vp->ops->read (vp, buffer, len, offset);
   else
@@ -94,6 +109,8 @@ vfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
+  if (__S_ISDIR (vp->mode))
+    RETV_ERROR (EISDIR, -1);
   if (vp->ops->write)
     return vp->ops->write (vp, buffer, len, offset);
   else
@@ -260,6 +277,8 @@ vfs_readlink (struct vnode *vp, char *buffer, size_t len)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
+  if (!__S_ISLNK (vp->mode))
+    RETV_ERROR (EINVAL, -1);
   if (vp->ops->readlink)
     return vp->ops->readlink (vp, buffer, len);
   else
