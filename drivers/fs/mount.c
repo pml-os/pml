@@ -20,6 +20,16 @@
 #include <pml/vfs.h>
 #include <stdio.h>
 
+/*!
+ * The system filesystem table. Filesystem drivers add entries to this table
+ * to register a filesystem backend to the VFS layer.
+ */
+
+struct filesystem *filesystem_table;
+
+/*! Number of entries in the filesystem table. */
+size_t filesystem_count;
+
 /*! The vnode representing the root of the VFS filesystem. */
 struct vnode *root_vnode;
 
@@ -34,6 +44,29 @@ mount_root (void)
   if (UNLIKELY (!root_vnode))
     panic ("Failed to allocate root vnode");
   root_vnode->name = "/";
+}
+
+/*!
+ * Adds a filesystem to the filesystem table.
+ *
+ * @param name the name of the filesystem. This string should be a unique name
+ * that identifies the filesystem. When an object is mounted, the filesystem
+ * type selected will be compared to the requested name.
+ * @param ops the mount operation vectors
+ * @return zero on success
+ */
+
+int
+register_filesystem (const char *name, const struct mount_ops *ops)
+{
+  struct filesystem *table =
+    realloc (filesystem_table, sizeof (struct filesystem) * ++filesystem_count);
+  if (UNLIKELY (!table))
+    return -1;
+  table[filesystem_count - 1].name = name;
+  table[filesystem_count - 1].ops = ops;
+  filesystem_table = table;
+  return 0;
 }
 
 /*!

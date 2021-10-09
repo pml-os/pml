@@ -6,4 +6,5 @@ libfs_a_SOURCES =	\
 	devfs.c		\
 	mount.c		\
 	perm.c		\
-	vnode-ops.c
+	vnode-ops.c	\
+	vtree.c

@@ -68,6 +68,18 @@
 /*! Represents a block number in a filesystem. */
 typedef unsigned long block_t;
 
+/*!
+ * Represents an entry in the filesystem table. Maps filesystem names to
+ * operation vectors so mounting a filesystem by its name can select the
+ * correct operation vectors.
+ */
+
+struct filesystem
+{
+  const char *name;             /*!< Filesystem name */
+  const struct mount_ops *ops;  /*!< Mount operation vectors */
+};
+
 struct mount;
 
 /*!
@@ -320,6 +332,8 @@ struct vnode
 
 __BEGIN_DECLS
 
+extern struct filesystem *filesystem_table;
+extern size_t filesystem_count;
 extern struct vnode *root_vnode;
 
 int vfs_can_read (struct vnode *vp, int real);
@@ -349,6 +363,9 @@ int vfs_fill (struct vnode *vp);
 void vfs_dealloc (struct vnode *vp);
 
 void mount_root (void);
+int register_filesystem (const char *name, const struct mount_ops *ops);
+int vnode_add_child (struct vnode *vp, struct vnode *child);
+struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 
 __END_DECLS
 

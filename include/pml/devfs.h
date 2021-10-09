@@ -30,6 +30,33 @@
 /*! Root inode of the devfs filesystem */
 #define DEVFS_ROOT_INO          DEVFS_SPECIAL_INO
 
+/*! Mode of directories in devfs */
+#define DEVFS_DIR_MODE          (__S_IFDIR	\
+				 | __S_IRUSR	\
+				 | __S_IXUSR	\
+				 | __S_IRGRP	\
+				 | __S_IXGRP	\
+				 | __S_IROTH	\
+				 | __S_IXOTH)
+
+/*! Mode of block device files in devfs */
+#define DEVFS_BLOCK_DEVICE_MODE (__S_IFBLK	\
+				 | __S_IRUSR	\
+				 | __S_IWUSR	\
+				 | __S_IRGRP	\
+				 | __S_IWGRP	\
+				 | __S_IROTH	\
+				 | __S_IWOTH)
+
+/*! Mode of character device files in devfs */
+#define DEVFS_CHAR_DEVICE_MODE  (__S_IFCHR	\
+				 | __S_IRUSR	\
+				 | __S_IWUSR	\
+				 | __S_IRGRP	\
+				 | __S_IWGRP	\
+				 | __S_IROTH	\
+				 | __S_IWOTH)
+
 __BEGIN_DECLS
 
 extern const struct vnode_ops devfs_vnode_ops;
@@ -44,6 +71,7 @@ ssize_t devfs_write (struct vnode *vp, const void *buffer, size_t len,
 off_t devfs_readdir (struct vnode *dir, struct pml_dirent *dirent,
 		     off_t offset);
 ssize_t devfs_readlink (struct vnode *vp, char *buffer, size_t len);
+int devfs_fill (struct vnode *vp);
 
 __END_DECLS
 

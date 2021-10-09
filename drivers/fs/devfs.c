@@ -16,9 +16,13 @@
 
 /*! @file */
 
+#include <pml/ata.h>
 #include <pml/devfs.h>
 #include <pml/device.h>
+#include <pml/memory.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 const struct mount_ops devfs_mount_ops = {
   .mount = devfs_mount,
@@ -30,7 +34,8 @@ const struct vnode_ops devfs_vnode_ops = {
   .read = devfs_read,
   .write = devfs_write,
   .readdir = devfs_readdir,
-  .readlink = devfs_readlink
+  .readlink = devfs_readlink,
+  .fill = devfs_fill
 };
 
 int
@@ -40,10 +45,9 @@ devfs_mount (struct mount *mp, unsigned int flags)
   if (UNLIKELY (!mp->root_vnode))
     return -1;
   mp->ops = &devfs_mount_ops;
-  mp->root_vnode->mode = __S_IFDIR
-    | __S_IRUSR | __S_IXUSR | __S_IRGRP | __S_IXGRP | __S_IROTH | __S_IXOTH;
   mp->root_vnode->ino = DEVFS_ROOT_INO;
   mp->root_vnode->ops = &devfs_vnode_ops;
+  devfs_fill (mp->root_vnode);
   return 0;
 }
 
@@ -57,7 +61,16 @@ devfs_unmount (struct mount *mp, unsigned int flags)
 int
 devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 {
-  RETV_ERROR (ENOSYS, -1);
+  unsigned long name_key = siphash (name, strlen (name), 0);
+  struct device *device = hashmap_lookup (device_name_map, name_key);
+  struct vnode *vp;
+  if (!device)
+    RETV_ERROR (ENOENT, -1);
+  ALLOC_OBJECT (vp, vfs_dealloc);
+  if (UNLIKELY (!vp))
+    return -1;
+  *result = vp;
+  return 0;
 }
 
 ssize_t
@@ -144,4 +157,53 @@ ssize_t
 devfs_readlink (struct vnode *vp, char *buffer, size_t len)
 {
   RETV_ERROR (ENOSYS, -1);
+}
+
+int
+devfs_fill (struct vnode *vp)
+{
+  vp->uid = 0;
+  vp->gid = 0;
+  vp->atime.sec = vp->mtime.sec = vp->ctime.sec = real_time;
+  vp->atime.nsec = vp->mtime.nsec = vp->ctime.nsec = 0;
+  switch (vp->ino)
+    {
+    case DEVFS_ROOT_INO:
+      vp->mode = DEVFS_DIR_MODE;
+      vp->nlink = 2;
+      vp->rdev = 0;
+      vp->size = device_name_map->object_count;
+      vp->blocks = 0;
+      vp->blksize = PAGE_SIZE;
+      break;
+    default:
+      if (!(vp->ino >> 32))
+	{
+	  /* Vnode is a device file */
+	  struct device *device = hashmap_lookup (device_num_map, vp->ino);
+	  if (!device)
+	    RETV_ERROR (ENOENT, -1);
+	  vp->nlink = 1;
+	  vp->rdev = vp->ino;
+	  if (device->type == DEVICE_TYPE_BLOCK)
+	    {
+	      struct block_device *bdev = (struct block_device *) device;
+	      struct disk_device_data *data = device->data;
+	      vp->mode = DEVFS_BLOCK_DEVICE_MODE;
+	      vp->size = data->len;
+	      vp->blocks = data->len / ATA_SECTOR_SIZE;
+	      vp->blksize = bdev->block_size;
+	    }
+	  else
+	    {
+	      vp->mode = DEVFS_CHAR_DEVICE_MODE;
+	      vp->size = 0;
+	      vp->blocks = 0;
+	      vp->blksize = PAGE_SIZE;
+	    }
+	}
+      else
+	RETV_ERROR (ENOENT, -1);
+    }
+  return 0;
 }
