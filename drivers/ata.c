@@ -669,6 +669,17 @@ ata_device_read (struct block_device *device, void *buffer, size_t len,
   return len;
 }
 
+/*!
+ * Writes data to a block device with an ATA drive backend.
+ *
+ * @param device the device to write to
+ * @param buffer the buffer containing the data to write
+ * @param len number of bytes to write
+ * @param offset in device file to start writing to
+ * @param block whether to block while waiting for I/O
+ * @return the number of bytes written, or -1 on failure
+ */
+
 ssize_t
 ata_device_write (struct block_device *device, const void *buffer, size_t len,
 		  off_t offset, int block)
