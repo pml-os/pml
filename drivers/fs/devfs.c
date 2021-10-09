@@ -47,6 +47,7 @@ devfs_mount (struct mount *mp, unsigned int flags)
   mp->ops = &devfs_mount_ops;
   mp->root_vnode->ino = DEVFS_ROOT_INO;
   mp->root_vnode->ops = &devfs_vnode_ops;
+  REF_ASSIGN (mp->root_vnode->mount, mp);
   devfs_fill (mp->root_vnode);
   return 0;
 }

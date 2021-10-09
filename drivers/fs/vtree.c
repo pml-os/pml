@@ -36,6 +36,7 @@ vnode_add_child (struct vnode *vp, struct vnode *child)
   if (UNLIKELY (!children))
     return -1;
   children[vp->child_count - 1] = child;
+  REF_OBJECT (child);
   vp->children = children;
   return 0;
 }

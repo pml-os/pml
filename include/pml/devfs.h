@@ -59,6 +59,7 @@
 
 __BEGIN_DECLS
 
+extern const struct mount_ops devfs_mount_ops;
 extern const struct vnode_ops devfs_vnode_ops;
 
 int devfs_mount (struct mount *mp, unsigned int flags);

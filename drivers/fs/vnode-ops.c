@@ -334,6 +334,10 @@ vfs_fill (struct vnode *vp)
 void
 vfs_dealloc (struct vnode *vp)
 {
+  size_t i;
+  for (i = 0; i < vp->child_count; i++)
+    UNREF_OBJECT (vp->children[i]);
+  free (vp->children);
   if (vp->ops->dealloc)
     vp->ops->dealloc (vp);
 }

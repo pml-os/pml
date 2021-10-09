@@ -72,4 +72,14 @@
 #define UNREF_OBJECT(x)							\
   (--(x)->__ref_count ? (x)->__ref_count : (x)->__ref_free (x), 0)
 
+/*!
+ * Assigns a reference-counted object to an lvalue and increments its reference
+ * count.
+ *
+ * @param l the target of the assignment
+ * @param r the value to assign
+ */
+
+#define REF_ASSIGN(l, r) do { (l) = (r); REF_OBJECT (r); } while (0)
+
 #endif

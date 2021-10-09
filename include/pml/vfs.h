@@ -115,6 +115,8 @@ struct mount_ops
 
 struct mount
 {
+  REF_COUNT (void);
+
   /*!
    * Pointer to the root vnode of a filesystem. This field must be set
    * to a valid vnode pointer by a filesystem's implementation of
@@ -122,6 +124,7 @@ struct mount
    */
   struct vnode *root_vnode;
 
+  unsigned int flags;           /*!< Mount options */
   dev_t device;                 /*!< Device number, if applicable */
   const struct mount_ops *ops;  /*!< Mount operation vector */
   void *data;                   /*!< Driver-specific private data */
@@ -364,6 +367,7 @@ void vfs_dealloc (struct vnode *vp);
 
 void mount_root (void);
 int register_filesystem (const char *name, const struct mount_ops *ops);
+struct mount *mount_filesystem (const char *type, unsigned int flags);
 int vnode_add_child (struct vnode *vp, struct vnode *child);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 

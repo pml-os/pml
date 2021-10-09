@@ -16,9 +16,11 @@
 
 /*! @file */
 
+#include <pml/devfs.h>
 #include <pml/panic.h>
-#include <pml/vfs.h>
+#include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 /*!
  * The system filesystem table. Filesystem drivers add entries to this table
@@ -40,10 +42,21 @@ struct vnode *root_vnode;
 void
 mount_root (void)
 {
+  struct mount *devfs_mp;
+
   ALLOC_OBJECT (root_vnode, vfs_dealloc);
   if (UNLIKELY (!root_vnode))
     panic ("Failed to allocate root vnode");
   root_vnode->name = "/";
+
+  if (register_filesystem ("devfs", &devfs_mount_ops))
+    panic ("Failed to register devfs");
+  devfs_mp = mount_filesystem ("devfs", 0);
+  if (UNLIKELY (!devfs_mp))
+    panic ("Failed to mount devfs");
+  devfs_mp->root_vnode->name = "dev";
+  if (vnode_add_child (root_vnode, devfs_mp->root_vnode))
+    panic ("Failed to graft devfs");
 }
 
 /*!
@@ -67,6 +80,39 @@ register_filesystem (const char *name, const struct mount_ops *ops)
   table[filesystem_count - 1].ops = ops;
   filesystem_table = table;
   return 0;
+}
+
+/*!
+ * Creates a new mount structure for a filesystem. The structure is initialized
+ * by calling the vfs_mount() function.
+ *
+ * @param type the filesystem type
+ * @param flags mount flags, passed to vfs_mount()
+ * @return the mount structure, or NULL on failure
+ */
+
+struct mount *
+mount_filesystem (const char *type, unsigned int flags)
+{
+  struct mount *mp;
+  size_t i;
+  for (i = 0; i < filesystem_count; i++)
+    {
+      if (!strcmp (filesystem_table[i].name, type))
+	{
+	  ALLOC_OBJECT (mp, free);
+	  if (UNLIKELY (!mp))
+	    return NULL;
+	  mp->ops = filesystem_table[i].ops;
+	  if (vfs_mount (mp, flags))
+	    {
+	      UNREF_OBJECT (mp);
+	      return NULL;
+	    }
+	  return mp;
+	}
+    }
+  RETV_ERROR (EINVAL, NULL);
 }
 
 /*!
