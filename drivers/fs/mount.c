@@ -36,6 +36,15 @@ mount_root (void)
   root_vnode->name = "/";
 }
 
+/*!
+ * Performs any initialization required by a filesystem backend. This function
+ * is called when a filesystem is mounted.
+ *
+ * @param mp the mount structure
+ * @param flags mount options
+ * @param zero on success
+ */
+
 int
 vfs_mount (struct mount *mp, unsigned int flags)
 {
@@ -44,6 +53,15 @@ vfs_mount (struct mount *mp, unsigned int flags)
   else
     return 0;
 }
+
+/*!
+ * Performs any deallocation needed by a filesystem backend when unmounting
+ * a filesystem. The root vnode of a mount should be freed here.
+ *
+ * @param mp the mount structure
+ * @param flags mount options
+ * @return zero on success
+ */
 
 int
 vfs_unmount (struct mount *mp, unsigned int flags)
