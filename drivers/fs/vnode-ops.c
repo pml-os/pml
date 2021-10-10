@@ -168,7 +168,7 @@ vfs_sync (struct vnode *vp)
 
 /*!
  * Creates a new file under a directory and allocates a vnode for it.
- * This function should not be used to create directories, use @ref vfs_mkdir
+ * This function should not be used to create directories, use vfs_mkdir()
  * instead.
  *
  * @param result the pointer to store the vnode of the new file
