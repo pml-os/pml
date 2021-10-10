@@ -16,7 +16,7 @@
 
 /*! @file */
 
-#include <pml/vfs.h>
+#include <pml/thread.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -65,4 +65,62 @@ vnode_lookup_child (struct vnode *dir, const char *name)
   if (vnode_add_child (dir, vp, name))
     UNREF_OBJECT (vp);
   return vp;
+}
+
+/*!
+ * Resolves a path to a vnode. The returned object should be passed to
+ * UNREF_OBJECT() when no longer needed.
+ *
+ * @todo follow symbolic links
+ * @param path the path to resolve
+ * @return the vnode corresponding to the path, or NULL on failure
+ */
+
+struct vnode *
+vnode_namei (const char *path)
+{
+  struct vnode *vp;
+  char *p = strdup (path);
+  char *ptr = p;
+  char *end;
+  if (UNLIKELY (!p))
+    return NULL;
+  if (*ptr == '/')
+    {
+      REF_ASSIGN (vp, root_vnode);
+      ptr++;
+    }
+  else
+    REF_ASSIGN (vp, THIS_PROCESS->cwd);
+  while (1)
+    {
+      end = strchr (ptr, '/');
+      if (end)
+	*end = '\0';
+      if (*ptr && strcmp (ptr, "."))
+	{
+	  struct vnode *nvp;
+	  if (!strcmp (ptr, ".."))
+	    REF_ASSIGN (nvp, vp->parent);
+	  else
+	    {
+	      nvp = vnode_lookup_child (vp, ptr);
+	      if (!nvp)
+		goto err0;
+	    }
+	  UNREF_OBJECT (vp);
+	  vp = nvp;
+	}
+      if (!end)
+	break;
+      ptr = end + 1;
+    }
+
+  free (p);
+  return vp;
+
+ err0:
+  free (p);
+  UNREF_OBJECT (vp);
+  return NULL;
 }

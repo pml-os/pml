@@ -17,7 +17,6 @@
 /*! @file */
 
 #include <pml/thread.h>
-#include <pml/vfs.h>
 #include <errno.h>
 
 /*!

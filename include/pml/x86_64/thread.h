@@ -38,7 +38,7 @@
 #ifndef __ASSEMBLER__
 
 #include <pml/lock.h>
-#include <pml/types.h>
+#include <pml/vfs.h>
 
 enum
 {
@@ -110,6 +110,8 @@ struct process
   uid_t euid;                   /*!< Effective user ID */
   gid_t gid;                    /*!< Real group ID */
   gid_t egid;                   /*!< Effective group ID */
+  struct vnode *cwd;            /*!< Current working directory */
+  char *cwd_path;               /*!< Absolute path to CWD */
   struct thread_queue threads;  /*!< Process thread queue */
   int priority;                 /*!< Process priority */
 };

@@ -372,6 +372,7 @@ int register_filesystem (const char *name, const struct mount_ops *ops);
 struct mount *mount_filesystem (const char *type, unsigned int flags);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
+struct vnode *vnode_namei (const char *path);
 
 __END_DECLS
 

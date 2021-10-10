@@ -68,6 +68,8 @@ vfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 {
   if (!vfs_can_read (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->lookup)
     return dir->ops->lookup (result, dir, name);
   else
@@ -185,6 +187,8 @@ vfs_create (struct vnode **result, struct vnode *dir, const char *name,
 {
   if (!vfs_can_write (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->create)
     return dir->ops->create (result, dir, name, mode, rdev);
   else
@@ -208,6 +212,8 @@ vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 {
   if (!vfs_can_write (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->mkdir)
     return dir->ops->mkdir (result, dir, name, mode);
   else
@@ -228,6 +234,8 @@ vfs_rename (struct vnode *vp, struct vnode *dir, const char *name)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->rename)
     return dir->ops->rename (vp, dir, name);
   else
@@ -248,6 +256,8 @@ vfs_link (struct vnode *dir, struct vnode *vp, const char *name)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->link)
     return dir->ops->link (dir, vp, name);
   else
@@ -268,6 +278,8 @@ vfs_symlink (struct vnode *dir, const char *name, const char *target)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->symlink)
     return dir->ops->symlink (dir, name, target);
   else
@@ -289,6 +301,8 @@ vfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
 {
   if (!vfs_can_read (dir, 0))
     return -1;
+  if (!__S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->readdir)
     return dir->ops->readdir (dir, dirent, offset);
   else

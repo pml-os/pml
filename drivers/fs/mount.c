@@ -18,6 +18,7 @@
 
 #include <pml/devfs.h>
 #include <pml/panic.h>
+#include <pml/thread.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -47,6 +48,10 @@ mount_root (void)
   root_vnode = vnode_alloc ();
   if (UNLIKELY (!root_vnode))
     goto err0;
+
+  /* Set working directory to root directory */
+  REF_ASSIGN (THIS_PROCESS->cwd, root_vnode);
+  THIS_PROCESS->cwd_path = "/";
 
   /* Make /.. link to / */
   REF_ASSIGN (root_vnode->parent, root_vnode);
