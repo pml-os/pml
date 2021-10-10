@@ -171,7 +171,7 @@ struct mbr
 
 __BEGIN_DECLS
 
-extern struct hashmap *device_name_map;
+extern struct strmap *device_name_map;
 extern struct hashmap *device_num_map;
 
 void device_map_init (void);

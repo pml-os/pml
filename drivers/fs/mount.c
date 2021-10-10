@@ -46,17 +46,26 @@ mount_root (void)
 
   ALLOC_OBJECT (root_vnode, vfs_dealloc);
   if (UNLIKELY (!root_vnode))
-    panic ("Failed to allocate root vnode");
+    goto err0;
   root_vnode->name = "/";
 
+  /* Make /.. link to / */
+  if (vnode_add_child (root_vnode, root_vnode))
+    goto err0;
+
+  /* Mount devfs on /dev */
   if (register_filesystem ("devfs", &devfs_mount_ops))
     panic ("Failed to register devfs");
   devfs_mp = mount_filesystem ("devfs", 0);
   if (UNLIKELY (!devfs_mp))
-    panic ("Failed to mount devfs");
+    goto err0;
   devfs_mp->root_vnode->name = "dev";
   if (vnode_add_child (root_vnode, devfs_mp->root_vnode))
-    panic ("Failed to graft devfs");
+    goto err0;
+  return;
+
+ err0:
+  panic ("Filesystem initialization failed");
 }
 
 /*!

@@ -38,6 +38,7 @@ vnode_add_child (struct vnode *vp, struct vnode *child)
   children[vp->child_count - 1] = child;
   REF_OBJECT (child);
   vp->children = children;
+  child->parent = vp;
   return 0;
 }
 

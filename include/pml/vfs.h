@@ -329,6 +329,7 @@ struct vnode
   unsigned int flags;           /*!< Vnode flags */
   size_t child_count;           /*!< Number of children */
   struct vnode **children;      /*!< Array of child vnodes */
+  struct vnode *parent;         /*!< Parent vnode */
   struct mount *mount;          /*!< Filesystem the vnode is on */
   void *data;                   /*!< Driver-specific private data */
 };

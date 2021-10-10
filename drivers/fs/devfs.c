@@ -62,8 +62,7 @@ devfs_unmount (struct mount *mp, unsigned int flags)
 int
 devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 {
-  unsigned long name_key = siphash (name, strlen (name), 0);
-  struct device *device = hashmap_lookup (device_name_map, name_key);
+  struct device *device = strmap_lookup (device_name_map, name);
   struct vnode *vp;
   if (!device)
     RETV_ERROR (ENOENT, -1);

@@ -47,12 +47,35 @@ struct hashmap_entry
 };
 
 /*!
- * Represents a hashmap that maps pointer keys to pointer values.
+ * Represents a hashmap that maps integer keys to pointer values.
  */
 
 struct hashmap
 {
   struct hashmap_entry **buckets;   /*!< Array of hash buckets */
+  size_t bucket_count;              /*!< Number of buckets in hashmap */
+  size_t object_count;              /*!< Number of objects in hashmap */
+};
+
+/*!
+ * Represents a linked list for a bucket in a string hashmap. Contains a key and
+ * value pair as well as a pointer to the next entry in the linked list.
+ */
+
+struct strmap_entry
+{
+  struct strmap_entry *next;        /*!< Next entry in the current bucket */
+  char *key;                        /*!< Key matching this entry */
+  void *value;                      /*!< Value corresponding to the key */
+};
+
+/*!
+ * Represents a hashmap that maps string keys to pointer values.
+ */
+
+struct strmap
+{
+  struct strmap_entry **buckets;    /*!< Array of hash buckets */
   size_t bucket_count;              /*!< Number of buckets in hashmap */
   size_t object_count;              /*!< Number of objects in hashmap */
 };
@@ -64,6 +87,12 @@ void hashmap_free (struct hashmap *hashmap, hashmap_free_func_t free_func);
 int hashmap_insert (struct hashmap *hashmap, unsigned long key, void *value);
 void *hashmap_lookup (struct hashmap *hashmap, unsigned long key);
 int hashmap_remove (struct hashmap *hashmap, unsigned long key);
+
+struct strmap *strmap_create (void);
+void strmap_free (struct strmap *strmap, hashmap_free_func_t free_func);
+int strmap_insert (struct strmap *strmap, const char *key, void *value);
+void *strmap_lookup (struct strmap *strmap, const char *key);
+int strmap_remove (struct strmap *strmap, const char *key);
 
 __END_DECLS
 

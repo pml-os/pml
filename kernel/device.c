@@ -27,7 +27,7 @@
 static struct mbr mbr_buffer;
 
 /*! Hashmap of special device files with device names as keys. */
-struct hashmap *device_name_map;
+struct strmap *device_name_map;
 
 /*! Hashmap of special device files with device numbers as keys. */
 struct hashmap *device_num_map;
@@ -40,7 +40,7 @@ struct hashmap *device_num_map;
 void
 device_map_init (void)
 {
-  device_name_map = hashmap_create ();
+  device_name_map = strmap_create ();
   device_num_map = hashmap_create ();
   if (UNLIKELY (!device_name_map) || UNLIKELY (!device_num_map))
     panic ("Failed to create device map");
@@ -60,7 +60,6 @@ struct device *
 device_add (const char *name, dev_t major, dev_t minor, enum device_type type)
 {
   struct device *device = NULL;
-  unsigned long name_key = siphash (name, strlen (name), 0);
   unsigned long num_key = (major << 32) | (minor & 0xffffffff);
   switch (type)
     {
@@ -76,14 +75,14 @@ device_add (const char *name, dev_t major, dev_t minor, enum device_type type)
   device->type = type;
   device->major = major;
   device->minor = minor;
-  if (hashmap_insert (device_name_map, name_key, device))
+  if (strmap_insert (device_name_map, name, device))
     {
       free (device);
       return NULL;
     }
   if (hashmap_insert (device_num_map, num_key, device))
     {
-      hashmap_remove (device_name_map, name_key);
+      strmap_remove (device_name_map, name);
       free (device);
       return NULL;
     }
