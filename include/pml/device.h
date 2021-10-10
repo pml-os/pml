@@ -41,7 +41,25 @@
  */
 
 #define makedev(major, minor)					\
-  ((dev_t) (((major & 0xffff) << 16) | (minor & 0xffff)))
+  ((dev_t) ((((major) & 0xffff) << 16) | ((minor) & 0xffff)))
+
+/*!
+ * Determines the major number of a device ID.
+ *
+ * @param dev the device ID
+ * @return the major number
+ */
+
+#define major(dev) (((dev) >> 16) & 0xffff)
+
+/*!
+ * Determines the minor number of a device ID.
+ *
+ * @param dev the device ID
+ * @return the minor number
+ */
+
+#define minor(dev) ((dev) & 0xffff)
 
 /*! Types of special device files */
 
@@ -59,6 +77,7 @@ enum device_type
 struct device
 {
   enum device_type type;        /*!< Device file type */
+  char *name;                   /*!< Name of device */
   dev_t major;                  /*!< Major number */
   dev_t minor;                  /*!< Minor number */
   void *data;                   /*!< Device driver private data */

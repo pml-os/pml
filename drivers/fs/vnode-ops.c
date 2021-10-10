@@ -292,21 +292,30 @@ vfs_symlink (struct vnode *dir, const char *name, const char *target)
  * @param dir the directory to read
  * @param dirent pointer to store directory entry data
  * @param offset offset in directory vnode to read next entry from
- * @return offset of next unread directory entry which can then be passed
- * to another call to this function to read the next entry, or -1 on failure
+ * @return @return <table>
+ * <tr><th>Value</th><th>Description</th></tr>
+ * <tr><td>-1</td><td>Error occurred</td></tr>
+ * <tr><td>0</td><td>No more directory entries to read</td></tr>
+ * <tr><td>Positive value</td><td>An offset that can be passed to another
+ * call to this function to read the next directory entry</td></tr>
+ * </table>
  */
 
 off_t
 vfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
 {
+  off_t ret;
   if (!vfs_can_read (dir, 0))
     return -1;
   if (!__S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
-  if (dir->ops->readdir)
-    return dir->ops->readdir (dir, dirent, offset);
-  else
+  if (!dir->ops->readdir)
     RETV_ERROR (ENOTSUP, -1);
+  ret = dir->ops->readdir (dir, dirent, offset);
+  if (ret == -1)
+    return -1;
+  dirent->reclen = offsetof (struct pml_dirent, name) + dirent->namlen + 1;
+  return ret;
 }
 
 /*!

@@ -157,7 +157,58 @@ devfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 off_t
 devfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
 {
-  RETV_ERROR (ENOSYS, -1);
+  if (dir->ino == DEVFS_ROOT_INO)
+    {
+      struct device *device;
+      struct hashmap_entry *temp;
+      unsigned long key;
+      size_t index;
+      size_t i;
+      if (!offset)
+	{
+	  for (i = 0; i < device_num_map->bucket_count; i++)
+	    {
+	      if (device_num_map->buckets[i])
+		{
+		  offset = device_num_map->buckets[i]->key;
+		  break;
+		}
+	    }
+	  if (!offset)
+	    return 0;
+	}
+
+      device = hashmap_lookup (device_num_map, offset);
+      if (!device)
+	RETV_ERROR (EINVAL, -1);
+      dirent->ino = offset;
+      if (device->type == DEVICE_TYPE_BLOCK)
+	dirent->type = __DT_BLK;
+      else
+	dirent->type = __DT_CHR;
+      dirent->namlen = strlen (device->name);
+      strncpy (dirent->name, device->name, dirent->namlen);
+      dirent->name[dirent->namlen] = '\0';
+
+      key = offset;
+      index = siphash (&key, sizeof (unsigned long), 0) %
+	device_num_map->bucket_count;
+      for (temp = device_num_map->buckets[index]; temp != NULL;
+	   temp = temp->next)
+	{
+	  if (temp->key == key)
+	    break;
+	}
+      if (temp->next)
+	return temp->next->key;
+      for (index++; index < device_num_map->bucket_count; index++)
+	{
+	  if (device_num_map->buckets[index])
+	    return device_num_map->buckets[index]->key;
+	}
+      return 0;
+    }
+  RETV_ERROR (ENOENT, -1);
 }
 
 ssize_t
@@ -179,7 +230,7 @@ devfs_fill (struct vnode *vp)
       vp->mode = DEVFS_DIR_MODE;
       vp->nlink = 2;
       vp->rdev = 0;
-      vp->size = device_name_map->object_count;
+      vp->size = 0;
       vp->blocks = 0;
       vp->blksize = PAGE_SIZE;
       break;

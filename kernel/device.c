@@ -72,9 +72,15 @@ device_add (const char *name, dev_t major, dev_t minor, enum device_type type)
   if (UNLIKELY (!device))
     return NULL;
   device->type = type;
+  device->name = strdup (name);
+  if (UNLIKELY (!device->name))
+    {
+      free (device);
+      return NULL;
+    }
   device->major = major;
   device->minor = minor;
-  if (strmap_insert (device_name_map, name, device))
+  if (strmap_insert (device_name_map, device->name, device))
     {
       free (device);
       return NULL;

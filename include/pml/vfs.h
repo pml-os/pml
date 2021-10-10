@@ -61,6 +61,15 @@
 #define __S_ISLNK(x)            (((x) & __S_IFMT) == __S_IFLNK)
 #define __S_ISSOCK(x)           (((x) & __S_IFMT) == __S_IFSOCK)
 
+#define __DT_UNKNOWN            0
+#define __DT_FIFO               1
+#define __DT_CHR                2
+#define __DT_DIR                4
+#define __DT_BLK                6
+#define __DT_REG                8
+#define __DT_LNK                10
+#define __DT_SOCK               12
+
 /* Vnode flags */
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
@@ -250,13 +259,19 @@ struct vnode_ops
   int (*symlink) (struct vnode *dir, const char *name, const char *target);
 
   /*!
-   * Reads a directory entry.
+   * Reads a directory entry. Implementations of this function do not need
+   * to set the @ref pml_dirent.reclen member.
    *
    * @param dir the directory to read
    * @param dirent pointer to store directory entry data
    * @param offset offset in directory vnode to read next entry from
-   * @return offset of next unread directory entry which can then be passed
-   * to another call to this function to read the next entry, or -1 on failure
+   * @return <table>
+   * <tr><th>Value</th><th>Description</th></tr>
+   * <tr><td>-1</td><td>Error occurred</td></tr>
+   * <tr><td>0</td><td>No more directory entries to read</td></tr>
+   * <tr><td>Positive value</td><td>An offset that can be passed to another
+   * call to this function to read the next directory entry</td></tr>
+   * </table>
    */
   off_t (*readdir) (struct vnode *dir, struct pml_dirent *dirent, off_t offset);
 

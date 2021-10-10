@@ -141,6 +141,11 @@ struct pml_stat
   blksize_t blksize;            /*!< Optimal I/O block size */
 };
 
+/*!
+ * Kernel equivalent of `struct dirent'. Stores information about a directory
+ * entry.
+ */
+
 struct pml_dirent
 {
   ino_t ino;
