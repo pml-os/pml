@@ -23,7 +23,7 @@
  */
 
 #include <pml/object.h>
-#include <pml/types.h>
+#include <pml/map.h>
 
 #define __S_IFMT                0170000
 #define __S_IFIFO               0010000
@@ -325,10 +325,8 @@ struct vnode
   blkcnt_t blocks;              /*!< Number of blocks allocated to file */
   blksize_t blksize;            /*!< Optimal I/O block size */
   const struct vnode_ops *ops;  /*!< Vnode operation vector */
-  char *name;                   /*!< File name */
   unsigned int flags;           /*!< Vnode flags */
-  size_t child_count;           /*!< Number of children */
-  struct vnode **children;      /*!< Array of child vnodes */
+  struct strmap *children;      /*!< Hashmap of child vnodes */
   struct vnode *parent;         /*!< Parent vnode */
   struct mount *mount;          /*!< Filesystem the vnode is on */
   void *data;                   /*!< Driver-specific private data */
@@ -346,6 +344,9 @@ int vfs_can_exec (struct vnode *vp, int real);
 
 int vfs_mount (struct mount *mp, unsigned int flags);
 int vfs_unmount (struct mount *mp, unsigned int flags);
+
+struct vnode *vnode_alloc (void);
+void vnode_free_child (void *data);
 
 int vfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
 int vfs_getattr (struct pml_stat *stat, struct vnode *vp);
@@ -369,7 +370,7 @@ void vfs_dealloc (struct vnode *vp);
 void mount_root (void);
 int register_filesystem (const char *name, const struct mount_ops *ops);
 struct mount *mount_filesystem (const char *type, unsigned int flags);
-int vnode_add_child (struct vnode *vp, struct vnode *child);
+int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 
 __END_DECLS

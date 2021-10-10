@@ -60,7 +60,7 @@ struct device *
 device_add (const char *name, dev_t major, dev_t minor, enum device_type type)
 {
   struct device *device = NULL;
-  unsigned long num_key = (major << 32) | (minor & 0xffffffff);
+  unsigned long num_key = makedev (major, minor);
   switch (type)
     {
     case DEVICE_TYPE_BLOCK:

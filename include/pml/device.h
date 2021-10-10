@@ -32,6 +32,17 @@
 #include <pml/map.h>
 #include <pml/types.h>
 
+/*!
+ * Creates a single value representing a device's major and minor numbers.
+ *
+ * @param major major number of device
+ * @param minor minor number of device
+ * @return device number as a @ref dev_t value
+ */
+
+#define makedev(major, minor)					\
+  ((dev_t) (((major & 0xffff) << 16) | (minor & 0xffff)))
+
 /*! Types of special device files */
 
 enum device_type

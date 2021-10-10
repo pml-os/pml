@@ -41,7 +41,7 @@ const struct vnode_ops devfs_vnode_ops = {
 int
 devfs_mount (struct mount *mp, unsigned int flags)
 {
-  ALLOC_OBJECT (mp->root_vnode, vfs_dealloc);
+  mp->root_vnode = vnode_alloc ();
   if (UNLIKELY (!mp->root_vnode))
     return -1;
   mp->ops = &devfs_mount_ops;
@@ -66,9 +66,16 @@ devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
   struct vnode *vp;
   if (!device)
     RETV_ERROR (ENOENT, -1);
-  ALLOC_OBJECT (vp, vfs_dealloc);
+  vp = vnode_alloc ();
   if (UNLIKELY (!vp))
     return -1;
+  vp->ino = makedev (device->major, device->minor);
+  vp->ops = &devfs_vnode_ops;
+  if (vfs_fill (vp))
+    {
+      UNREF_OBJECT (vp);
+      return -1;
+    }
   *result = vp;
   return 0;
 }

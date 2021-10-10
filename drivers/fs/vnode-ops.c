@@ -20,6 +20,41 @@
 #include <errno.h>
 
 /*!
+ * Allocates an empty vnode.
+ *
+ * @return a pointer to an empty vnode, or NULL if the allocation failed
+ */
+
+struct vnode *
+vnode_alloc (void)
+{
+  struct vnode *vp;
+  ALLOC_OBJECT (vp, vfs_dealloc);
+  if (UNLIKELY (!vp))
+    return NULL;
+  vp->children = strmap_create ();
+  if (UNLIKELY (!vp->children))
+    {
+      UNREF_OBJECT (vp);
+      return 0;
+    }
+  return vp;
+}
+
+/*!
+ * Callback function for freeing a hashmap of child vnodes.
+ *
+ * @param data pointer to a child vnode
+ */
+
+void
+vnode_free_child (void *data)
+{
+  struct vnode *vp = data;
+  UNREF_OBJECT (vp);
+}
+
+/*!
  * Finds a vnode that is a child node of a directory through a path component.
  *
  * @param result pointer to store result of lookup, stores NULL on failure
@@ -334,10 +369,9 @@ vfs_fill (struct vnode *vp)
 void
 vfs_dealloc (struct vnode *vp)
 {
-  size_t i;
-  for (i = 0; i < vp->child_count; i++)
-    UNREF_OBJECT (vp->children[i]);
-  free (vp->children);
+  if (vp->children)
+    strmap_free (vp->children, vnode_free_child);
+  UNREF_OBJECT (vp->parent);
   if (vp->ops->dealloc)
     vp->ops->dealloc (vp);
 }

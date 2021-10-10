@@ -44,14 +44,12 @@ mount_root (void)
 {
   struct mount *devfs_mp;
 
-  ALLOC_OBJECT (root_vnode, vfs_dealloc);
+  root_vnode = vnode_alloc ();
   if (UNLIKELY (!root_vnode))
     goto err0;
-  root_vnode->name = "/";
 
   /* Make /.. link to / */
-  if (vnode_add_child (root_vnode, root_vnode))
-    goto err0;
+  REF_ASSIGN (root_vnode->parent, root_vnode);
 
   /* Mount devfs on /dev */
   if (register_filesystem ("devfs", &devfs_mount_ops))
@@ -59,8 +57,7 @@ mount_root (void)
   devfs_mp = mount_filesystem ("devfs", 0);
   if (UNLIKELY (!devfs_mp))
     goto err0;
-  devfs_mp->root_vnode->name = "dev";
-  if (vnode_add_child (root_vnode, devfs_mp->root_vnode))
+  if (vnode_add_child (root_vnode, devfs_mp->root_vnode, "dev"))
     goto err0;
   return;
 

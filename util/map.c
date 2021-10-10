@@ -388,7 +388,7 @@ strmap_lookup (struct strmap *strmap, const char *key)
   struct strmap_entry *bucket;
   for (bucket = strmap->buckets[index]; bucket != NULL; bucket = bucket->next)
     {
-      if (bucket->key == key)
+      if (!strcmp (bucket->key, key))
 	return bucket->value;
     }
   return NULL;

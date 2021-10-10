@@ -63,14 +63,15 @@
  * If the object has no remaining references, it is freed by a call to the
  * free function set when the object was created with ALLOC_OBJECT().
  * The object passed to this macro may be evaluated more than once, so it
- * should not have any side effects.
+ * should not have any side effects. The object may also be a NULL pointer,
+ * in which case this macro will return zero.
  *
  * @param x the object
- * @return the reference count of the object
+ * @return the reference count of the object, or zero if the object is NULL
  */
 
 #define UNREF_OBJECT(x)							\
-  (--(x)->__ref_count ? (x)->__ref_count : (x)->__ref_free (x), 0)
+  ((x) ? 0 : (--(x)->__ref_count ? (x)->__ref_count : (x)->__ref_free (x), 0))
 
 /*!
  * Assigns a reference-counted object to an lvalue and increments its reference

@@ -25,20 +25,17 @@
  *
  * @param vp the parent vnode
  * @param child the child vnode
+ * @param name name of the child vnode
  * @return zero on success
  */
 
 int
-vnode_add_child (struct vnode *vp, struct vnode *child)
+vnode_add_child (struct vnode *vp, struct vnode *child, const char *name)
 {
-  struct vnode **children =
-    realloc (vp->children, sizeof (struct vnode *) * ++vp->child_count);
-  if (UNLIKELY (!children))
+  if (strmap_insert (vp->children, name, child))
     return -1;
-  children[vp->child_count - 1] = child;
+  REF_ASSIGN (child->parent, vp);
   REF_OBJECT (child);
-  vp->children = children;
-  child->parent = vp;
   return 0;
 }
 
@@ -56,21 +53,16 @@ vnode_add_child (struct vnode *vp, struct vnode *child)
 struct vnode *
 vnode_lookup_child (struct vnode *dir, const char *name)
 {
-  struct vnode *vp;
-  struct vnode **children;
-  size_t i;
-  for (i = 0; i < dir->child_count; i++)
+  struct vnode *vp = strmap_lookup (dir->children, name);
+  if (vp)
     {
-      if (!strcmp (dir->children[i]->name, name))
-	{
-	  REF_OBJECT (dir->children[i]);
-	  return dir->children[i];
-	}
+      REF_OBJECT (vp);
+      return vp;
     }
   if (vfs_lookup (&vp, dir, name))
     return NULL;
   REF_OBJECT (vp);
-  if (vnode_add_child (dir, vp))
+  if (vnode_add_child (dir, vp, name))
     UNREF_OBJECT (vp);
   return vp;
 }
