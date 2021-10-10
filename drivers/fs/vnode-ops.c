@@ -168,7 +168,7 @@ vfs_sync (struct vnode *vp)
 
 /*!
  * Creates a new file under a directory and allocates a vnode for it.
- * This function should not be used to create directories, use @ref mkdir
+ * This function should not be used to create directories, use @ref vfs_mkdir
  * instead.
  *
  * @param result the pointer to store the vnode of the new file
@@ -302,7 +302,7 @@ vfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
  * @param buffer where to place contents of link
  * @param len maximum number of bytes to read
  * @return number of bytes read, or -1 on failure. If the number of bytes
- * is equal to @ref len, it is not possible to determine whether the data
+ * is equal to @p len, it is not possible to determine whether the data
  * read was truncated, and this function should be called again with a larger
  * buffer.
  */
@@ -326,7 +326,7 @@ vfs_readlink (struct vnode *vp, char *buffer, size_t len)
  *
  * @param vp the vnode
  * @param result where to store physical block numbers. This must point to
- * a buffer capable of storing at least @ref num @ref block_t values.
+ * a buffer capable of storing at least @p num @ref block_t values.
  * @param block first logical block number
  * @param num number of logical blocks past the first block to map
  * @return zero on success

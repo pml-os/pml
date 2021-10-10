@@ -133,7 +133,7 @@ local_apic_eoi (void)
  * @param mode the interrupt delivery mode
  * @param deassert whether to use @c INIT level de-assert
  * @param level_trigger whether the interrupt should be level triggered,
- * ignored for all modes except @ref ACPI_MODE_INIT
+ * ignored for all modes except @ref APIC_MODE_INIT
  */
 
 void

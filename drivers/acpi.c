@@ -143,7 +143,6 @@ acpi_parse_fadt (const struct acpi_fadt *fadt)
  * Verifies the checksum and signature of the ACPI RSDP.
  *
  * @param rsdp the RSDP pointer to verify
- * @param acpi2 if ACPI 2.0 or newer is used
  * @return zero if the RSDP is valid
  */
 

@@ -267,7 +267,7 @@ struct vnode_ops
    * @param buffer where to place contents of link
    * @param len maximum number of bytes to read
    * @return number of bytes read, or -1 on failure. If the number of bytes
-   * is equal to @ref len, it is not possible to determine whether the data
+   * is equal to @p len, it is not possible to determine whether the data
    * read was truncated, and this function should be called again with a larger
    * buffer.
    */
@@ -279,7 +279,7 @@ struct vnode_ops
    *
    * @param vp the vnode
    * @param result where to store physical block numbers. This must point to
-   * a buffer capable of storing at least @ref num @ref block_t values.
+   * a buffer capable of storing at least @p num @ref block_t values.
    * @param block first logical block number
    * @param num number of logical blocks past the first block to map
    * @return zero on success

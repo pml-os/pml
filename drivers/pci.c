@@ -136,7 +136,7 @@ pci_device_type (pci_config_t config)
  * @param vendor_id the vendor ID to match
  * @param device_id the device ID to match
  * @param config the PCI configuration space
- * @return @ref config if the device matches, otherwise zero
+ * @return @p config if the device matches, otherwise zero
  */
 
 pci_config_t

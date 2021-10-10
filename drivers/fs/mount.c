@@ -127,7 +127,7 @@ mount_filesystem (const char *type, unsigned int flags)
  *
  * @param mp the mount structure
  * @param flags mount options
- * @param zero on success
+ * @return zero on success
  */
 
 int

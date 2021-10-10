@@ -33,8 +33,7 @@ struct strmap *device_name_map;
 struct hashmap *device_num_map;
 
 /*!
- * Allocates the device hashmap @ref device_map and adds basic device files
- * to it.
+ * Allocates the device hashmaps (@ref device_name_map and @ref device_num_map).
  */
 
 void
