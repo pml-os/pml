@@ -16,7 +16,10 @@
 
 /*! @file */
 
+#include <pml/alloc.h>
 #include <pml/ext2fs.h>
+#include <pml/memory.h>
+#include <errno.h>
 
 /*!
  * Reads one or more consecutive blocks from an ext2 filesystem.

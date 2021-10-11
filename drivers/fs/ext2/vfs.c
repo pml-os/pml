@@ -14,9 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/alloc.h>
 #include <pml/ext2fs.h>
-#include <pml/memory.h>
 #include <errno.h>
 
 const struct mount_ops ext2_mount_ops = {
