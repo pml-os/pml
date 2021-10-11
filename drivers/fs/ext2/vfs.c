@@ -40,64 +40,6 @@ const struct vnode_ops ext2_vnode_ops = {
   .fill = ext2_fill
 };
 
-struct ext2_fs *
-ext2_openfs (struct block_device *device, unsigned int flags)
-{
-  struct ext2_fs *fs = malloc (sizeof (struct ext2_fs));
-  ssize_t group_desc_size;
-  if (UNLIKELY (!fs))
-    return NULL;
-  fs->device = device;
-
-  /* Read superblock and check magic number */
-  if (device->read (device, &fs->super, sizeof (struct ext2_super),
-		    EXT2_SUPER_OFFSET, 1) != sizeof (struct ext2_super))
-    GOTO_ERROR (EIO, err0);
-  if (fs->super.s_magic != EXT2_MAGIC)
-    GOTO_ERROR (EINVAL, err0);
-
-  /* Set block and inode sizes */
-  fs->block_size = 1 << (fs->super.s_log_block_size + 10);
-  if (fs->super.s_rev_level >= EXT2_DYNAMIC)
-    fs->inode_size = fs->super.s_inode_size;
-  else
-    fs->inode_size = sizeof (struct ext2_inode);
-  if (fs->block_size > EXT2_MAX_BLOCK_SIZE)
-    GOTO_ERROR (EUCLEAN, err0);
-
-  /* Allocate and read block group descriptors */
-  fs->group_desc_count = ext2_group_desc_count (&fs->super);
-  group_desc_size = sizeof (struct ext2_group_desc) * fs->group_desc_count;
-  fs->group_descs = malloc (group_desc_size);
-  if (UNLIKELY (!fs->group_descs))
-    goto err0;
-  if (device->read (device, fs->group_descs, group_desc_size,
-		    fs->block_size * (fs->super.s_first_data_block + 1), 1) !=
-      group_desc_size)
-    goto err1;
-
-  /* Allocate inode table buffer */
-  fs->inode_table.buffer = (unsigned char *) alloc_page ();
-  if (UNLIKELY (!fs->inode_table.buffer))
-    goto err1;
-  fs->inode_table.buffer = PHYS_REL (fs->inode_table.buffer);
-  return fs;
-
- err1:
-  free (fs->group_descs);
- err0:
-  free (fs);
-  return NULL;
-}
-
-void
-ext2_closefs (struct ext2_fs *fs)
-{
-  free_page (physical_addr (fs->inode_table.buffer));
-  free (fs->group_descs);
-  free (fs);
-}
-
 int
 ext2_mount (struct mount *mp, unsigned int flags)
 {
