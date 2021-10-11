@@ -68,6 +68,7 @@ Makefile
 arch/x86_64/Makefile
 drivers/Makefile
 drivers/fs/Makefile
+drivers/fs/ext2/Makefile
 include/Makefile
 include/pml/Makefile
 kernel/Makefile

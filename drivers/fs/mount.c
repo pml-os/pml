@@ -17,6 +17,7 @@
 /*! @file */
 
 #include <pml/devfs.h>
+#include <pml/ext2fs.h>
 #include <pml/panic.h>
 #include <pml/thread.h>
 #include <errno.h>
@@ -64,6 +65,9 @@ mount_root (void)
     goto err0;
   if (vnode_add_child (root_vnode, devfs_mp->root_vnode, "dev"))
     goto err0;
+
+  /* Register standard filesystems */
+  register_filesystem ("ext2", &ext2_mount_ops);
   return;
 
  err0:

@@ -1,5 +1,7 @@
 include $(top_srcdir)/compile.mk
 
+SUBDIRS = fs
+
 noinst_LIBRARIES = libdrivers.a
 
 libdrivers_a_SOURCES =	\
@@ -10,5 +12,3 @@ libdrivers_a_SOURCES =	\
 	pit.c		\
 	tty-output.c	\
 	vgatext.c
-
-SUBDIRS = fs
