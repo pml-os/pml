@@ -17,7 +17,6 @@
 #include <pml/alloc.h>
 #include <pml/ext2fs.h>
 #include <pml/memory.h>
-#include <pml/thread.h>
 #include <errno.h>
 
 const struct mount_ops ext2_mount_ops = {
@@ -108,7 +107,7 @@ ext2_mount (struct mount *mp, unsigned int flags)
  err3:
   UNREF_OBJECT (mp->root_vnode);
  err2:
-  free_page (vm_phys_addr (THIS_THREAD->args.pml4t, fs->inode_table.buffer));
+  free_page (physical_addr (fs->inode_table.buffer));
  err1:
   free (fs->group_descs);
  err0:
@@ -121,7 +120,7 @@ ext2_unmount (struct mount *mp, unsigned int flags)
 {
   struct ext2_fs *fs = mp->data;
   UNREF_OBJECT (mp->root_vnode);
-  free_page (vm_phys_addr (THIS_THREAD->args.pml4t, fs->inode_table.buffer));
+  free_page (physical_addr (fs->inode_table.buffer));
   free (fs->group_descs);
   free (fs);
   return 0;

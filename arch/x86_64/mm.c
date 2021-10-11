@@ -18,6 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/memory.h>
+#include <pml/thread.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,20 @@ uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
 struct page_stack phys_page_stack;
 uintptr_t next_phys_addr;
 uintptr_t total_phys_mem;
+
+/*! 
+ * Returns the physical address of the virtual address, or zero if the
+ * virtual address is not mapped to a physical address.
+ *
+ * @param addr the virtual address to lookup
+ * @return the physical address of the virtual address
+ */
+
+uintptr_t
+physical_addr (void *addr)
+{
+  return vm_phys_addr (THIS_THREAD->args.pml4t, addr);
+}
 
 /*! 
  * Returns the physical address of the virtual address, or zero if the

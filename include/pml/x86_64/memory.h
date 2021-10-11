@@ -175,6 +175,7 @@ extern struct page_stack phys_page_stack;
 extern uintptr_t next_phys_addr;
 extern uintptr_t total_phys_mem;
 
+uintptr_t physical_addr (void *addr);
 uintptr_t vm_phys_addr (uintptr_t *pml4t, void *addr);
 int vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 		 unsigned int flags);
