@@ -40,22 +40,13 @@ const struct vnode_ops ext2_vnode_ops = {
   .fill = ext2_fill
 };
 
-int
-ext2_mount (struct mount *mp, unsigned int flags)
+struct ext2_fs *
+ext2_openfs (struct block_device *device, unsigned int flags)
 {
-  struct ext2_fs *fs;
-  struct block_device *device;
+  struct ext2_fs *fs = malloc (sizeof (struct ext2_fs));
   ssize_t group_desc_size;
-
-  /* Determine block device */
-  device = hashmap_lookup (device_num_map, mp->device);
-  if (!device)
-    RETV_ERROR (ENOENT, -1);
-  if (device->device.type != DEVICE_TYPE_BLOCK)
-    RETV_ERROR (ENOTBLK, -1);
-  fs = malloc (sizeof (struct ext2_fs));
   if (UNLIKELY (!fs))
-    return -1;
+    return NULL;
   fs->device = device;
 
   /* Read superblock and check magic number */
@@ -90,28 +81,56 @@ ext2_mount (struct mount *mp, unsigned int flags)
   if (UNLIKELY (!fs->inode_table.buffer))
     goto err1;
   fs->inode_table.buffer = PHYS_REL (fs->inode_table.buffer);
+  return fs;
+
+ err1:
+  free (fs->group_descs);
+ err0:
+  free (fs);
+  return NULL;
+}
+
+void
+ext2_closefs (struct ext2_fs *fs)
+{
+  free_page (physical_addr (fs->inode_table.buffer));
+  free (fs->group_descs);
+  free (fs);
+}
+
+int
+ext2_mount (struct mount *mp, unsigned int flags)
+{
+  struct ext2_fs *fs;
+  struct block_device *device;
+
+  /* Determine block device */
+  device = hashmap_lookup (device_num_map, mp->device);
+  if (!device)
+    RETV_ERROR (ENOENT, -1);
+  if (device->device.type != DEVICE_TYPE_BLOCK)
+    RETV_ERROR (ENOTBLK, -1);
+  fs = ext2_openfs (device, flags);
+  if (!fs)
+    return -1;
 
   /* Allocate and fill root vnode */
   mp->data = fs;
   mp->root_vnode = vnode_alloc ();
   if (UNLIKELY (!mp->root_vnode))
-    goto err2;
+    goto err0;
   mp->ops = &ext2_mount_ops;
   mp->root_vnode->ino = EXT2_ROOT_INO;
   mp->root_vnode->ops = &ext2_vnode_ops;
   REF_ASSIGN (mp->root_vnode->mount, mp);
   if (ext2_fill (mp->root_vnode))
-    goto err3;
+    goto err1;
   return 0;
 
- err3:
-  UNREF_OBJECT (mp->root_vnode);
- err2:
-  free_page (physical_addr (fs->inode_table.buffer));
  err1:
-  free (fs->group_descs);
+  UNREF_OBJECT (mp->root_vnode);
  err0:
-  free (fs);
+  ext2_closefs (fs);
   return -1;
 }
 
@@ -120,9 +139,7 @@ ext2_unmount (struct mount *mp, unsigned int flags)
 {
   struct ext2_fs *fs = mp->data;
   UNREF_OBJECT (mp->root_vnode);
-  free_page (physical_addr (fs->inode_table.buffer));
-  free (fs->group_descs);
-  free (fs);
+  ext2_closefs (fs);
   return 0;
 }
 
