@@ -17,7 +17,6 @@
 /*! @file */
 
 #include <pml/alloc.h>
-#include <pml/ata.h>
 #include <pml/device.h>
 #include <pml/io.h>
 #include <pml/interrupt.h>
@@ -625,7 +624,7 @@ ata_device_read (struct block_device *device, void *buffer, size_t len,
 			    start_lba + part_offset, ata_buffer))
 	RETV_ERROR (EIO, -1);
       memcpy (buffer, ata_buffer + ATA_SECTOR_SIZE - start_diff, len);
-      return 0;
+      return len;
     }
 
   /* Read full sectors */
@@ -723,7 +722,7 @@ ata_device_write (struct block_device *device, const void *buffer, size_t len,
       if (ata_write_sectors (data->device->channel, data->device->drive, 1,
 			     start_lba + part_offset, ata_buffer))
 	RETV_ERROR (EIO, -1);
-      return 0;
+      return len;
     }
 
   /* Write full sectors */

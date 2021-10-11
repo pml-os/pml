@@ -22,10 +22,17 @@
  * @brief @c The second extended filesystem
  */
 
+#include <pml/device.h>
 #include <pml/vfs.h>
 
 /*! The root inode of an ext2 filesystem */
 #define EXT2_ROOT_INO           2
+
+/*! Magic number of ext2 filesystems, must be in @ref ext2_super.s_magic */
+#define EXT2_MAGIC              0xef53
+
+/*! Offset of the primary superblock from the start of the partition */
+#define EXT2_SUPER_OFFSET       1024
 
 /* Superblock feature flags */
 
@@ -112,6 +119,12 @@
 #define EXT4_PROJINHERIT_FL      0x20000000
 #define EXT4_CASEFOLD_FL         0x40000000
 #define EXT2_RESERVED_FL         0x80000000
+
+/* Block group descriptor flags */
+
+#define EXT2_BG_INODE_UNUSED     0x0001
+#define EXT2_BG_BLOCK_UNUSED     0x0002
+#define EXT2_BG_INODE_ZEROED     0x0004
 
 /* Other macros */
 
@@ -323,6 +336,26 @@ struct ext2_group_desc
   uint16_t bg_inode_bitmap_csum_lo;
   uint16_t bg_itable_unused;
   uint16_t bg_checksum;
+};
+
+/*!
+ * Format of a block group descriptor for 64-bit ext4 filesystems.
+ */
+
+struct ext4_group_desc
+{
+  uint32_t bg_block_bitmap;
+  uint32_t bg_inode_bitmap;
+  uint32_t bg_inode_table;
+  uint16_t bg_free_blocks_count;
+  uint16_t bg_free_inodes_count;
+  uint16_t bg_used_dirs_count;
+  uint16_t bg_flags;
+  uint32_t bg_exclude_bitmap_lo;
+  uint16_t bg_block_bitmap_csum_lo;
+  uint16_t bg_inode_bitmap_csum_lo;
+  uint16_t bg_itable_unused;
+  uint16_t bg_checksum;
   uint32_t bg_block_bitmap_hi;
   uint32_t bg_inode_bitmap_hi;
   uint32_t bg_inode_table_hi;
@@ -336,6 +369,38 @@ struct ext2_group_desc
   uint32_t bg_reserved;
 };
 
+/*!
+ * Structure containing information about an instance of an ext2 filesystem.
+ * This structure is used as the @ref mount.data field of a mount structure.
+ */
+
+struct ext2_fs
+{
+  struct ext2_super super;              /*!< Copy of superblock */
+  struct block_device *device;          /*!< Block device of filesystem */
+  blksize_t block_size;                 /*!< Size of a block */
+  size_t inode_size;                    /*!< Size of an inode */
+  struct ext2_group_desc *group_descs;  /*!< Array of block group descriptors */
+  size_t group_desc_count;              /*!< Block group descriptor count */
+};
+
+/*!
+ * Determines the number of block group descriptors in an ext2 filesystem.
+ *
+ * @param super the superblock of the filesystem
+ * @return number of block group descriptors
+ */
+
+static inline size_t
+ext2_group_desc_count (struct ext2_super *super)
+{
+  size_t by_block = (super->s_blocks_count + super->s_blocks_per_group - 1) /
+    super->s_blocks_per_group;
+  size_t by_inode = (super->s_inodes_count + super->s_inodes_per_group - 1) /
+    super->s_inodes_per_group;
+  return by_block > by_inode ? by_block : by_inode;
+}
+
 __BEGIN_DECLS
 
 extern const struct mount_ops ext2_mount_ops;
@@ -343,6 +408,7 @@ extern const struct vnode_ops ext2_vnode_ops;
 
 int ext2_mount (struct mount *mp, unsigned int flags);
 int ext2_unmount (struct mount *mp, unsigned int flags);
+int ext2_check (struct vnode *vp);
 
 int ext2_lookup (struct vnode **result, struct vnode *dir, const char *name);
 ssize_t ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset);

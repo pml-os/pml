@@ -29,6 +29,7 @@
  * </table>
  */
 
+#include <pml/ata.h>
 #include <pml/map.h>
 #include <pml/types.h>
 

@@ -16,7 +16,6 @@
 
 /*! @file */
 
-#include <pml/ata.h>
 #include <pml/device.h>
 #include <pml/panic.h>
 #include <stdio.h>

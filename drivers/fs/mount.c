@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 
+/*! Mount structure of devfs. */
+static struct mount *devfs_mp;
+
 /*!
  * The system filesystem table. Filesystem drivers add entries to this table
  * to register a filesystem backend to the VFS layer.
@@ -38,14 +41,13 @@ size_t filesystem_count;
 struct vnode *root_vnode;
 
 /*!
- * Allocates and initializes the root vnode.
+ * Initializes the VFS and allocates and initializes the root vnode. The
+ * device filesystem (devfs) and other standard filesystems are registered.
  */
 
 void
-mount_root (void)
+init_vfs (void)
 {
-  struct mount *devfs_mp;
-
   root_vnode = vnode_alloc ();
   if (UNLIKELY (!root_vnode))
     goto err0;
@@ -60,7 +62,7 @@ mount_root (void)
   /* Mount devfs on /dev */
   if (register_filesystem ("devfs", &devfs_mount_ops))
     panic ("Failed to register devfs");
-  devfs_mp = mount_filesystem ("devfs", 0);
+  devfs_mp = mount_filesystem ("devfs", 0, 0);
   if (UNLIKELY (!devfs_mp))
     goto err0;
   if (vnode_add_child (root_vnode, devfs_mp->root_vnode, "dev"))
@@ -72,6 +74,40 @@ mount_root (void)
 
  err0:
   panic ("Filesystem initialization failed");
+}
+
+/*!
+ * Mounts the root filesystem.
+ */
+
+void
+mount_root (void)
+{
+  struct vnode *vp;
+  struct mount *mp;
+  const char *fs_type;
+  init_vfs ();
+
+  if (!boot_options.root_device)
+    panic ("No root device file specified");
+  vp = vnode_namei (boot_options.root_device);
+  if (!vp)
+    panic ("Failed to open root device: %s\n", boot_options.root_device);
+
+  fs_type = guess_filesystem_type (vp);
+  if (UNLIKELY (!fs_type))
+    goto err0;
+  mp = mount_filesystem (fs_type, vp->ino, 0);
+  if (UNLIKELY (!mp))
+    goto err0;
+  if (vnode_add_child (mp->root_vnode, devfs_mp->root_vnode, "dev"))
+    goto err0;
+  UNREF_OBJECT (root_vnode);
+  REF_ASSIGN (root_vnode, mp->root_vnode);
+  return;
+
+ err0:
+  panic ("Failed to mount root filesystem");
 }
 
 /*!
@@ -102,12 +138,13 @@ register_filesystem (const char *name, const struct mount_ops *ops)
  * by calling the vfs_mount() function.
  *
  * @param type the filesystem type
+ * @param dev the device number of a corresponding device, if any
  * @param flags mount flags, passed to vfs_mount()
  * @return the mount structure, or NULL on failure
  */
 
 struct mount *
-mount_filesystem (const char *type, unsigned int flags)
+mount_filesystem (const char *type, dev_t device, unsigned int flags)
 {
   struct mount *mp;
   size_t i;
@@ -119,6 +156,7 @@ mount_filesystem (const char *type, unsigned int flags)
 	  if (UNLIKELY (!mp))
 	    return NULL;
 	  mp->ops = filesystem_table[i].ops;
+	  mp->device = device;
 	  if (vfs_mount (mp, flags))
 	    {
 	      UNREF_OBJECT (mp);
@@ -164,4 +202,20 @@ vfs_unmount (struct mount *mp, unsigned int flags)
     return mp->ops->unmount (mp, flags);
   else
     return 0;
+}
+
+/*!
+ * Guesses the type of a filesystem.
+ */
+
+const char *
+guess_filesystem_type (struct vnode *vp)
+{
+  size_t i;
+  for (i = 0; i < filesystem_count; i++)
+    {
+      if (filesystem_table[i].ops->check (vp))
+	return filesystem_table[i].name;
+    }
+  return NULL;
 }

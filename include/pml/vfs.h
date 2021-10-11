@@ -20,6 +20,8 @@
 /*!
  * @file
  * @brief VFS structures and definitions
+ * @todo use a system-wide vnode cache so processes cannot open multiple
+ * vnodes for a single inode
  */
 
 #include <pml/object.h>
@@ -77,6 +79,10 @@
 /*! Represents a block number in a filesystem. */
 typedef unsigned long block_t;
 
+struct mount_ops;
+struct mount;
+struct vnode;
+
 /*!
  * Represents an entry in the filesystem table. Maps filesystem names to
  * operation vectors so mounting a filesystem by its name can select the
@@ -88,8 +94,6 @@ struct filesystem
   const char *name;             /*!< Filesystem name */
   const struct mount_ops *ops;  /*!< Mount operation vectors */
 };
-
-struct mount;
 
 /*!
  * Vector of functions for performing operations on mounted filesystems.
@@ -116,6 +120,14 @@ struct mount_ops
    * @return zero on success
    */
   int (*unmount) (struct mount *mp, unsigned int flags);
+
+  /*!
+   * Checks whether a block device vnode is a valid filesystem.
+   *
+   * @param vp the vnode to check
+   * @return nonzero if the vnode contains a valid filesystem
+   */
+  int (*check) (struct vnode *vp);
 };
 
 /*!
@@ -138,8 +150,6 @@ struct mount
   const struct mount_ops *ops;  /*!< Mount operation vector */
   void *data;                   /*!< Driver-specific private data */
 };
-
-struct vnode;
 
 /*!
  * Vector of functions for performing operations on vnodes. Performing sanity
@@ -382,9 +392,12 @@ int vfs_bmap (struct vnode *vp, block_t *result, block_t block, size_t num);
 int vfs_fill (struct vnode *vp);
 void vfs_dealloc (struct vnode *vp);
 
+void init_vfs (void);
 void mount_root (void);
 int register_filesystem (const char *name, const struct mount_ops *ops);
-struct mount *mount_filesystem (const char *type, unsigned int flags);
+struct mount *mount_filesystem (const char *type, dev_t device,
+				unsigned int flags);
+const char *guess_filesystem_type (struct vnode *vp);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 struct vnode *vnode_namei (const char *path);

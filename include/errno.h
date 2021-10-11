@@ -55,6 +55,20 @@
     }						\
   while (0)
 
+/*!
+ * Sets the kernel @c errno value and jumps to a label in the current function.
+ *
+ * @param e the error value
+ * @param l the @c goto label to jump to
+ */
+
+#define GOTO_ERROR(e, l) do			\
+    {						\
+      errno = (e);				\
+      goto l;					\
+    }						\
+  while (0)
+
 __BEGIN_DECLS
 
 extern int errno;

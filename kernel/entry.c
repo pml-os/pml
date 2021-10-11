@@ -14,7 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/ata.h>
 #include <pml/device.h>
 #include <pml/thread.h>
 #include <pml/vfs.h>

@@ -26,7 +26,8 @@
 
 const struct mount_ops devfs_mount_ops = {
   .mount = devfs_mount,
-  .unmount = devfs_unmount
+  .unmount = devfs_unmount,
+  .check = devfs_check
 };
 
 const struct vnode_ops devfs_vnode_ops = {
@@ -56,6 +57,12 @@ int
 devfs_unmount (struct mount *mp, unsigned int flags)
 {
   UNREF_OBJECT (mp->root_vnode);
+  return 0;
+}
+
+int
+devfs_check (struct vnode *vp)
+{
   return 0;
 }
 

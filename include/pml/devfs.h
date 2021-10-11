@@ -64,6 +64,7 @@ extern const struct vnode_ops devfs_vnode_ops;
 
 int devfs_mount (struct mount *mp, unsigned int flags);
 int devfs_unmount (struct mount *mp, unsigned int flags);
+int devfs_check (struct vnode *vp);
 
 int devfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
 ssize_t devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);

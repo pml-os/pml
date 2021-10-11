@@ -167,6 +167,7 @@ hashmap_insert (struct hashmap *hashmap, unsigned long key, void *value)
     }
   else
     hashmap->buckets[index] = new_entry;
+  hashmap->object_count++;
   return 0;
 }
 
@@ -370,6 +371,7 @@ strmap_insert (struct strmap *strmap, const char *key, void *value)
     }
   else
     strmap->buckets[index] = new_entry;
+  strmap->object_count++;
   return 0;
 }
 
