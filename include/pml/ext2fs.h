@@ -443,6 +443,8 @@ int ext2_read_blocks (void *buffer, struct ext2_fs *fs, block_t block,
 		      size_t num);
 int ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
 		       size_t num);
+struct ext2_fs *ext2_openfs (struct block_device *device, unsigned int flags);
+void ext2_closefs (struct ext2_fs *fs);
 int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
 
 /* VFS layer functions */
