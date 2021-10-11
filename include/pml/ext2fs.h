@@ -152,6 +152,7 @@
 #define EXT2_BG_BLOCK_UNUSED     0x0002
 #define EXT2_BG_INODE_ZEROED     0x0004
 
+/*! Type of a block group number */
 typedef unsigned int ext2_bgrp_t;
 
 /*!
