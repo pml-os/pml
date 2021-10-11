@@ -402,6 +402,16 @@ struct ext2_fs
 };
 
 /*!
+ * Structure containing information about an ext2 file. This structure is
+ * used as the @ref vnode.data field of a vnode structure.
+ */
+
+struct ext2_file
+{
+  struct ext2_inode inode;              /*!< On-disk inode structure */
+};
+
+/*!
  * Determines the number of block group descriptors in an ext2 filesystem.
  *
  * @param super the superblock of the filesystem

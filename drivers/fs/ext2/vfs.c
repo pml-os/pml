@@ -123,8 +123,9 @@ ext2_create (struct vnode **result, struct vnode *dir, const char *name,
   RETV_ERROR (ENOSYS, -1);
 }
 
-int ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
-		mode_t mode)
+int
+ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
+	    mode_t mode)
 {
   RETV_ERROR (ENOSYS, -1);
 }
@@ -162,7 +163,18 @@ ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 int
 ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_file *file = vp->data;
+  block_t b;
+  size_t i;
+  for (i = 0; i < num; i++)
+    {
+      block_t b = block + i;
+      if (b < EXT2_NDIR_BLOCKS)
+	result[i] = file->inode.i_block[b];
+      else
+	RETV_ERROR (ENOSYS, -1);
+    }
+  return 0;
 }
 
 int
