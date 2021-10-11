@@ -34,6 +34,32 @@
 /*! Offset of the primary superblock from the start of the partition */
 #define EXT2_SUPER_OFFSET       1024
 
+/*! Maximum allowed block size */
+#define EXT2_MAX_BLOCK_SIZE     4096
+
+/*!
+ * Major version of ext2 dynamic revision. Filesystems with a major version
+ * of at least this value have more fields in the superblock and more features.
+ * Filesystems with a lower major version number are known as `old' ext2
+ * filesystems.
+ */
+
+#define EXT2_DYNAMIC             1
+
+/*! First non-reserved inode on old ext2 filesystems */
+#define EXT2_FIRST_INODE         11
+
+/*! Number of direct blocks in an inode */
+#define EXT2_NDIR_BLOCKS         12
+/*! Index of the indirect block pointer in an inode */
+#define EXT2_IND_BLOCK           EXT2_NDIR_BLOCKS
+/*! Index of the doubly indirect block pointer in an inode */
+#define EXT2_DIND_BLOCK          (EXT2_IND_BLOCK + 1)
+/*! Index of the triply indirect block pointer in an inode */
+#define EXT2_TIND_BLOCK          (EXT2_DIND_BLOCK + 1)
+/*! Total number of block pointers in an inode */
+#define EXT2_N_BLOCKS            (EXT2_TIND_BLOCK + 1)
+
 /* Superblock feature flags */
 
 #define EXT2_FT_COMPAT_DIR_PREALLOC     0x0001
@@ -126,30 +152,7 @@
 #define EXT2_BG_BLOCK_UNUSED     0x0002
 #define EXT2_BG_INODE_ZEROED     0x0004
 
-/* Other macros */
-
-/*!
- * Major version of ext2 dynamic revision. Filesystems with a major version
- * of at least this value have more fields in the superblock and more features.
- * Filesystems with a lower major version number are known as `old' ext2
- * filesystems.
- */
-
-#define EXT2_DYNAMIC             1
-
-/*! First non-reserved inode on old ext2 filesystems */
-#define EXT2_FIRST_INODE         11
-
-/*! Number of direct blocks in an inode */
-#define EXT2_NDIR_BLOCKS         12
-/*! Index of the indirect block pointer in an inode */
-#define EXT2_IND_BLOCK           EXT2_NDIR_BLOCKS
-/*! Index of the doubly indirect block pointer in an inode */
-#define EXT2_DIND_BLOCK          (EXT2_IND_BLOCK + 1)
-/*! Index of the triply indirect block pointer in an inode */
-#define EXT2_TIND_BLOCK          (EXT2_DIND_BLOCK + 1)
-/*! Total number of block pointers in an inode */
-#define EXT2_N_BLOCKS            (EXT2_TIND_BLOCK + 1)
+typedef unsigned int ext2_bgrp_t;
 
 /*!
  * Format of the superblock for ext2 filesystems.
@@ -370,6 +373,18 @@ struct ext4_group_desc
 };
 
 /*!
+ * Preallocates a buffer for storing a section of a block group's inode table.
+ * Requests to read inodes with close numbers will be faster since the data
+ * is cached so it does not to be read from disk.
+ */
+
+struct ext2_inode_table
+{
+  unsigned char *buffer;        /*!< Pointer to buffer */
+  block_t block;                /*!< Block in filesystem matching buffer */
+};
+
+/*!
  * Structure containing information about an instance of an ext2 filesystem.
  * This structure is used as the @ref mount.data field of a mount structure.
  */
@@ -382,6 +397,7 @@ struct ext2_fs
   size_t inode_size;                    /*!< Size of an inode */
   struct ext2_group_desc *group_descs;  /*!< Array of block group descriptors */
   size_t group_desc_count;              /*!< Block group descriptor count */
+  struct ext2_inode_table inode_table;  /*!< Inode table */
 };
 
 /*!
@@ -401,10 +417,34 @@ ext2_group_desc_count (struct ext2_super *super)
   return by_block > by_inode ? by_block : by_inode;
 }
 
+/*!
+ * Determines which block group an inode is a member of.
+ *
+ * @param ino the inode number
+ * @param super the superblock of the filesystem
+ * @return the block group number of the inode
+ */
+
+static inline ext2_bgrp_t
+ext2_inode_group_desc (ino_t ino, struct ext2_super *super)
+{
+  return (ino - 1) / super->s_inodes_per_group;
+}
+
 __BEGIN_DECLS
 
 extern const struct mount_ops ext2_mount_ops;
 extern const struct vnode_ops ext2_vnode_ops;
+
+/* Ext2 helper functions */
+
+int ext2_read_blocks (void *buffer, struct ext2_fs *fs, block_t block,
+		      size_t num);
+int ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
+		       size_t num);
+int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
+
+/* VFS layer functions */
 
 int ext2_mount (struct mount *mp, unsigned int flags);
 int ext2_unmount (struct mount *mp, unsigned int flags);

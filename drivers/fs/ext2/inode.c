@@ -17,97 +17,32 @@
 /*! @file */
 
 #include <pml/ext2fs.h>
-#include <errno.h>
+#include <string.h>
 
-const struct vnode_ops ext2_vnode_ops = {
-  .lookup = ext2_lookup,
-  .read = ext2_read,
-  .write = ext2_write,
-  .sync = ext2_sync,
-  .create = ext2_create,
-  .mkdir = ext2_mkdir,
-  .rename = ext2_rename,
-  .link = ext2_link,
-  .symlink = ext2_symlink,
-  .readdir = ext2_readdir,
-  .bmap = ext2_bmap,
-  .fill = ext2_fill
-};
+/*!
+ * Reads the on-disk inode structure from an ext2 filesystem.
+ *
+ * @param inode pointer to store inode data in
+ * @param ino the inode number to read
+ * @param fs the filesystem instance
+ * @return zero on success
+ */
 
 int
-ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
+ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs)
 {
-  RETV_ERROR (ENOSYS, -1);
-}
-
-ssize_t
-ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-ssize_t
-ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-void
-ext2_sync (struct vnode *vp)
-{
-}
-
-int
-ext2_create (struct vnode **result, struct vnode *dir, const char *name,
-	     mode_t mode, dev_t rdev)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-int ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
-		mode_t mode)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-int
-ext2_rename (struct vnode *vp, struct vnode *dir, const char *name)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-int
-ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-int
-ext2_symlink (struct vnode *dir, const char *name, const char *target)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-off_t
-ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-ssize_t
-ext2_readlink (struct vnode *vp, char *buffer, size_t len)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-int
-ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-int
-ext2_fill (struct vnode *vp)
-{
-  RETV_ERROR (ENOSYS, -1);
+  ext2_bgrp_t group = ext2_inode_group_desc (ino, &fs->super);
+  size_t index = (ino - 1) % fs->super.s_inodes_per_group;
+  block_t block = fs->group_descs[group].bg_inode_bitmap +
+    index * fs->inode_size / fs->block_size;
+  index %= fs->block_size / fs->inode_size;
+  if (block != fs->inode_table.block)
+    {
+      if (ext2_read_blocks (fs->inode_table.buffer, fs, block, 1))
+	return -1;
+      fs->inode_table.block = block;
+    }
+  memcpy (inode, fs->inode_table.buffer + index * fs->inode_size,
+	  sizeof (struct ext2_inode));
+  return 0;
 }

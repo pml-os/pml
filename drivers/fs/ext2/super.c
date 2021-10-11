@@ -16,94 +16,41 @@
 
 /*! @file */
 
-#include <pml/device.h>
 #include <pml/ext2fs.h>
-#include <errno.h>
 
-const struct mount_ops ext2_mount_ops = {
-  .mount = ext2_mount,
-  .unmount = ext2_unmount,
-  .check = ext2_check
-};
+/*!
+ * Reads one or more consecutive blocks from an ext2 filesystem.
+ *
+ * @param buffer buffer to store read data
+ * @param fs the filesystem instance
+ * @param block the starting block number to read
+ * @param num the number of blocks to read
+ * @return zero on success
+ */
 
 int
-ext2_mount (struct mount *mp, unsigned int flags)
+ext2_read_blocks (void *buffer, struct ext2_fs *fs, block_t block, size_t num)
 {
-  struct ext2_fs *fs;
-  struct block_device *device;
-  ssize_t group_desc_size;
-
-  /* Determine block device */
-  device = hashmap_lookup (device_num_map, mp->device);
-  if (!device)
-    RETV_ERROR (ENOENT, -1);
-  if (device->device.type != DEVICE_TYPE_BLOCK)
-    RETV_ERROR (ENOTBLK, -1);
-  fs = malloc (sizeof (struct ext2_fs));
-  if (UNLIKELY (!fs))
-    return -1;
-  fs->device = device;
-
-  /* Read superblock and check magic number */
-  if (device->read (device, &fs->super, sizeof (struct ext2_super),
-		    EXT2_SUPER_OFFSET, 1) != sizeof (struct ext2_super))
-    GOTO_ERROR (EIO, err0);
-  if (fs->super.s_magic != EXT2_MAGIC)
-    GOTO_ERROR (EINVAL, err0);
-
-  /* Set block and inode sizes */
-  fs->block_size = 1 << (fs->super.s_log_block_size + 10);
-  if (fs->super.s_rev_level >= EXT2_DYNAMIC)
-    fs->inode_size = fs->super.s_inode_size;
-  else
-    fs->inode_size = sizeof (struct ext2_inode);
-
-  /* Allocate and read block group descriptors */
-  fs->group_desc_count = ext2_group_desc_count (&fs->super);
-  group_desc_size = sizeof (struct ext2_group_desc) * fs->group_desc_count;
-  fs->group_descs = malloc (group_desc_size);
-  if (UNLIKELY (!fs->group_descs))
-    goto err0;
-  if (device->read (device, fs->group_descs, group_desc_size,
-		    fs->block_size * (fs->super.s_first_data_block + 1), 1) !=
-      group_desc_size)
-    goto err1;
-  mp->data = fs;
-
-  mp->root_vnode = vnode_alloc ();
-  if (UNLIKELY (!mp->root_vnode))
-    goto err1;
-  mp->ops = &ext2_mount_ops;
-
-  mp->root_vnode->ino = EXT2_ROOT_INO;
-  mp->root_vnode->ops = &ext2_vnode_ops;
-  REF_ASSIGN (mp->root_vnode->mount, mp);
-  if (ext2_fill (mp->root_vnode))
-    goto err2;
-  return 0;
-
- err2:
-  UNREF_OBJECT (mp->root_vnode);
- err1:
-  free (fs->group_descs);
- err0:
-  free (fs);
-  return -1;
+  return -!(fs->device->read (fs->device, buffer, num * fs->block_size,
+			      block * fs->block_size, 1) ==
+	    (ssize_t) (num * fs->block_size));
 }
 
-int
-ext2_unmount (struct mount *mp, unsigned int flags)
-{
-  UNREF_OBJECT (mp->root_vnode);
-  return 0;
-}
+/*!
+ * Writes one or more consecutive blocks to an ext2 filesystem.
+ *
+ * @param buffer buffer containing the data to write
+ * @param fs the filesystem instance
+ * @param block the starting block number to write
+ * @param num the number of blocks to write
+ * @return zero on success
+ */
 
 int
-ext2_check (struct vnode *vp)
+ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
+		   size_t num)
 {
-  uint16_t magic;
-  if (vfs_read (vp, &magic, 2, EXT2_SUPER_OFFSET +
-		offsetof (struct ext2_super, s_magic)) != 2)
-    return 0;
-  return magic == EXT2_MAGIC;
+  return -!(fs->device->write (fs->device, buffer, num * fs->block_size,
+			       block * fs->block_size, 1) ==
+	    (ssize_t) (num * fs->block_size));
 }
