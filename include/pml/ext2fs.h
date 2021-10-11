@@ -19,7 +19,7 @@
 
 /*!
  * @file
- * @brief @c The second extended filesystem
+ * @brief The second extended filesystem
  */
 
 #include <pml/device.h>

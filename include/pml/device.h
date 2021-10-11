@@ -31,7 +31,6 @@
 
 #include <pml/ata.h>
 #include <pml/map.h>
-#include <pml/types.h>
 
 /*!
  * Creates a single value representing a device's major and minor numbers.
