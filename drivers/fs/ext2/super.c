@@ -84,7 +84,8 @@ ext2_openfs (struct block_device *device, unsigned int flags)
 
   /* Set block and inode sizes */
   fs->block_size = 1 << (fs->super.s_log_block_size + 10);
-  if (fs->super.s_rev_level >= EXT2_DYNAMIC)
+  fs->dynamic = fs->super.s_rev_level >= EXT2_DYNAMIC;
+  if (fs->dynamic)
     fs->inode_size = fs->super.s_inode_size;
   else
     fs->inode_size = sizeof (struct ext2_inode);
@@ -103,10 +104,9 @@ ext2_openfs (struct block_device *device, unsigned int flags)
     goto err1;
 
   /* Allocate inode table buffer */
-  fs->inode_table.buffer = (unsigned char *) alloc_page ();
+  fs->inode_table.buffer = alloc_virtual_page ();
   if (UNLIKELY (!fs->inode_table.buffer))
     goto err1;
-  fs->inode_table.buffer = PHYS_REL (fs->inode_table.buffer);
   return fs;
 
  err1:
@@ -125,7 +125,7 @@ ext2_openfs (struct block_device *device, unsigned int flags)
 void
 ext2_closefs (struct ext2_fs *fs)
 {
-  free_page (physical_addr (fs->inode_table.buffer));
+  free_virtual_page (fs->inode_table.buffer);
   free (fs->group_descs);
   free (fs);
 }

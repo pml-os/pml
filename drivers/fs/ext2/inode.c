@@ -33,7 +33,7 @@ ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs)
 {
   ext2_bgrp_t group = ext2_inode_group_desc (ino, &fs->super);
   size_t index = (ino - 1) % fs->super.s_inodes_per_group;
-  block_t block = fs->group_descs[group].bg_inode_bitmap +
+  block_t block = fs->group_descs[group].bg_inode_table +
     index * fs->inode_size / fs->block_size;
   index %= fs->block_size / fs->inode_size;
   if (block != fs->inode_table.block)

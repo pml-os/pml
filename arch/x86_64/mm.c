@@ -165,7 +165,8 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 /*!
  * Allocates a page frame and returns its physical address.
  *
- * @return the physical address of the new page frame
+ * @return the physical address of the new page frame, or 0 if the allocation
+ * failed
  */
 
 uintptr_t
@@ -200,6 +201,36 @@ free_page (uintptr_t addr)
     return;
   addr = ALIGN_DOWN (addr, PAGE_SIZE);
   *phys_page_stack.ptr++ = addr;
+}
+
+/*!
+ * Allocates a page frame and returns a pointer to the data in the virtual
+ * address space.
+ *
+ * @return a pointer to the page in virtual memory, or NULL if the allocation
+ * failed
+ */
+
+void *
+alloc_virtual_page (void)
+{
+  uintptr_t addr = alloc_page ();
+  if (UNLIKELY (!addr))
+    return NULL;
+  return (void *) PHYS_REL (addr);
+}
+
+/*!
+ * Frees a pointer allocated with alloc_virtual_page().
+ *
+ * @param ptr the pointer to free
+ */
+
+void
+free_virtual_page (void *ptr)
+{
+  if (ptr)
+    free_page ((uintptr_t) ptr - KERNEL_VMA);
 }
 
 /*!

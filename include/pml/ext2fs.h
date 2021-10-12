@@ -399,6 +399,7 @@ struct ext2_fs
   struct ext2_group_desc *group_descs;  /*!< Array of block group descriptors */
   size_t group_desc_count;              /*!< Block group descriptor count */
   struct ext2_inode_table inode_table;  /*!< Inode table */
+  int dynamic;                          /*!< Dynamic revision support */
 };
 
 /*!
@@ -479,6 +480,7 @@ off_t ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset);
 ssize_t ext2_readlink (struct vnode *vp, char *buffer, size_t len);
 int ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num);
 int ext2_fill (struct vnode *vp);
+void ext2_dealloc (struct vnode *vp);
 
 __END_DECLS
 

@@ -65,6 +65,8 @@ __BEGIN_DECLS
 
 uintptr_t alloc_page (void);
 void free_page (uintptr_t addr);
+void *alloc_virtual_page (void);
+void free_virtual_page (void *ptr);
 
 void kh_init (uintptr_t base, size_t size);
 void *kh_alloc_aligned (size_t size, size_t align);

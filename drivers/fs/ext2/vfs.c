@@ -35,7 +35,8 @@ const struct vnode_ops ext2_vnode_ops = {
   .symlink = ext2_symlink,
   .readdir = ext2_readdir,
   .bmap = ext2_bmap,
-  .fill = ext2_fill
+  .fill = ext2_fill,
+  .dealloc = ext2_dealloc
 };
 
 int
@@ -180,5 +181,35 @@ ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num)
 int
 ext2_fill (struct vnode *vp)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_fs *fs = vp->mount->data;
+  struct ext2_file *file = malloc (sizeof (struct ext2_file));
+  if (UNLIKELY (!file))
+    return -1;
+  if (ext2_read_inode (&file->inode, vp->ino, fs))
+    return -1;
+  vp->mode = file->inode.i_mode;
+  vp->nlink = file->inode.i_links_count;
+  vp->uid = file->inode.i_uid;
+  vp->gid = file->inode.i_gid;
+  vp->rdev = 0;
+  vp->atime.sec = file->inode.i_atime;
+  vp->mtime.sec = file->inode.i_mtime;
+  vp->ctime.sec = file->inode.i_ctime;
+  vp->atime.nsec = vp->mtime.nsec = vp->ctime.nsec = 0;
+  vp->size = file->inode.i_size;
+  if (fs->dynamic
+      && (fs->super.s_feature_ro_compat & EXT2_FT_RO_COMPAT_LARGE_FILE))
+    vp->size |= (size_t) file->inode.i_size_high << 32;
+  vp->blocks =
+    (file->inode.i_blocks * 512 + fs->block_size - 1) / fs->block_size;
+  vp->blksize = fs->block_size;
+  vp->data = file;
+  return 0;
+}
+
+void
+ext2_dealloc (struct vnode *vp)
+{
+  struct ext2_file *file = vp->data;
+  free (file);
 }
