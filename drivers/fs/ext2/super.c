@@ -91,6 +91,7 @@ ext2_openfs (struct block_device *device, unsigned int flags)
     fs->inode_size = sizeof (struct ext2_inode);
   if (fs->block_size > EXT2_MAX_BLOCK_SIZE)
     GOTO_ERROR (EUCLEAN, err0);
+  fs->bmap_entries = fs->block_size / 4;
 
   /* Allocate and read block group descriptors */
   fs->group_desc_count = ext2_group_desc_count (&fs->super);

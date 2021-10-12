@@ -60,6 +60,14 @@
 /*! Total number of block pointers in an inode */
 #define EXT2_N_BLOCKS            (EXT2_TIND_BLOCK + 1)
 
+/*! Maximum inode block addressable by indirect block pointer */
+#define EXT2_IND_LIMIT (fs->bmap_entries + EXT2_NDIR_BLOCKS)
+/*! Maximum inode block addressable by doubly indirect block pointer */
+#define EXT2_DIND_LIMIT (fs->bmap_entries * fs->bmap_entries + EXT2_IND_LIMIT)
+/*! Maximum inode block addressable by triply indirect block pointer */
+#define EXT2_TIND_LIMIT							\
+  (fs->bmap_entries * fs->bmap_entries * fs->bmap_entries + EXT2_DIND_LIMIT)
+
 /* Superblock feature flags */
 
 #define EXT2_FT_COMPAT_DIR_PREALLOC     0x0001
@@ -111,7 +119,7 @@
 #define EXT2_INCOMPAT_SUPPORT EXT2_FT_INCOMPAT_FILETYPE
 
 /*! Supported ext2 read-only features */
-#define EXT2_RO_COMPAT_SUPPORTED 0
+#define EXT2_RO_COMPAT_SUPPORTED EXT2_FT_RO_COMPAT_LARGE_FILE
 
 /* Inode flags */
 
@@ -154,6 +162,9 @@
 
 /*! Type of a block group number */
 typedef unsigned int ext2_bgrp_t;
+
+/*! Type of an entry in an inode's indirect block */
+typedef unsigned int ext2_block_t;
 
 /*!
  * Format of the superblock for ext2 filesystems.
@@ -396,6 +407,7 @@ struct ext2_fs
   struct block_device *device;          /*!< Block device of filesystem */
   blksize_t block_size;                 /*!< Size of a block */
   size_t inode_size;                    /*!< Size of an inode */
+  size_t bmap_entries;                  /*!< Entries in indirect blocks */
   struct ext2_group_desc *group_descs;  /*!< Array of block group descriptors */
   size_t group_desc_count;              /*!< Block group descriptor count */
   struct ext2_inode_table inode_table;  /*!< Inode table */
@@ -409,10 +421,12 @@ struct ext2_fs
 
 struct ext2_file
 {
-  struct ext2_inode inode;              /*!< On-disk inode structure */
-  unsigned char *ind_bmap;              /*!< Indirect block map */
-  unsigned char *dind_bmap;             /*!< Doubly indirect block map */
-  unsigned char *tind_bmap;             /*!< Triply indirect block map */
+  struct ext2_inode inode;      /*!< On-disk inode structure */
+  ext2_block_t *ind_bmap;       /*!< Indirect block map */
+  block_t ind_block;            /*!< Block number of indirect buffer */
+  ext2_block_t *dind_bmap;      /*!< Doubly indirect block map */
+  block_t dind_block;           /*!< Block number of doubly indirect buffer */
+  ext2_block_t *tind_bmap;      /*!< Triply indirect block map */
 };
 
 /*!
