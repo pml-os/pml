@@ -410,6 +410,9 @@ struct ext2_fs
 struct ext2_file
 {
   struct ext2_inode inode;              /*!< On-disk inode structure */
+  unsigned char *ind_bmap;              /*!< Indirect block map */
+  unsigned char *dind_bmap;             /*!< Doubly indirect block map */
+  unsigned char *tind_bmap;             /*!< Triply indirect block map */
 };
 
 /*!

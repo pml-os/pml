@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <pml/alloc.h>
 #include <pml/ext2fs.h>
 #include <errno.h>
 
@@ -187,6 +188,8 @@ ext2_fill (struct vnode *vp)
     return -1;
   if (ext2_read_inode (&file->inode, vp->ino, fs))
     return -1;
+
+  /* Fill vnode data */
   vp->mode = file->inode.i_mode;
   vp->nlink = file->inode.i_links_count;
   vp->uid = file->inode.i_uid;
@@ -196,20 +199,45 @@ ext2_fill (struct vnode *vp)
   vp->mtime.sec = file->inode.i_mtime;
   vp->ctime.sec = file->inode.i_ctime;
   vp->atime.nsec = vp->mtime.nsec = vp->ctime.nsec = 0;
+  vp->blocks =
+    (file->inode.i_blocks * 512 + fs->block_size - 1) / fs->block_size;
+  vp->blksize = fs->block_size;
+
+  /* Set size of file */
   vp->size = file->inode.i_size;
   if (fs->dynamic
       && (fs->super.s_feature_ro_compat & EXT2_FT_RO_COMPAT_LARGE_FILE))
     vp->size |= (size_t) file->inode.i_size_high << 32;
-  vp->blocks =
-    (file->inode.i_blocks * 512 + fs->block_size - 1) / fs->block_size;
-  vp->blksize = fs->block_size;
+
+  /* Allocate indirect block buffers */
+  file->ind_bmap = alloc_virtual_page ();
+  if (UNLIKELY (!file->ind_bmap))
+    goto err0;
+  file->dind_bmap = alloc_virtual_page ();
+  if (UNLIKELY (!file->dind_bmap))
+    goto err1;
+  file->tind_bmap = alloc_virtual_page ();
+  if (UNLIKELY (!file->tind_bmap))
+    goto err2;
+
   vp->data = file;
   return 0;
+
+ err2:
+  free_virtual_page (file->dind_bmap);
+ err1:
+  free_virtual_page (file->ind_bmap);
+ err0:
+  free (file);
+  return -1;
 }
 
 void
 ext2_dealloc (struct vnode *vp)
 {
   struct ext2_file *file = vp->data;
+  free_virtual_page (file->ind_bmap);
+  free_virtual_page (file->dind_bmap);
+  free_virtual_page (file->tind_bmap);
   free (file);
 }
