@@ -422,6 +422,7 @@ struct ext2_fs
 struct ext2_file
 {
   struct ext2_inode inode;      /*!< On-disk inode structure */
+  unsigned char *io_buffer;     /*!< Buffer for unaligned I/O */
   ext2_block_t *ind_bmap;       /*!< Indirect block map */
   block_t ind_block;            /*!< Block number of indirect buffer */
   ext2_block_t *dind_bmap;      /*!< Doubly indirect block map */
@@ -474,6 +475,7 @@ int ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
 struct ext2_fs *ext2_openfs (struct block_device *device, unsigned int flags);
 void ext2_closefs (struct ext2_fs *fs);
 int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
+int ext2_alloc_io_buffer (struct ext2_file *file);
 
 /* VFS layer functions */
 

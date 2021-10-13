@@ -125,6 +125,8 @@ vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
     return -1;
   if (__S_ISDIR (vp->mode))
     RETV_ERROR (EISDIR, -1);
+  if (!len)
+    return 0;
   if (vp->ops->read)
     return vp->ops->read (vp, buffer, len, offset);
   else
@@ -148,6 +150,8 @@ vfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
     return -1;
   if (__S_ISDIR (vp->mode))
     RETV_ERROR (EISDIR, -1);
+  if (!len)
+    return 0;
   if (vp->ops->write)
     return vp->ops->write (vp, buffer, len, offset);
   else
