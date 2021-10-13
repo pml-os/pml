@@ -385,6 +385,18 @@ struct ext4_group_desc
 };
 
 /*!
+ * Format of a directory entry for linked list directories.
+ */
+
+struct ext2_dirent
+{
+  uint32_t d_inode;
+  uint16_t d_rec_len;
+  uint16_t d_name_len;
+  char d_name[256];
+};
+
+/*!
  * Preallocates a buffer for storing a section of a block group's inode table.
  * Requests to read inodes with close numbers will be faster since the data
  * is cached so it does not to be read from disk.
