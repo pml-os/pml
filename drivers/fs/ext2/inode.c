@@ -85,10 +85,31 @@ ext2_alloc_io_buffer (struct ext2_file *file)
   return 0;
 }
 
+/*!
+ * Reads a block of an inode into its I/O buffer.
+ *
+ * @param vp the vnode
+ * @param block the block number
+ * @return zero on success
+ */
+
 int
-ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
+ext2_read_io_buffer_block (struct vnode *vp, block_t block)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  block_t fs_block;
+  if (ext2_alloc_io_buffer (file))
+    RETV_ERROR (EIO, -1);
+  if (vfs_bmap (vp, &fs_block, block, 1))
+    RETV_ERROR (EIO, -1);
+  if (fs_block != file->io_block)
+    {
+      file->io_block = fs_block;
+      if (ext2_read_blocks (file->io_buffer, fs, fs_block, 1))
+	RETV_ERROR (EIO, -1);
+    }
+  return 0;
 }
 
 ssize_t
@@ -120,13 +141,8 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
   /* Completely contained in a single block */
   if (mid_block > end_block)
     {
-      block_t block;
-      if (ext2_alloc_io_buffer (file))
-	RETV_ERROR (EIO, -1);
-      if (vfs_bmap (vp, &block, start_block, 1))
-	RETV_ERROR (EIO, -1);
-      if (ext2_read_blocks (file->io_buffer, fs, block, 1))
-	RETV_ERROR (EIO, -1);
+      if (ext2_read_io_buffer_block (vp, start_block))
+	return -1;
       memcpy (buffer, file->io_buffer + fs->block_size - start_diff, len);
       return len;
     }
@@ -158,13 +174,8 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
   /* Read unaligned starting bytes */
   if (start_diff)
     {
-      block_t block;
-      if (ext2_alloc_io_buffer (file))
-	RETV_ERROR (EIO, -1);
-      if (vfs_bmap (vp, &block, start_block, 1))
-	RETV_ERROR (EIO, -1);
-      if (ext2_read_blocks (file->io_buffer, fs, block, 1))
-	RETV_ERROR (EIO, -1);
+      if (ext2_read_io_buffer_block (vp, start_block))
+	return -1;
       memcpy (buffer, file->io_buffer + fs->block_size - start_diff,
 	      start_diff);
     }
@@ -172,13 +183,8 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
   /* Read unaligned ending bytes */
   if (end_diff)
     {
-      block_t block;
-      if (ext2_alloc_io_buffer (file))
-	RETV_ERROR (EIO, -1);
-      if (vfs_bmap (vp, &block, end_block, 1))
-	RETV_ERROR (EIO, -1);
-      if (ext2_read_blocks (file->io_buffer, fs, block, 1))
-	RETV_ERROR (EIO, -1);
+      if (ext2_read_io_buffer_block (vp, start_block))
+	return -1;
       memcpy (buffer + start_diff + blocks * fs->block_size, file->io_buffer,
 	      end_diff);
     }
@@ -224,12 +230,6 @@ ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
 
 int
 ext2_symlink (struct vnode *dir, const char *name, const char *target)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
-
-off_t
-ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
 {
   RETV_ERROR (ENOSYS, -1);
 }

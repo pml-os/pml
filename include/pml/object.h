@@ -30,8 +30,8 @@
  * @param t the type of the object this macro appears in
  */
 
-#define REF_COUNT(t)	    \
-  unsigned int __ref_count; \
+#define REF_COUNT(t)				\
+  unsigned int __ref_count;			\
   void (*__ref_free) (t *)
 
 /*!
@@ -39,13 +39,12 @@
  * All other fields in the object are initialized to zero.
  *
  * @param x the object as an lvalue
- * @param ff the function to call when the last reference is freed
- * @return the allocated object
+ * @param ff function to call when last reference is removed
  */
 
 #define ALLOC_OBJECT(x, ff)					\
-  (((x) = calloc (1, sizeof (*(x))))				\
-   && (++(x)->__ref_count, (x)->__ref_free = (ff)))
+  (((x) = calloc (1, sizeof (*(x)))) ?				\
+   ((x)->__ref_free = (ff), ++(x)->__ref_count) : 0)
 
 /*!
  * Increments the reference count of a pointer to a reference-counted object.
@@ -60,8 +59,7 @@
 
 /*!
  * Decrements the reference count of a pointer to a reference-counted object.
- * If the object has no remaining references, it is freed by a call to the
- * free function set when the object was created with ALLOC_OBJECT().
+ * If the object has no remaining references, it is freed by a call to free().
  * The object passed to this macro may be evaluated more than once, so it
  * should not have any side effects. The object may also be a NULL pointer,
  * in which case this macro will return zero.
@@ -71,7 +69,7 @@
  */
 
 #define UNREF_OBJECT(x)							\
-  ((x) ? 0 : (--(x)->__ref_count ? (x)->__ref_count : (x)->__ref_free (x), 0))
+  ((x) ? (--(x)->__ref_count ? (x)->__ref_count : ((x)->__ref_free (x), 0)) : 0)
 
 /*!
  * Assigns a reference-counted object to an lvalue and increments its reference

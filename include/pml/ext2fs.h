@@ -37,6 +37,9 @@
 /*! Maximum allowed block size */
 #define EXT2_MAX_BLOCK_SIZE     4096
 
+/*! Maximum allowed file name length */
+#define EXT2_MAX_NAME           255
+
 /*!
  * Major version of ext2 dynamic revision. Filesystems with a major version
  * of at least this value have more fields in the superblock and more features.
@@ -393,7 +396,7 @@ struct ext2_dirent
   uint32_t d_inode;
   uint16_t d_rec_len;
   uint16_t d_name_len;
-  char d_name[256];
+  char d_name[EXT2_MAX_NAME];
 };
 
 /*!
@@ -435,12 +438,37 @@ struct ext2_file
 {
   struct ext2_inode inode;      /*!< On-disk inode structure */
   unsigned char *io_buffer;     /*!< Buffer for unaligned I/O */
+  block_t io_block;             /*!< Block number of I/O buffer */
   ext2_block_t *ind_bmap;       /*!< Indirect block map */
   block_t ind_block;            /*!< Block number of indirect buffer */
   ext2_block_t *dind_bmap;      /*!< Doubly indirect block map */
   block_t dind_block;           /*!< Block number of doubly indirect buffer */
   ext2_block_t *tind_bmap;      /*!< Triply indirect block map */
 };
+
+/*!
+ * Return values from an iterate function.
+ */
+
+enum ext2_iter_status
+{
+  EXT2_ITER_OK,                 /*!< Entry was processed, continue iterating */
+  EXT2_ITER_END,                /*!< Stop iterating and return success */
+  EXT2_ITER_ERROR               /*!< Stop iterating and return error */
+};
+
+/*!
+ * Callback function signature for ext2_iterate_dir(). This function is called
+ * for each directory entry read and should return a status value to signal
+ * to the iterator function whether to continue iterating.
+ *
+ * @param dirent pointer to directory entry
+ * @param data private data from iterator function
+ * @return iterator callback status
+ */
+
+typedef enum ext2_iter_status (*ext2_dir_iter_t) (struct ext2_dirent *dirent,
+						  void *data);
 
 /*!
  * Determines the number of block group descriptors in an ext2 filesystem.
@@ -473,6 +501,19 @@ ext2_inode_group_desc (ino_t ino, struct ext2_super *super)
   return (ino - 1) / super->s_inodes_per_group;
 }
 
+/*!
+ * Determines the length of a directory entry's file name.
+ *
+ * @param dirent the directory entry
+ * @return the number of bytes in the file name
+ */
+
+static inline size_t
+ext2_dirent_name_len (struct ext2_dirent *dirent)
+{
+  return dirent->d_name_len & 0xff;
+}
+
 __BEGIN_DECLS
 
 extern const struct mount_ops ext2_mount_ops;
@@ -488,6 +529,9 @@ struct ext2_fs *ext2_openfs (struct block_device *device, unsigned int flags);
 void ext2_closefs (struct ext2_fs *fs);
 int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
 int ext2_alloc_io_buffer (struct ext2_file *file);
+int ext2_read_io_buffer_block (struct vnode *vp, block_t block);
+int ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
+		      void *data);
 
 /* VFS layer functions */
 

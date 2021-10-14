@@ -56,9 +56,6 @@ init_vfs (void)
   REF_ASSIGN (THIS_PROCESS->cwd, root_vnode);
   THIS_PROCESS->cwd_path = "/";
 
-  /* Make /.. link to / */
-  REF_ASSIGN (root_vnode->parent, root_vnode);
-
   /* Mount devfs on /dev */
   if (register_filesystem ("devfs", &devfs_mount_ops))
     panic ("Failed to register devfs");
@@ -94,6 +91,7 @@ mount_root (void)
   if (!vp)
     panic ("Failed to open root device: %s\n", boot_options.root_device);
 
+  /* Mount root filesystem */
   fs_type = guess_filesystem_type (vp);
   if (UNLIKELY (!fs_type))
     goto err0;
@@ -104,6 +102,9 @@ mount_root (void)
     goto err0;
   UNREF_OBJECT (root_vnode);
   REF_ASSIGN (root_vnode, mp->root_vnode);
+
+  /* Make /.. link to / */
+  REF_ASSIGN (root_vnode->parent, root_vnode);
   return;
 
  err0:
