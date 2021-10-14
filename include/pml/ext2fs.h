@@ -170,6 +170,22 @@ typedef unsigned int ext2_bgrp_t;
 typedef unsigned int ext2_block_t;
 
 /*!
+ * File types for directory entries.
+ */
+
+enum ext2_file_type
+{
+  EXT2_FILE_UNKNOWN,            /*!< Unknown file type or not supported */
+  EXT2_FILE_REG,                /*!< Regular file */
+  EXT2_FILE_DIR,                /*!< Directory */
+  EXT2_FILE_CHR,                /*!< Character device */
+  EXT2_FILE_BLK,                /*!< Block device */
+  EXT2_FILE_FIFO,               /*!< Named pipe */
+  EXT2_FILE_SOCK,               /*!< Socket */
+  EXT2_FILE_LNK                 /*!< Symbolic link */
+};
+
+/*!
  * Format of the superblock for ext2 filesystems.
  */
 
@@ -513,6 +529,19 @@ static inline size_t
 ext2_dirent_name_len (struct ext2_dirent *dirent)
 {
   return dirent->d_name_len & 0xff;
+}
+
+/*!
+ * Determines the file type of a directory entry.
+ *
+ * @param dirent the directory entry
+ * @return the file type
+ */
+
+static inline enum ext2_file_type
+ext2_dirent_file_type (struct ext2_dirent *dirent)
+{
+  return dirent->d_name_len >> 8;
 }
 
 __BEGIN_DECLS

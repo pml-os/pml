@@ -45,6 +45,13 @@ ext2_lookup_iter (struct ext2_dirent *dirent, void *data)
   return EXT2_ITER_OK;
 }
 
+static enum ext2_iter_status
+ext2_readdir_iter (struct ext2_dirent *dirent, void *data)
+{
+  *((struct ext2_dirent **) data) = dirent;
+  return EXT2_ITER_END;
+}
+
 /*!
  * Iterates through the entries of a directory by calling a callback function
  * and passing a pointer to each entry.
@@ -123,5 +130,19 @@ ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
 off_t
 ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_fs *fs = dir->mount->data;
+  struct ext2_dirent *entry = NULL;
+  size_t name_len;
+  if (ext2_iterate_dir (dir, offset, ext2_readdir_iter, &entry))
+    return -1;
+  if (!entry)
+    return 0;
+  dirent->ino = entry->d_inode;
+  dirent->namlen = ext2_dirent_name_len (entry);
+  name_len = ALIGN_UP (dirent->namlen + 1, 8);
+  dirent->reclen = offsetof (struct pml_dirent, name) + name_len;
+  dirent->type = ext2_dirent_file_type (entry);
+  strncpy (dirent->name, entry->d_name, dirent->namlen);
+  dirent->name[dirent->namlen] = '\0';
+  return offset + entry->d_rec_len;
 }
