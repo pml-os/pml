@@ -1,4 +1,4 @@
-/* syscall.S -- This file is part of PML.
+/* syscall-init.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,46 +14,13 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/asm.h>
+#include <pml/msr.h>
 #include "syscall.h"
 
-	.section .text
-	.global syscall
-ASM_FUNC_BEGIN (syscall):
-	push	%rbx
-	push	%rcx
-	push	%rdx
-	push	%rsi
-	push	%rdi
-	push	%r8
-	push	%r9
-	push	%r10
-	push	%r11
-	mov	%r10, %rcx
-
-	movabs	$errno, %rbx
-	movl	$0, (%rbx)
-	movabs	$syscall_table, %rbx
-	mov	(%rbx,%rax,8), %rax
-	call	*%rax
-
-	/* Error occurred, return errno value */
-	movabs	$errno, %rbx
-	mov	(%rbx), %ebx
-	test	%ebx, %ebx
-	jz	1f
-	xor	%eax, %eax
-	sub	%rbx, %rax
-
-1:
-	pop	%r11
-	pop	%r10
-	pop	%r9
-	pop	%r8
-	pop	%rdi
-	pop	%rsi
-	pop	%rdx
-	pop	%rcx
-	pop	%rbx
-	sysretq
-ASM_FUNC_END (syscall)
+void
+syscall_init (void)
+{
+  uintptr_t addr = (uintptr_t) syscall;
+  msr_write (MSR_STAR, 0, 8 << 16);
+  msr_write (MSR_LSTAR, addr & 0xffffffff, addr >> 32);
+}

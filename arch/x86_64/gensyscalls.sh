@@ -55,6 +55,9 @@ echo >> $def_file
 echo 'extern void *syscall_table[];' >> $def_file
 echo "$def_protos" >> $def_file
 echo >> $def_file
+echo 'void syscall_init (void);' >> $def_file
+echo 'long syscall (long num, ...);' >> $def_file
+echo >> $def_file
 echo '__END_DECLS' >> $def_file
 echo >> $def_file
 echo '#endif /* !__ASSEMBLER__ */' >> $def_file

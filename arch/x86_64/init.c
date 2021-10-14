@@ -23,6 +23,7 @@
 #include <pml/memory.h>
 #include <pml/pit.h>
 #include <pml/thread.h>
+#include "syscall.h"
 
 static void
 init_kernel_heap (void)
@@ -59,9 +60,10 @@ arch_init (void)
   /* Initialize the scheduler */
   sched_init ();
 
-  /* Start interrupts */
+  /* Start interrupts and system calls */
   int_start ();
   int_enable ();
+  syscall_init ();
 
   /* Start multiple cores if SMP is supported */
   smp_init ();

@@ -17,6 +17,11 @@
 #ifndef __PML_MSR_H
 #define __PML_MSR_H
 
+/*!
+ * @file
+ * @brief Definitions for x86-64 model specific registers
+ */
+
 #define MSR_EFER                0xc0000080
 #define MSR_STAR                0xc0000081
 #define MSR_LSTAR               0xc0000082
@@ -28,11 +33,27 @@
 
 #include <pml/cdefs.h>
 
+/*!
+ * Reads the value of a model-specific register.
+ *
+ * @param msr the register to read
+ * @param low pointer to store low 32 bits of value
+ * @param high pointer to store high 32 bits of value
+ */
+
 __always_inline static inline void
 msr_read (uint32_t msr, uint32_t *low, uint32_t *high)
 {
   __asm__ volatile ("rdmsr" : "=a" (*low), "=d" (*high) : "c" (msr));
 }
+
+/*!
+ * Writes a value to a model-specific register.
+ *
+ * @param msr the register to write
+ * @param low low 32 bits of value to write
+ * @param high high 32 bits of value to write
+ */
 
 __always_inline static inline void
 msr_write (uint32_t msr, uint32_t low, uint32_t high)

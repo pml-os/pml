@@ -97,6 +97,9 @@ ASM_FUNC_BEGIN (smp_ap_high_start):
 	mov	$(THREAD_LOCAL_BASE_VMA & 0xffffffff), %eax
 	wrmsr
 
+	/* Initialize syscalls */
+	call	syscall_init
+
 	/* Nothing left to do, just busy-wait */
 .hang:
 	hlt
