@@ -21,7 +21,6 @@
 #include <pml/device.h>
 #include <pml/memory.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 
 const struct mount_ops devfs_mount_ops = {

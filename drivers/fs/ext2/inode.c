@@ -304,6 +304,7 @@ ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 void
 ext2_sync (struct vnode *vp)
 {
+  ext2_flush_io_buffer_block (vp);
 }
 
 int

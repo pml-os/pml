@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /*! Buffer used to temporarily store ATA identification and I/O data */

@@ -23,7 +23,6 @@
 #include <pml/memory.h>
 #include <pml/pit.h>
 #include <pml/thread.h>
-#include <stdlib.h>
 
 static void
 init_kernel_heap (void)

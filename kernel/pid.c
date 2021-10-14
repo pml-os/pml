@@ -19,7 +19,6 @@
 #include <pml/panic.h>
 #include <pml/thread.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define PID_BITMAP_INCREMENT    1024

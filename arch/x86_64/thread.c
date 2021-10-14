@@ -20,7 +20,6 @@
 #include <pml/memory.h>
 #include <pml/thread.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 
 static struct thread kernel_thread;

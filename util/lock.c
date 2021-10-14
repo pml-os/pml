@@ -18,7 +18,6 @@
 
 #include <pml/lock.h>
 #include <pml/thread.h>
-#include <stdlib.h>
 
 /*!
  * Acquires a spinlock. This function will block until the spinlock is free.

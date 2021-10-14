@@ -17,7 +17,6 @@
 /*! @file */
 
 #include <pml/thread.h>
-#include <stdlib.h>
 #include <string.h>
 
 /*!
