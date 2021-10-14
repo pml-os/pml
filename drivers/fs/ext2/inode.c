@@ -112,6 +112,110 @@ ext2_read_io_buffer_block (struct vnode *vp, block_t block)
   return 0;
 }
 
+/*!
+ * Flushes the contents of a file's I/O buffer to disk.
+ *
+ * @param vp the vnode
+ * @return zero on success
+ */
+
+int
+ext2_flush_io_buffer_block (struct vnode *vp)
+{
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  block_t fs_block;
+  if (!file->io_buffer)
+    return 0;
+  if (ext2_write_blocks (file->io_buffer, fs, file->io_block, 1))
+    RETV_ERROR (EIO, -1);
+  return 0;
+}
+
+/*!
+ * Reads a block of an inode into its indirect block buffer.
+ *
+ * @param vp the vnode
+ * @param block the block number
+ * @return zero on success
+ */
+
+int
+ext2_read_ind_bmap (struct vnode *vp, block_t block)
+{
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  if (!file->ind_bmap)
+    {
+      file->ind_bmap = alloc_virtual_page ();
+      if (UNLIKELY (!file->ind_bmap))
+	return -1;
+    }
+  if (file->ind_block != block)
+    {
+      file->ind_block = block;
+      if (ext2_read_blocks (file->ind_bmap, fs, block, 1))
+	RETV_ERROR (EIO, -1);
+    }
+  return 0;
+}
+
+/*!
+ * Reads a block of an inode into its doubly indirect block buffer.
+ *
+ * @param vp the vnode
+ * @param block the block number
+ * @return zero on success
+ */
+
+int
+ext2_read_dind_bmap (struct vnode *vp, block_t block)
+{
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  if (!file->dind_bmap)
+    {
+      file->dind_bmap = alloc_virtual_page ();
+      if (UNLIKELY (!file->dind_bmap))
+	return -1;
+    }
+  if (file->dind_block != block)
+    {
+      file->dind_block = block;
+      if (ext2_read_blocks (file->dind_bmap, fs, block, 1))
+	RETV_ERROR (EIO, -1);
+    }
+  return 0;
+}
+
+/*!
+ * Reads a block of an inode into its triply indirect block buffer.
+ *
+ * @param vp the vnode
+ * @param block the block number
+ * @return zero on success
+ */
+
+int
+ext2_read_tind_bmap (struct vnode *vp, block_t block)
+{
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  if (!file->tind_bmap)
+    {
+      file->tind_bmap = alloc_virtual_page ();
+      if (UNLIKELY (!file->tind_bmap))
+	return -1;
+    }
+  if (file->tind_block != block)
+    {
+      file->tind_block = block;
+      if (ext2_read_blocks (file->tind_bmap, fs, block, 1))
+	RETV_ERROR (EIO, -1);
+    }
+  return 0;
+}
+
 ssize_t
 ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
@@ -255,21 +359,9 @@ ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num)
       result[i] = file->inode.i_block[block + i];
     }
 
-  /* Allocate and read indirect block buffer */
-  if (!file->ind_bmap)
-    {
-      file->ind_bmap = alloc_virtual_page ();
-      if (UNLIKELY (!file->ind_bmap))
-	return -1;
-    }
-  if (file->ind_block != file->inode.i_block[EXT2_IND_BLOCK])
-    {
-      file->ind_block = file->inode.i_block[EXT2_IND_BLOCK];
-      if (ext2_read_blocks (file->ind_bmap, fs, file->ind_block, 1))
-	RETV_ERROR (EIO, -1);
-    }
-
   /* Read indirect blocks */
+  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
+    return -1;
   for (; block + i < EXT2_IND_LIMIT; i++)
     {
       if (i >= num)
@@ -292,30 +384,41 @@ ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num)
     }
 
   /* Read doubly indirect blocks */
+  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
+    return -1;
   for (; block + i < EXT2_DIND_LIMIT; i++)
     {
+      block_t dind_block;
+      ext2_block_t ind_block;
       if (i >= num)
 	return 0;
-      result[i] = file->dind_bmap[block + i - EXT2_IND_LIMIT];
-    }
-
-  /* Allocate and read triply indirect block buffer */
-  if (!file->tind_bmap)
-    {
-      file->tind_bmap = alloc_virtual_page ();
-      if (UNLIKELY (!file->tind_bmap))
+      dind_block = block + i - EXT2_IND_LIMIT;
+      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
+      if (ext2_read_ind_bmap (vp, ind_block))
 	return -1;
-      if (ext2_read_blocks (file->tind_bmap, fs,
-			    file->inode.i_block[EXT2_TIND_BLOCK], 1))
-	RETV_ERROR (EIO, -1);
+      result[i] = file->ind_bmap[dind_block % fs->bmap_entries];
     }
 
   /* Read triply indirect blocks */
+  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
+    return -1;
   for (; block + i < EXT2_TIND_LIMIT; i++)
     {
+      block_t tind_block;
+      ext2_block_t dind_block;
+      ext2_block_t ind_block;
       if (i >= num)
 	return 0;
-      result[i] = file->tind_bmap[block + i - EXT2_DIND_LIMIT];
+      tind_block = block + i - EXT2_DIND_LIMIT;
+      dind_block =
+	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
+      if (ext2_read_dind_bmap (vp, dind_block))
+	return -1;
+      ind_block =
+	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
+      if (ext2_read_ind_bmap (vp, ind_block))
+	return -1;
+      result[i] = file->ind_bmap[tind_block % fs->bmap_entries];
     }
 
   /* File is too large at this point */

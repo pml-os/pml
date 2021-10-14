@@ -444,6 +444,7 @@ struct ext2_file
   ext2_block_t *dind_bmap;      /*!< Doubly indirect block map */
   block_t dind_block;           /*!< Block number of doubly indirect buffer */
   ext2_block_t *tind_bmap;      /*!< Triply indirect block map */
+  block_t tind_block;           /*!< Block number of triply indirect buffer */
 };
 
 /*!
@@ -530,6 +531,10 @@ void ext2_closefs (struct ext2_fs *fs);
 int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
 int ext2_alloc_io_buffer (struct ext2_file *file);
 int ext2_read_io_buffer_block (struct vnode *vp, block_t block);
+int ext2_flush_io_buffer_block (struct vnode *vp);
+int ext2_read_ind_bmap (struct vnode *vp, block_t block);
+int ext2_read_dind_bmap (struct vnode *vp, block_t block);
+int ext2_read_tind_bmap (struct vnode *vp, block_t block);
 int ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
 		      void *data);
 
