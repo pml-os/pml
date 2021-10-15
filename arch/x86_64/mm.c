@@ -18,7 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/memory.h>
-#include <pml/thread.h>
+#include <pml/process.h>
 #include <errno.h>
 #include <string.h>
 

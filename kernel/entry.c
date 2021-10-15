@@ -15,7 +15,7 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/device.h>
-#include <pml/thread.h>
+#include <pml/process.h>
 #include <pml/vfs.h>
 #include <stdio.h>
 #include <stdlib.h>

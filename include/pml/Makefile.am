@@ -38,6 +38,7 @@ pmlinclude_HEADERS =	\
 	object.h	\
 	pci.h		\
 	pit.h		\
+	process.h	\
 	tty.h		\
 	types.h		\
 	vfs.h		\

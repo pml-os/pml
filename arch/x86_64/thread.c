@@ -18,7 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/memory.h>
-#include <pml/thread.h>
+#include <pml/process.h>
 #include <errno.h>
 #include <string.h>
 
@@ -169,90 +169,5 @@ thread_attach_process (struct process *process, struct thread *thread)
 
  err0:
   thread_switch_lock = 0;
-  return -1;
-}
-
-/*!
- * Clones a thread's stack and updates a PDPT.
- *
- * @param thread the thread whose stack will be cloned
- * @param pdpt the PDPT used to update the stack pointer entries
- * @return zero on success
- */
-
-int
-thread_clone_stack (struct thread *thread, uintptr_t *pdpt)
-{
-  uintptr_t *thread_local_pdpt =
-    (uintptr_t *) PHYS_REL (ALIGN_DOWN (thread->args.pml4t[507], PAGE_SIZE));
-  uintptr_t *stack_pdt =
-    (uintptr_t *) PHYS_REL (ALIGN_DOWN (thread_local_pdpt[511], PAGE_SIZE));
-  uintptr_t new_stack_pdt_phys = alloc_page ();
-  uintptr_t *new_stack_pdt;
-  size_t i;
-  if (UNLIKELY (!new_stack_pdt_phys))
-    return -1;
-  new_stack_pdt = (uintptr_t *) PHYS_REL (new_stack_pdt_phys);
-  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
-    new_stack_pdt[i] = stack_pdt[i] | PAGE_NP_FLAG_COW;
-  pdpt[511] =
-    new_stack_pdt_phys | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
-  return 0;
-}
-
-/*!
- * Adds a new thread to the current process.
- *
- * @param tid pointer to store the thread ID of the new thread
- * @param func function to begin execution in new thread
- * @param arg argument passed to the starting function
- * @return zero on success
- */
-
-int
-thread_exec (pid_t *tid, int (*func) (void *), void *arg)
-{
-  struct thread *thread;
-  struct thread_args args;
-  uintptr_t pml4t_phys;
-  uint64_t *pml4t;
-  uintptr_t tlp_phys;
-  uintptr_t *tlp;
-
-  /* Allocate a new PML4T */
-  pml4t_phys = alloc_page ();
-  if (UNLIKELY (!pml4t_phys))
-    return -1;
-  pml4t = (uint64_t *) PHYS_REL (pml4t_phys);
-  memcpy (pml4t, THIS_THREAD->args.pml4t, PAGE_STRUCT_SIZE);
-
-  /* Create new thread */
-  args.pml4t = pml4t;
-  args.stack = THIS_THREAD->args.stack;
-  args.stack_base = THIS_THREAD->args.stack_base;
-  args.stack_size = THIS_THREAD->args.stack_size;
-  thread = thread_create (&args);
-  if (UNLIKELY (!thread))
-    goto err0;
-
-  /* Clear thread-local storage and clone the stack */
-  tlp_phys = alloc_page ();
-  if (UNLIKELY (!tlp_phys))
-    goto err1;
-  tlp = (uintptr_t *) PHYS_REL (tlp_phys);
-  if (thread_clone_stack (thread, tlp))
-    goto err1;
-  /* TODO Setup the new thread's stack frame to return from an IRQ to the
-     given function */
-  pml4t[507] = tlp_phys | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
-  *tid = thread->tid;
-  if (thread_attach_process (THIS_PROCESS, thread))
-    goto err1;
-  return 0;
-
- err1:
-  thread_free (thread);
- err0:
-  free_page (pml4t_phys);
   return -1;
 }

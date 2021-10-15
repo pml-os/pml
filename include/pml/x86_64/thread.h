@@ -25,16 +25,6 @@
 /*! Milliseconds of CPU time given to each thread */
 #define THREAD_QUANTUM          20
 
-/*! Minimum process priority value */
-#define PRIO_MIN                19
-/*! Maximum process priority value */
-#define PRIO_MAX                -20
-
-/*! Expands to a pointer to the currently running process */
-#define THIS_PROCESS (process_queue.queue[process_queue.front])
-/*! Expands to a pointer to the currently running thread */
-#define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
-
 #ifndef __ASSEMBLER__
 
 #include <pml/lock.h>
@@ -94,43 +84,9 @@ struct thread_list
   struct thread_list *next;
 };
 
-/*!
- * Represents a process. Processes have a unique ID and also store their
- * parent process's ID. Each process is assigned a priority, but currently
- * process priorities are not implemented and are ignored.
- */
-
-struct process
-{
-  pid_t pid;                    /*!< Process ID */
-  pid_t ppid;                   /*!< Parent process ID */
-  pid_t pgid;                   /*!< Process group ID */
-  pid_t sid;                    /*!< Session ID */
-  uid_t uid;                    /*!< Real user ID */
-  uid_t euid;                   /*!< Effective user ID */
-  gid_t gid;                    /*!< Real group ID */
-  gid_t egid;                   /*!< Effective group ID */
-  struct vnode *cwd;            /*!< Current working directory */
-  char *cwd_path;               /*!< Absolute path to CWD */
-  struct thread_queue threads;  /*!< Process thread queue */
-  int priority;                 /*!< Process priority */
-};
-
-/*!
- * Queue of processes, used by the scheduler to schedule the next process.
- */
-
-struct process_queue
-{
-  struct process **queue;
-  size_t len;
-  size_t front;
-};
-
 __BEGIN_DECLS
 
 extern lock_t thread_switch_lock;
-extern struct process_queue process_queue;
 
 void sched_init (void);
 void sched_yield (void);
@@ -141,12 +97,6 @@ void thread_switch (void **stack, uintptr_t *pml4t_phys);
 struct thread *thread_create (struct thread_args *args);
 void thread_free (struct thread *thread);
 int thread_attach_process (struct process *process, struct thread *thread);
-int thread_clone_stack (struct thread *thread, uintptr_t *pdpt);
-int thread_exec (pid_t *tid, int (*func) (void *), void *arg);
-
-void init_pid_allocator (void);
-pid_t alloc_pid (void);
-void free_pid (pid_t pid);
 
 __END_DECLS
 

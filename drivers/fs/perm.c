@@ -16,7 +16,7 @@
 
 /*! @file */
 
-#include <pml/thread.h>
+#include <pml/process.h>
 #include <errno.h>
 
 /*!

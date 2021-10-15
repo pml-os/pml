@@ -27,8 +27,5 @@ sys_fork (void)
 pid_t
 sys_clone (int (*func) (void *), void *arg)
 {
-  pid_t tid;
-  if (thread_exec (&tid, func, arg))
-    return -1;
-  return tid;
+  RETV_ERROR (ENOSYS, -1);
 }

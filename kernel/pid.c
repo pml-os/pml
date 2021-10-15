@@ -17,7 +17,7 @@
 /*! @file */
 
 #include <pml/panic.h>
-#include <pml/thread.h>
+#include <pml/process.h>
 #include <errno.h>
 #include <string.h>
 
