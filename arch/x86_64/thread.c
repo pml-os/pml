@@ -171,3 +171,74 @@ thread_attach_process (struct process *process, struct thread *thread)
   thread_switch_lock = 0;
   return -1;
 }
+
+/*!
+ * Clones a thread by creating another copy of the thread with the same
+ * address space but a separate stack. The new thread will not be attached
+ * to a process.
+ *
+ * @param thread the thread to clone
+ * @return the cloned thread, or NULL on failure
+ */
+
+struct thread *
+thread_clone (struct thread *thread)
+{
+  struct thread *t = malloc (sizeof (struct thread));
+  uintptr_t *pml4t;
+  uintptr_t *tlp;
+  void *addr;
+  void *cptr;
+  pid_t tid;
+  if (UNLIKELY (!t))
+    return NULL;
+  pml4t = alloc_virtual_page ();
+  if (UNLIKELY (!pml4t))
+    goto err0;
+
+  /* Fill new thread structure info */
+  t->tid = alloc_pid ();
+  if (UNLIKELY (t->tid == -1))
+    goto err1;
+  t->process = NULL;
+  t->state = THREAD_STATE_RUNNING;
+  t->args.pml4t = pml4t;
+  t->args.stack = thread->args.stack;
+  t->args.stack_base = thread->args.stack_base;
+  t->args.stack_size = thread->args.stack_size;
+
+  /* Fill PML4T and allocate new thread-local storage PDPT */
+  tlp = alloc_virtual_page ();
+  if (UNLIKELY (!tlp))
+    goto err2;
+  memcpy (pml4t, thread->args.pml4t, PAGE_STRUCT_SIZE);
+  pml4t[PML4T_INDEX (THREAD_LOCAL_BASE_VMA)] = ((uintptr_t) tlp - KERNEL_VMA)
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
+  for (addr = thread->args.stack_base;
+       addr < thread->args.stack_base + thread->args.stack_size;
+       addr += PAGE_SIZE)
+    {
+      uintptr_t page = alloc_page ();
+      if (UNLIKELY (!page))
+	goto err3;
+      memcpy ((void *) PHYS_REL (page),
+	      (void *) PHYS_REL (vm_phys_addr (thread->args.pml4t, addr)),
+	      PAGE_SIZE);
+      if (vm_map_page (pml4t, page, addr, PAGE_FLAG_RW | PAGE_FLAG_USER))
+	{
+	  free_page (page);
+	  goto err3;
+	}
+    }
+  return t;
+
+ err3:
+  free_pdpt (tlp);
+ err2:
+  free_pid (t->tid);
+ err1:
+  free_virtual_page (pml4t);
+ err0:
+  free (t);
+  return NULL;
+}

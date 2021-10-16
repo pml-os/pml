@@ -81,6 +81,42 @@
 /*! Huge page size (1 gigabyte), used when PDPT.S is set */
 #define HUGE_PAGE_SIZE          0x40000000
 
+/*!
+ * Calculates the index in a PML4T corresponding to a virtual address.
+ *
+ * @param v the virtual address as an integer or pointer type
+ * @return the PML4T index
+ */
+
+#define PML4T_INDEX(v)          (((uintptr_t) (v) >> 39) & 0x1ff)
+
+/*!
+ * Calculates the index in a PDPT corresponding to a virtual address.
+ *
+ * @param v the virtual address as an integer or pointer type
+ * @return the PDPT index
+ */
+
+#define PDPT_INDEX(v)           (((uintptr_t) (v) >> 30) & 0x1ff)
+
+/*!
+ * Calculates the index in a PDT corresponding to a virtual address.
+ *
+ * @param v the virtual address as an integer or pointer type
+ * @return the PDT index
+ */
+
+#define PDT_INDEX(v)            (((uintptr_t) (v) >> 21) & 0x1ff)
+
+/*!
+ * Calculates the index in a PT corresponding to a virtual address.
+ *
+ * @param v the virtual address as an integer or pointer type
+ * @return the PT index
+ */
+
+#define PT_INDEX(v)             (((uintptr_t) (v) >> 12) & 0x1ff)
+
 #ifdef __ASSEMBLER__
 
 #define KERNEL_VMA              __kernel_vma

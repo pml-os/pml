@@ -70,28 +70,28 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
   uintptr_t *pdt;
   uintptr_t *pt;
 
-  pml4e = (v >> 39) & 0x1ff;
+  pml4e = PML4T_INDEX (v);
   if (v >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
     return 0;
   if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
     return 0;
 
   pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
-  pdpe = (v >> 30) & 0x1ff;
+  pdpe = PDPT_INDEX (v);
   if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
     return 0;
   if (pdpt[pdpe] & PAGE_FLAG_SIZE)
     return ALIGN_DOWN (pdpt[pdpe], HUGE_PAGE_SIZE) | (v & (HUGE_PAGE_SIZE - 1));
 
   pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
-  pde = (v >> 21) & 0x1ff;
+  pde = PDT_INDEX (v);
   if (!(pdt[pde] & PAGE_FLAG_PRESENT))
     return 0;
   if (pdt[pde] & PAGE_FLAG_SIZE)
     return ALIGN_DOWN (pdt[pde], LARGE_PAGE_SIZE) | (v & (LARGE_PAGE_SIZE - 1));
 
   pt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
-  pte = (v >> 12) & 0x1ff;
+  pte = PT_INDEX (v);
   if (!(pt[pte] & PAGE_FLAG_PRESENT))
     return 0;
   return ALIGN_DOWN (pt[pte], PAGE_SIZE) | (v & (PAGE_SIZE - 1));
@@ -121,7 +121,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
   uintptr_t *pdt;
   uintptr_t *pt;
 
-  pml4e = (v >> 39) & 0x1ff;
+  pml4e = PML4T_INDEX (v);
   if (v >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
     RETV_ERROR (EFAULT, -1);
   if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
@@ -133,7 +133,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
     }
 
   pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
-  pdpe = (v >> 30) & 0x1ff;
+  pdpe = PDPT_INDEX (v);
   if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
     {
       pdpt[pdpe] = alloc_page ();
@@ -145,7 +145,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
     RETV_ERROR (EINVAL, -1);
 
   pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
-  pde = (v >> 21) & 0x1ff;
+  pde = PDT_INDEX (v);
   if (!(pdt[pde] & PAGE_FLAG_PRESENT))
     {
       pdt[pde] = alloc_page ();
@@ -157,7 +157,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
     RETV_ERROR (EINVAL, -1);
 
   pt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
-  pte = (v >> 12) & 0x1ff;
+  pte = PT_INDEX (v);
   pt[pte] = ALIGN_DOWN (phys_addr, PAGE_SIZE) | PAGE_FLAG_PRESENT | flags;
   return 0;
 }
