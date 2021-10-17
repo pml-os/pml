@@ -8,5 +8,6 @@
 0       fork            pid_t       void
 1       clone           pid_t       int (*func) (void *), void *arg
 2       getpid          pid_t       void
+3       getppid         pid_t       void
 
 # End of system calls list

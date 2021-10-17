@@ -29,3 +29,9 @@ sys_getpid (void)
 {
   return THIS_PROCESS->pid;
 }
+
+pid_t
+sys_getppid (void)
+{
+  return THIS_PROCESS->ppid;
+}

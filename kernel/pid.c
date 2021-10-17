@@ -30,7 +30,7 @@ static size_t pid_bitmap_size;  /* Size of bitmap in bytes */
 static lock_t pid_bitmap_lock;
 
 /*!
- * Initializes the PID allocator by marking PIDs 0 and 1 as used and allocating
+ * Initializes the PID allocator by marking PID 0 as used and allocating
  * the PID bitmap.
  */
 
@@ -42,8 +42,7 @@ init_pid_allocator (void)
     panic ("Failed to allocate PID bitmap");
   pid_bitmap_size = PID_BITMAP_INCREMENT;
   set_bit (pid_bitmap, 0);
-  set_bit (pid_bitmap, 1);
-  next_pid = 2;
+  next_pid = 1;
 }
 
 /*!
