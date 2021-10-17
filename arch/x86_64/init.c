@@ -21,9 +21,12 @@
 #include <pml/cmos.h>
 #include <pml/interrupt.h>
 #include <pml/memory.h>
+#include <pml/panic.h>
 #include <pml/pit.h>
-#include <pml/thread.h>
+#include <pml/process.h>
 #include "syscall.h"
+
+/*! Initializes the kernel heap. */
 
 static void
 init_kernel_heap (void)
@@ -31,6 +34,18 @@ init_kernel_heap (void)
   uintptr_t size = ALIGN_UP (total_phys_mem / 16, PAGE_SIZE);
   kh_init (next_phys_addr, size);
   next_phys_addr += size;
+}
+
+/*! Initializes the user mode trampoline. */
+
+static void
+user_mode_tp_init (void)
+{
+  uintptr_t page = alloc_page ();
+  if (UNLIKELY (!page))
+    panic ("Failed to initialize user mode trampoline");
+  vm_map_page (THIS_THREAD->args.pml4t, page, (void *) USER_MODE_TP_BASE_VMA,
+	       PAGE_FLAG_RW | PAGE_FLAG_USER);
 }
 
 /*!
@@ -60,10 +75,11 @@ arch_init (void)
   /* Initialize the scheduler */
   sched_init ();
 
-  /* Start interrupts and system calls */
+  /* Start interrupts, system calls, and user mode */
   int_start ();
   int_enable ();
   syscall_init ();
+  user_mode_tp_init ();
 
   /* Start multiple cores if SMP is supported */
   smp_init ();

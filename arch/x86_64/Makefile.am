@@ -39,7 +39,8 @@ libarch_a_SOURCES =	\
 	smp-init.S	\
 	syscall.S	\
 	syscall-init.c	\
-	thread.c
+	thread.c	\
+	user.S
 
 # Generate interrupt handler stubs and IDT fill function
 

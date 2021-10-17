@@ -99,7 +99,8 @@ vm_phys_addr (uintptr_t *pml4t, void *addr)
 
 /*!
  * Maps the page at the virtual address to a physical address. The
- * virtual address must be in a page-aligned address.
+ * virtual address must not be in a large page, and the physical address
+ * does not need to be page-aligned.
  *
  * @param pml4t the address space to perform the mapping
  * @param phys_addr the physical address to be mapped
@@ -303,8 +304,7 @@ free_pdpt (uintptr_t *pdpt)
 }
 
 /*!
- * Initializes the kernel virtual address space. See <pml/x86_64/memory.h>
- * for a description of the layout of the virtual address space on x86_64.
+ * Initializes the kernel virtual address space.
  */
 
 void

@@ -287,6 +287,14 @@ thread_clone (struct thread *thread, int copy)
   return NULL;
 }
 
+/*!
+ * Frees the user-space memory allocated to a process. All threads share the
+ * same user-mode address space, so this function can be called on any thread
+ * belonging to a process.
+ *
+ * @param thread a thread belonging to the process
+ */
+
 void
 thread_free_user_mem (struct thread *thread)
 {
