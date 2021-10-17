@@ -58,6 +58,8 @@ void
 process_free (struct process *process)
 {
   size_t i;
+  if (process->threads.len)
+    thread_free_user_mem (process->threads.queue[0]);
   for (i = 0; i < process->threads.len; i++)
     thread_free (process->threads.queue[i]);
   free (process->threads.queue);

@@ -286,3 +286,18 @@ thread_clone (struct thread *thread, int copy)
   free (t);
   return NULL;
 }
+
+void
+thread_free_user_mem (struct thread *thread)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
+    {
+      if (thread->args.pml4t[i] & PAGE_FLAG_PRESENT)
+	{
+	  uintptr_t pdpt = ALIGN_DOWN (thread->args.pml4t[i], PAGE_SIZE);
+	  free_pdpt ((uintptr_t *) PHYS_REL (pdpt));
+	  free_page (pdpt);
+	}
+    }
+}
