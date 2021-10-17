@@ -17,7 +17,8 @@ kernel_SOURCES =	\
 	device.c	\
 	entry.c		\
 	heap.c		\
-	pid.c
+	pid.c		\
+	process.c
 kernel_LDFLAGS = -T $(link_script) -nostdlib -z max-page-size=4096
 kernel_LDADD = $(component_libs) $(component_libs) -lgcc
 kernel_DEPENDENCIES = $(link_script) $(component_libs)

@@ -25,9 +25,6 @@
 static struct thread kernel_thread;
 static struct process kernel_process;
 
-lock_t thread_switch_lock;
-struct process_queue process_queue;
-
 /*!
  * Initializes the scheduler and sets up the kernel process and main thread.
  */
@@ -37,7 +34,7 @@ sched_init (void)
 {
   kernel_thread.args.pml4t = kernel_pml4t;
   kernel_thread.args.stack_base =
-    (void *) (PROCESS_STACK_BASE_VMA + 0xffffffc000);
+    (void *) (PROCESS_STACK_BASE_VMA + 0x3fffc000);
   kernel_thread.args.stack_size = 16384;
   kernel_thread.state = THREAD_STATE_RUNNING;
   kernel_process.threads.queue = malloc (sizeof (struct thread *));
@@ -50,15 +47,49 @@ sched_init (void)
 }
 
 /*!
+ * Returns the currently running thread. This function is meant to be called
+ * by assembly code, using @ref THIS_THREAD in C code is faster.
+ *
+ * @return the currently running thread
+ */
+
+struct thread *
+this_thread (void)
+{
+  return THIS_THREAD;
+}
+
+/*!
+ * Queries information about a thread. Pointers besides the thread structure
+ * passed to this function can be NULL, in which case their corresponding
+ * data in the thread structure will not be read. This function is meant to
+ * be used from assembly code; it is faster to directly access the members of
+ * @ref thread.args.
+ *
+ * @param thread the thread
+ * @param pml4t pointer to store physical address of PML4T
+ * @param stack pointer to store stack pointer
+ */
+
+void
+thread_get_args (struct thread *thread, uintptr_t *pml4t, void **stack)
+{
+  if (pml4t)
+    *pml4t = (uintptr_t) thread->args.pml4t - KERNEL_VMA;
+  if (stack)
+    *stack = thread->args.stack;
+}
+
+/*!
  * Updates the stack pointer of the current thread.
  *
  * @param stack the new stack pointer
  */
 
 void
-thread_save_stack (void *stack)
+thread_save_stack (struct thread *thread, void *stack)
 {
-  THIS_THREAD->args.stack = stack;
+  thread->args.stack = stack;
 }
 
 /*!
@@ -84,8 +115,7 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
 	}
     }
   while (THIS_THREAD->state != THREAD_STATE_RUNNING);
-  *stack = THIS_THREAD->args.stack;
-  *pml4t_phys = (uintptr_t) THIS_THREAD->args.pml4t - KERNEL_VMA;
+  thread_get_args (THIS_THREAD, pml4t_phys, stack);
 }
 
 /*!
@@ -138,7 +168,7 @@ thread_free (struct thread *thread)
       free_pdpt (tlp);
       free_page (tlp_phys);
     }
-  free_page ((uintptr_t) thread->args.pml4t - KERNEL_VMA);
+  free_virtual_page (thread->args.pml4t);
 
   /* Free the thread structure */
   free (thread);

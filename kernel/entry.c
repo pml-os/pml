@@ -36,6 +36,13 @@ kentry (void)
   device_ata_init ();
   mount_root ();
   init_pid_allocator ();
+  sched_yield ();
 
   splash ();
+
+  {
+    pid_t sys_fork (void);
+    pid_t pid = sys_fork ();
+    printf ("PID: %d\n", pid);
+  }
 }

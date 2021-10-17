@@ -22,6 +22,7 @@
  * @brief Process definitions
  */
 
+#include <pml/lock.h>
 #include <pml/thread.h>
 
 /*! Minimum process priority value */
@@ -71,10 +72,17 @@ struct process_queue
 __BEGIN_DECLS
 
 extern struct process_queue process_queue;
+extern lock_t thread_switch_lock;
 
 void init_pid_allocator (void);
 pid_t alloc_pid (void);
 void free_pid (pid_t pid);
+
+struct process *process_alloc (int priority);
+void process_free (struct process *process);
+int process_enqueue (struct process *process);
+struct process *process_fork (struct thread **t);
+pid_t process_get_pid (struct process *process);
 
 __END_DECLS
 

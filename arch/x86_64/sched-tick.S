@@ -35,7 +35,9 @@ ASM_FUNC_BEGIN (sched_tick):
 	jnz	.done
 
 	/* Save this thread's stack pointer */
-	mov	%rsp, %rdi
+	call	this_thread
+	mov	%rax, %rdi
+	mov	%rsp, %rsi
 	call	thread_save_stack
 
 	/* Switch threads */
@@ -44,16 +46,15 @@ ASM_FUNC_BEGIN (sched_tick):
 	lea	8(%rsp), %rsi
 	call	thread_switch
 
-	/* Set the new page directory */
+	/* Set the new page directory and stack pointer */
+	mov	(%rsp), %rdx
 	mov	8(%rsp), %rax
 	mov	%cr3, %rcx
 	cmp	%rax, %rcx
 	je	.no_flush
 	mov	%rax, %cr3
-
 .no_flush:
-	/* Set the new stack pointer */
-	mov	(%rsp), %rsp
+	mov	%rdx, %rsp
 
 .done:
 	call	cmos_rtc_finish_irq

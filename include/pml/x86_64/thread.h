@@ -27,7 +27,6 @@
 
 #ifndef __ASSEMBLER__
 
-#include <pml/lock.h>
 #include <pml/vfs.h>
 
 enum
@@ -86,13 +85,13 @@ struct thread_list
 
 __BEGIN_DECLS
 
-extern lock_t thread_switch_lock;
-
 void sched_init (void);
 void sched_yield (void);
 void sched_yield_to (void *addr) __noreturn;
 
-void thread_save_stack (void *stack);
+struct thread *this_thread (void) __pure;
+void thread_get_args (struct thread *thread, uintptr_t *pml4t, void **stack);
+void thread_save_stack (struct thread *thread, void *stack);
 void thread_switch (void **stack, uintptr_t *pml4t_phys);
 struct thread *thread_create (struct thread_args *args);
 void thread_free (struct thread *thread);

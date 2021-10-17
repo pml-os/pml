@@ -65,7 +65,7 @@ ASM_FUNC_BEGIN (int_save_registers):
 	vmovdqa	%ymm15, 480(%rsp)
 #else
 	/* Save SSE registers */
-	lea	-264(%rsp), %rsp
+	lea	-256(%rsp), %rsp
 	movdqa	%xmm0, (%rsp)
 	movdqa	%xmm1, 16(%rsp)
 	movdqa	%xmm2, 32(%rsp)
@@ -132,7 +132,7 @@ ASM_FUNC_BEGIN (int_restore_registers):
 	movdqa	208(%rsp), %xmm13
 	movdqa	224(%rsp), %xmm14
 	movdqa	240(%rsp), %xmm15
-	lea	264(%rsp), %rsp
+	lea	256(%rsp), %rsp
 #endif
 
 	/* Restore general-purpose registers */

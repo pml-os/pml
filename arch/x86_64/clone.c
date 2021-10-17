@@ -14,18 +14,18 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/thread.h>
+#include <pml/process.h>
 #include <errno.h>
 #include "syscall.h"
-
-pid_t
-sys_fork (void)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
 
 pid_t
 sys_clone (int (*func) (void *), void *arg)
 {
   RETV_ERROR (ENOSYS, -1);
+}
+
+pid_t
+sys_getpid (void)
+{
+  return THIS_PROCESS->pid;
 }

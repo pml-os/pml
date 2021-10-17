@@ -17,6 +17,7 @@ libarch_a_SOURCES =	\
 	apic.c		\
 	clone.c		\
 	exceptions.c	\
+	fork.S		\
 	gdt.c		\
 	hwirq.c		\
 	idt.c		\

@@ -164,8 +164,8 @@
 #define ERFKILL                 132
 #define EHWPOISON               133 /*!< Memory page has hardware error */
 
-#define EWOULDBLOCK             EAGAIN      /*!< Alias for @ref EAGAIN */
-#define EDEADLOCK               EDEADLK     /*!< Alias for @ref EDEADLK */
-#define ENOTSUP                 EOPNOTSUPP  /*!< Alias for @ref EOPNOTSUPP */
+#define EWOULDBLOCK             EAGAIN
+#define EDEADLOCK               EDEADLK
+#define ENOTSUP                 EOPNOTSUPP
 
 #endif
