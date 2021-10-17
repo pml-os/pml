@@ -208,11 +208,12 @@ thread_attach_process (struct process *process, struct thread *thread)
  * to a process.
  *
  * @param thread the thread to clone
+ * @param copy whether to copy the user-mode address space
  * @return the cloned thread, or NULL on failure
  */
 
 struct thread *
-thread_clone (struct thread *thread)
+thread_clone (struct thread *thread, int copy)
 {
   struct thread *t = malloc (sizeof (struct thread));
   uintptr_t *pml4t;
@@ -242,6 +243,19 @@ thread_clone (struct thread *thread)
   if (UNLIKELY (!tlp))
     goto err2;
   memcpy (pml4t, thread->args.pml4t, PAGE_STRUCT_SIZE);
+  if (copy)
+    {
+      size_t i;
+      for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
+	{
+	  /* Mark allocated pages as copy-on-write */
+	  if (pml4t[i] & PAGE_FLAG_PRESENT)
+	    {
+	      pml4t[i] &= ~PAGE_FLAG_RW;
+	      pml4t[i] |= PAGE_NP_FLAG_COW;
+	    }
+	}
+    }
   pml4t[PML4T_INDEX (THREAD_LOCAL_BASE_VMA)] = ((uintptr_t) tlp - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   for (addr = thread->args.stack_base;

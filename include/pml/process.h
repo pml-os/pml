@@ -81,7 +81,7 @@ void free_pid (pid_t pid);
 struct process *process_alloc (int priority);
 void process_free (struct process *process);
 int process_enqueue (struct process *process);
-struct process *process_fork (struct thread **t);
+struct process *process_fork (struct thread **t, int copy);
 pid_t process_get_pid (struct process *process);
 
 __END_DECLS

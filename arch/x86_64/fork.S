@@ -18,8 +18,7 @@
 #include <pml/errno.h>
 
 	.section .text
-	.global sys_fork
-ASM_FUNC_BEGIN (sys_fork):
+ASM_FUNC_BEGIN (fork):
 	push	%rbp
 	mov	%rsp, %rbp
 	sub	$40, %rsp
@@ -30,6 +29,7 @@ ASM_FUNC_BEGIN (sys_fork):
 	   -32(%rbp): Stack pointer
 	   -40(%rbp): Current PML4T */
 
+	mov	%rdi, %rsi
 	lea	-16(%rbp), %rdi
 	call	process_fork
 	test	%rax, %rax
@@ -93,4 +93,16 @@ ASM_FUNC_BEGIN (sys_fork):
 	movl	$0, (%rcx)
 	leave
 	ret
+ASM_FUNC_END (fork)
+
+	.global sys_fork
+ASM_FUNC_BEGIN (sys_fork):
+	mov	$1, %edi
+	jmp	fork
 ASM_FUNC_END (sys_fork)
+
+	.global sys_vfork
+ASM_FUNC_BEGIN (sys_vfork):
+	xor	%edi, %edi
+	jmp	fork
+ASM_FUNC_END (sys_vfork)

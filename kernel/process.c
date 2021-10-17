@@ -94,11 +94,12 @@ process_enqueue (struct process *process)
  * Forks the currently running thread into a new process.
  *
  * @param t pointer to store forked thread
+ * @param copy whether to copy the user-mode address space
  * @return the new process, or NULL on failure
  */
 
 struct process *
-process_fork (struct thread **t)
+process_fork (struct thread **t, int copy)
 {
   struct thread *thread;
   struct process *process = process_alloc (THIS_PROCESS->priority);
@@ -107,7 +108,7 @@ process_fork (struct thread **t)
     return NULL;
 
   /* Clone the current thread and attach it to the new process */
-  thread = thread_clone (THIS_THREAD);
+  thread = thread_clone (THIS_THREAD, copy);
   if (UNLIKELY (!thread))
     goto err0;
   if (thread_attach_process (process, thread))
