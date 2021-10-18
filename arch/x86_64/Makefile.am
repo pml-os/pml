@@ -5,8 +5,7 @@ noinst_LIBRARIES = libarch.a
 BUILT_SOURCES =		\
 	irq-stubs.S	\
 	irq-vectors.c	\
-	systab.c	\
-	syscall.h
+	systab.c
 
 nodist_libarch_a_SOURCES = \
 	irq-stubs.S	\
@@ -49,21 +48,15 @@ irq-vectors.c: interrupts.lst genirq.sh
 
 irq-stubs.S: irq-vectors.c
 
-# Generate system call table and definitions
+# Generate system call table
 
-systab.c: syscalls.lst gensyscalls.sh
-	$(AM_V_GEN)$(srcdir)/gensyscalls.sh $<
-
-syscall.h: systab.c
-	@test -f $@ || rm -f $<
-	@test -f $@ || $(MAKE) $(AM_MAKEFLAGS) $<
-
-nodist_pmlinclude_HEADERS = syscall.h
+systab.c: syscalls.lst gensystab.sh
+	$(AM_V_GEN)$(srcdir)/gensystab.sh $<
 
 EXTRA_DIST =		\
 	boot.S		\
 	genirq.sh	\
-	gensyscalls.sh	\
+	gensystab.sh	\
 	interrupts.lst	\
 	syscalls.lst	\
 	link.ld

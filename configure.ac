@@ -15,6 +15,7 @@ LIBS="$save_LIBS -lgcc"
 AC_PROG_CC
 AM_PROG_AS
 AC_PROG_RANLIB
+AC_PROG_SED
 
 case "$host_cpu" in
     x86_64 )

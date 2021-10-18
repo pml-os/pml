@@ -24,7 +24,7 @@
 #include <pml/panic.h>
 #include <pml/pit.h>
 #include <pml/process.h>
-#include "syscall.h"
+#include <pml/syscall.h>
 
 /*! Initializes the kernel heap. */
 

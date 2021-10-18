@@ -15,7 +15,6 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/asm.h>
-#include "syscall.h"
 
 	.section .text
 	.global syscall

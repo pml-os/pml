@@ -1,4 +1,4 @@
-/* clone.c -- This file is part of PML.
+/* syscall.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,24 +14,25 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/process.h>
-#include <pml/syscall.h>
-#include <errno.h>
+/* DO NOT MODIFY THIS FILE */
 
-pid_t
-sys_clone (int (*func) (void *), void *arg)
-{
-  RETV_ERROR (ENOSYS, -1);
-}
+#ifndef __PML_SYSCALL_H
+#define __PML_SYSCALL_H
 
-pid_t
-sys_getpid (void)
-{
-  return THIS_PROCESS->pid;
-}
+#include <pml/cdefs.h>
+#include <pml/types.h>
 
-pid_t
-sys_getppid (void)
-{
-  return THIS_PROCESS->ppid;
-}
+/* System call numbers */
+@MACROS@
+
+__BEGIN_DECLS
+
+/* System call functions */
+@PROTOS@
+
+void syscall_init (void);
+long syscall (long num, ...);
+
+__END_DECLS
+
+#endif

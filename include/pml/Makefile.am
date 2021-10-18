@@ -19,6 +19,7 @@ nodist_pmlinclude_HEADERS = \
 	interrupt.h	\
 	memory.h	\
 	panic.h		\
+	syscall.h	\
 	thread.h
 
 pmlinclude_HEADERS =	\
@@ -46,4 +47,8 @@ pmlinclude_HEADERS =	\
 	$(arch_headers)
 
 EXTRA_DIST = \
-	x86_64 $(arch_x86_64_headers)
+	x86_64 $(arch_x86_64_headers) \
+	gensyscalls.sh
+
+syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst gensyscalls.sh syscall.h.in
+	$(AM_V_GEN)SED=$(SED) $(srcdir)/gensyscalls.sh $< $(srcdir)/syscall.h.in

@@ -14,8 +14,14 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <pml/msr.h>
-#include "syscall.h"
+#include <pml/syscall.h>
+
+/*!
+ * Initializes system calls by setting the values of the appropriate MSRs.
+ */
 
 void
 syscall_init (void)
