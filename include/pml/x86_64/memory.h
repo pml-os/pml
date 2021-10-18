@@ -26,10 +26,8 @@
  * <th>Description</th></tr>
  * <tr><td>@c 0x0000000000000000</td><td>@c 0x00007fffffffffff</td><td>128T</td>
  * <td>User space memory</td></tr>
- * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffd7fffffefff</td>
+ * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffd7fffffffff</td>
  * <td>~125T</td><td>Reserved kernel memory</td></tr>
- * <tr><td>@c 0xfffffd7ffffff000</td><td>@c 0xfffffd7fffffffff</td><td>4K</td>
- * <td>User mode trampoline</td></tr>
  * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffdffbfffffff</td><td>511G</td>
  * <td>Thread-local storage</td></tr>
  * <tr><td>@c 0xfffffdffc0000000</td><td>@c 0xfffffdffffffffff</td><td>1G</td>
@@ -41,8 +39,6 @@
  * to access physical memory beyond the 2 TiB address (@ref PHYS_ADDR_LIMIT).
  */
 
-/*! Virtual address of user mode trampoline */
-#define USER_MODE_TP_BASE_VMA   0xfffffd7ffffff000
 /*! Base virtual address of thread-local storage */
 #define THREAD_LOCAL_BASE_VMA   0xfffffd8000000000
 /*! Base virtual address of process stack */

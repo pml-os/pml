@@ -36,13 +36,13 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rbx,%rax,8), %rax
 	call	*%rax
 
-	/* Error occurred, return errno value */
+	/* Error occurred, return errno value and set carry flag */
 	movabs	$errno, %rbx
 	mov	(%rbx), %ebx
 	test	%ebx, %ebx
 	jz	1f
-	xor	%eax, %eax
-	sub	%rbx, %rax
+	mov	%ebx, %eax
+	orl	$0x0001, (%rsp)
 
 1:
 	pop	%r11

@@ -36,18 +36,6 @@ init_kernel_heap (void)
   next_phys_addr += size;
 }
 
-/*! Initializes the user mode trampoline. */
-
-static void
-user_mode_tp_init (void)
-{
-  uintptr_t page = alloc_page ();
-  if (UNLIKELY (!page))
-    panic ("Failed to initialize user mode trampoline");
-  vm_map_page (THIS_THREAD->args.pml4t, page, (void *) USER_MODE_TP_BASE_VMA,
-	       PAGE_FLAG_RW | PAGE_FLAG_USER);
-}
-
 /*!
  * Initializes architecture-specific services.
  */
@@ -79,7 +67,6 @@ arch_init (void)
   int_start ();
   int_enable ();
   syscall_init ();
-  user_mode_tp_init ();
 
   /* Start multiple cores if SMP is supported */
   smp_init ();

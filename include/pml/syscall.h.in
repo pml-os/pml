@@ -19,11 +19,13 @@
 #ifndef __PML_SYSCALL_H
 #define __PML_SYSCALL_H
 
-#include <pml/cdefs.h>
-#include <pml/types.h>
-
 /* System call numbers */
 @MACROS@
+
+#ifndef __ASSEMBLER__
+
+#include <pml/cdefs.h>
+#include <pml/types.h>
 
 __BEGIN_DECLS
 
@@ -34,5 +36,7 @@ void syscall_init (void);
 long syscall (long num, ...);
 
 __END_DECLS
+
+#endif /* !__ASSEMBLER__ */
 
 #endif

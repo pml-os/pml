@@ -15,6 +15,7 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/asm.h>
+#include <pml/syscall.h>
 
 	.section .text
 	.global user_mode
