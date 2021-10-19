@@ -23,6 +23,23 @@
 #include <stdio.h>
 #include <string.h>
 
+int
+elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
+{
+  Elf64_Phdr phdr;
+  size_t i;
+  for (i = 0; i < ehdr->e_phnum; i++)
+    {
+      if (vfs_read (vp, &phdr, sizeof (Elf64_Phdr), ehdr->e_phoff + i *
+		    ehdr->e_phentsize) != sizeof (Elf64_Phdr))
+	RETV_ERROR (ENOEXEC, -1);
+      if (phdr.p_type == PT_LOAD)
+	printf ("Load %zu bytes (%zu in file from offset %ld) to %p\n",
+		phdr.p_memsz, phdr.p_filesz, phdr.p_offset, phdr.p_vaddr);
+    }
+  return 0;
+}
+
 /*!
  * Loads the contents of an ELF file into memory.
  *
@@ -45,13 +62,8 @@ elf_load_file (struct vnode *vp)
       || ehdr.e_type != ET_EXEC
       || ehdr.e_machine != ELF_MACHINE)
     RETV_ERROR (ENOEXEC, -1);
-  debug_printf ("ELF header:\n"
-		"Program header table: offset %u, entry size %u, %u entries\n"
-		"Section header table: offset %u, entry size %u, %u entries\n"
-		"String table index: %u\n",
-		ehdr.e_phoff, ehdr.e_phentsize, ehdr.e_phnum,
-		ehdr.e_shoff, ehdr.e_shentsize, ehdr.e_shnum,
-		ehdr.e_shstrndx);
+  if (elf_load_phdrs (&ehdr, vp))
+    return -1;
   return 0;
 }
 
