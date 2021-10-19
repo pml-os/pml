@@ -29,6 +29,7 @@ pmlinclude_HEADERS =	\
 	ata.h		\
 	devfs.h		\
 	device.h	\
+	elf.h		\
 	errno.h		\
 	ext2fs.h	\
 	cdefs.h		\

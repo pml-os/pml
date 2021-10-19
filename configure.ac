@@ -7,6 +7,8 @@ AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
 
+save_CFLAGS="$CFLAGS"
+CFLAGS="$save_CFLAGS -ffreestanding"
 save_LDFLAGS="$LDFLAGS"
 LDFLAGS="$save_LDFLAGS -nostartfiles -nostdlib"
 save_LIBS="$LIBS"
@@ -50,6 +52,9 @@ PML_DEFAULT_FEATURE([smp], [ENABLE_SMP],
 
 PML_CC_VEC
 
+AC_CHECK_HEADERS([elf.h], [], AC_MSG_ERROR([elf.h not found]))
+
+CFLAGS="$save_CFLAGS"
 LDFLAGS="$save_LDFLAGS"
 LIBS="$save_LIBS"
 

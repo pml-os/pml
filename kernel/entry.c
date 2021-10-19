@@ -14,17 +14,41 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <pml/device.h>
+#include <pml/panic.h>
 #include <pml/process.h>
+#include <pml/syscall.h>
 #include <pml/vfs.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+/*! Prints a welcome message on boot. */
 
 void
 splash (void)
 {
   printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
 	  "System time: %ld\n", real_time);
+}
+
+/*! Forks the kernel process and runs the init program. */
+
+void
+fork_init (void)
+{
+  pid_t pid = sys_fork ();
+  if (UNLIKELY (pid == -1))
+    panic ("Failed to fork init process");
+  if (!pid)
+    {
+      sys_execve ("/sbin/init", NULL, NULL);
+      sys_execve ("/bin/init", NULL, NULL);
+      sys_execve ("/init", NULL, NULL);
+      sys_execve ("/bin/sh", NULL, NULL);
+      panic ("No init process found");
+    }
 }
 
 void
@@ -39,4 +63,5 @@ kentry (void)
   sched_yield ();
 
   splash ();
+  fork_init ();
 }

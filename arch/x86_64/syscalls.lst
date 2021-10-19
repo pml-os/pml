@@ -10,6 +10,7 @@
 2       clone           pid_t       int (*func) (void *), void *arg
 3       getpid          pid_t       void
 4       getppid         pid_t       void
+5       execve          int         const char *path, char *const *argv, char *const *envp
 
 10      open            int         const char *path, int flags, ...
 11      close           int         int fd
