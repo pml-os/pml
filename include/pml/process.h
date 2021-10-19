@@ -25,6 +25,9 @@
 #include <pml/lock.h>
 #include <pml/thread.h>
 
+/*! Number of file descriptors in system file descriptor table */
+#define SYSTEM_FD_TABLE_SIZE    65536
+
 /*! Minimum process priority value */
 #define PRIO_MIN                19
 /*! Maximum process priority value */
@@ -35,6 +38,34 @@
 
 /*! Expands to a pointer to the currently running thread */
 #define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
+
+/*!
+ * Represents an entry in the system file descriptor table. This structure
+ * stores the underlying vnode corresponding to an open file as well as other
+ * info exposed through the syscall API like file offsets, access mode, etc.
+ */
+
+struct fd
+{
+  struct vnode *vnode;          /*!< Vnode of file */
+  char *path;                   /*!< Absolute path to file */
+  off_t offset;                 /*!< Current file offset */
+  int flags;                    /*!< Flags used to open file */
+};
+
+/*!
+ * File descriptor table stored by each process. Contains an array of indexes
+ * into the system file descriptor table, which can be used to access a file's
+ * vnode and other information.
+ */
+
+struct fd_table
+{
+  unsigned int *table;          /*!< File descriptors */
+  size_t curr;                  /*!< Index in table to start searches */
+  size_t size;                  /*!< Number of entries in table */
+  size_t max_size;              /*!< Soft limit on number of file descriptors */
+};
 
 /*!
  * Represents a process. Processes have a unique ID and also store their
@@ -56,6 +87,7 @@ struct process
   char *cwd_path;               /*!< Absolute path to CWD */
   struct thread_queue threads;  /*!< Process thread queue */
   int priority;                 /*!< Process priority */
+  struct fd_table fds;          /*!< File descriptor table */
 };
 
 /*!
@@ -73,10 +105,14 @@ __BEGIN_DECLS
 
 extern struct process_queue process_queue;
 extern lock_t thread_switch_lock;
+extern struct fd *system_fd_table;
 
 void init_pid_allocator (void);
 pid_t alloc_pid (void);
 void free_pid (pid_t pid);
+
+int alloc_fd (void);
+void free_fd (int fd);
 
 struct process *process_alloc (int priority);
 void process_free (struct process *process);

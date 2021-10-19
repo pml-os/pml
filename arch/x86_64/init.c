@@ -36,6 +36,15 @@ init_kernel_heap (void)
   next_phys_addr += size;
 }
 
+/*! Initializes the system file descriptor table. */
+
+static void
+init_system_fd_table (void)
+{
+  system_fd_table = (struct fd *) next_phys_addr;
+  next_phys_addr += sizeof (struct fd) * SYSTEM_FD_TABLE_SIZE;
+}
+
 /*!
  * Initializes architecture-specific services.
  */
@@ -43,8 +52,9 @@ init_kernel_heap (void)
 void
 arch_init (void)
 {
-  /* Initialize the heap first since it could be needed by other steps */
+  /* Initialize the heap and system file descriptor table */
   init_kernel_heap ();
+  init_system_fd_table ();
 
   /* Remap the 8259 PIC and disable it if using the APIC */
   pic_8259_remap ();

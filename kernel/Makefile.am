@@ -16,6 +16,7 @@ kernel_SOURCES =	\
 	cmdline.c	\
 	device.c	\
 	entry.c		\
+	fd.c		\
 	heap.c		\
 	pid.c		\
 	process.c
