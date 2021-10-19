@@ -48,8 +48,7 @@ alloc_fd (void)
 }
 
 /*!
- * Frees a file descriptor. A reference is released from its corresponding
- * vnode.
+ * Removes a reference from a file descriptor.
  *
  * @param fd an index into the system file descriptor table
  */
@@ -57,18 +56,24 @@ alloc_fd (void)
 void
 free_fd (int fd)
 {
-  UNREF_OBJECT (system_fd_table[fd].vnode);
-  memset (system_fd_table + fd, 0, sizeof (struct fd));
-  if ((size_t) fd < fd_table_start)
-    fd_table_start = fd;
+  if (!--system_fd_table[fd].count)
+    {
+      UNREF_OBJECT (system_fd_table[fd].vnode);
+      memset (system_fd_table + fd, 0, sizeof (struct fd));
+      if ((size_t) fd < fd_table_start)
+	fd_table_start = fd;
+    }
 }
 
 int
-sys_open (const char *path, int flag, ...)
+sys_open (const char *path, int flags, ...)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;
   struct vnode *vp;
   int fd;
+  int sysfd = alloc_fd ();
+  if (UNLIKELY (sysfd == -1))
+    RETV_ERROR (ENFILE, -1);
   for (; fds->curr < fds->size; fds->curr++)
     {
       if (!fds->table[fds->curr])
@@ -82,6 +87,24 @@ sys_open (const char *path, int flag, ...)
  found:
   vp = vnode_namei (path);
   if (!vp)
-    return -1;
+    {
+      /* TODO Create file if O_CREAT given */
+      return -1;
+    }
+  system_fd_table[sysfd].vnode = vp;
+  system_fd_table[sysfd].flags = flags;
+  system_fd_table[sysfd].count = 1;
+  fds->table[fd] = system_fd_table + sysfd;
+  return 0;
+}
+
+int
+sys_close (int fd)
+{
+  struct fd_table *fds = &THIS_PROCESS->fds;
+  if (!fds->table[fd])
+    RETV_ERROR (EBADF, -1);
+  free_fd (fds->table[fd] - system_fd_table);
+  fds->table[fd] = NULL;
   return 0;
 }

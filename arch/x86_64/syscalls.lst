@@ -12,5 +12,6 @@
 4       getppid         pid_t       void
 
 10      open            int         const char *path, int flags, ...
+11      close           int         int fd
 
 # End of system calls list

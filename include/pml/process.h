@@ -51,6 +51,8 @@ struct fd
   char *path;                   /*!< Absolute path to file */
   off_t offset;                 /*!< Current file offset */
   int flags;                    /*!< Flags used to open file */
+  /*! Number of process file descriptors holding a reference */
+  size_t count;
 };
 
 /*!
@@ -61,7 +63,7 @@ struct fd
 
 struct fd_table
 {
-  unsigned int *table;          /*!< File descriptors */
+  struct fd **table;            /*!< File descriptors */
   size_t curr;                  /*!< Index in table to start searches */
   size_t size;                  /*!< Number of entries in table */
   size_t max_size;              /*!< Soft limit on number of file descriptors */
