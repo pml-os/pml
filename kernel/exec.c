@@ -20,6 +20,7 @@
 #include <pml/process.h>
 #include <pml/syscall.h>
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 /*!
@@ -33,8 +34,24 @@ int
 elf_load_file (struct vnode *vp)
 {
   Elf64_Ehdr ehdr;
-  if (vfs_read (vp, &ehdr, sizeof (Elf64_Ehdr), 0) != sizeof (Elf64_Ehdr))
-    RETV_ERROR (EIO, -1);
+  if (vfs_read (vp, &ehdr, sizeof (Elf64_Ehdr), 0) != sizeof (Elf64_Ehdr)
+      || ehdr.e_ident[EI_MAG0] != ELFMAG0
+      || ehdr.e_ident[EI_MAG1] != ELFMAG1
+      || ehdr.e_ident[EI_MAG2] != ELFMAG2
+      || ehdr.e_ident[EI_MAG3] != ELFMAG3
+      || ehdr.e_ident[EI_CLASS] != ELFCLASS64
+      || ehdr.e_ident[EI_DATA] != ELFDATA2LSB
+      || ehdr.e_ident[EI_VERSION] != EV_CURRENT
+      || ehdr.e_type != ET_EXEC
+      || ehdr.e_machine != ELF_MACHINE)
+    RETV_ERROR (ENOEXEC, -1);
+  debug_printf ("ELF header:\n"
+		"Program header table: offset %u, entry size %u, %u entries\n"
+		"Section header table: offset %u, entry size %u, %u entries\n"
+		"String table index: %u\n",
+		ehdr.e_phoff, ehdr.e_phentsize, ehdr.e_phnum,
+		ehdr.e_shoff, ehdr.e_shentsize, ehdr.e_shnum,
+		ehdr.e_shstrndx);
   return 0;
 }
 

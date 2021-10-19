@@ -22,6 +22,7 @@ AC_PROG_SED
 case "$host_cpu" in
     x86_64 )
 	ARCH=x86_64
+	ELF_MACHINE=EM_X86_64
 	;;
     * )
 	AC_MSG_ERROR([host CPU $host_cpu not supported])
@@ -30,6 +31,8 @@ esac
 ARCH_DIR="arch/$ARCH"
 AC_SUBST([ARCH])
 AC_SUBST([ARCH_DIR])
+AC_DEFINE_UNQUOTED([ELF_MACHINE], [$ELF_MACHINE],
+[Required value in the e_machine field of an ELF header])
 
 AC_ARG_WITH([bootdir],
 AS_HELP_STRING([--with-bootdir=DIR], [directory to install boot files]),
