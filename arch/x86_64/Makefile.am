@@ -50,13 +50,13 @@ irq-stubs.S: irq-vectors.c
 
 # Generate system call table
 
-systab.c: syscalls.lst gensystab.sh
-	$(AM_V_GEN)$(srcdir)/gensystab.sh $<
+systab.c: syscalls.lst gensystab.py
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/gensystab.py $<
 
 EXTRA_DIST =		\
 	boot.S		\
 	genirq.sh	\
-	gensystab.sh	\
+	gensystab.py	\
 	interrupts.lst	\
 	syscalls.lst	\
 	link.ld

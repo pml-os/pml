@@ -50,7 +50,7 @@ pmlinclude_HEADERS =	\
 
 EXTRA_DIST = \
 	x86_64 $(arch_x86_64_headers) \
-	gensyscalls.sh
+	gensyscalls.py
 
-syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst gensyscalls.sh syscall.h.in
-	$(AM_V_GEN)SED=$(SED) $(srcdir)/gensyscalls.sh $< $(srcdir)/syscall.h.in
+syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst gensyscalls.py syscall.h.in
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/gensyscalls.py $< $(srcdir)/syscall.h.in

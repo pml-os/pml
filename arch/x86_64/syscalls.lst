@@ -1,18 +1,40 @@
-# -*- mode: conf-space; indent-tabs-mode: nil; -*-
+# List of system calls for x86-64 machines.
 
-# List of system calls for x86-64 machines. Processed by gensyscalls.sh.
+[DEFAULT]
+return_type = int
+params = void
 
-# File format:
-# Num   Name            Return type Parameters
+[fork]
+number = 0
+return_type = pid_t
 
-0       fork            pid_t       void
-1       vfork           pid_t       void
-2       clone           pid_t       int (*func) (void *), void *arg
-3       getpid          pid_t       void
-4       getppid         pid_t       void
-5       execve          int         const char *path, char *const *argv, char *const *envp
+[vfork]
+number = 1
+return_type = pid_t
 
-10      open            int         const char *path, int flags, ...
-11      close           int         int fd
+[clone]
+number = 2
+return_type = pid_t
+params = int (*func) (void *), void *arg
+
+[getpid]
+number = 3
+return_type = pid_t
+
+[getppid]
+number = 4
+return_type = pid_t
+
+[execve]
+number = 5
+params = const char *path, char *const *argv, char *const *envp
+
+[open]
+number = 10
+params = const char *path, int flags, ...
+
+[close]
+number = 11
+params = int fd
 
 # End of system calls list
