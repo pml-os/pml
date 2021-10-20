@@ -68,11 +68,15 @@ ASM_FUNC_BEGIN (sched_tick):
 	iretq
 ASM_FUNC_END (sched_tick)
 
+	.global sched_exec
+ASM_FUNC_BEGIN (sched_exec):
+	jmp	user_mode
+ASM_FUNC_END (sched_exec)
+
 	.global sched_yield
 ASM_FUNC_BEGIN (sched_yield):
 	lea	.after_ts(%rip), %rdi
 	call	sched_yield_to
-
 .after_ts:
 	ret
 ASM_FUNC_END (sched_yield)

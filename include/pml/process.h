@@ -124,8 +124,6 @@ int process_enqueue (struct process *process);
 struct process *process_fork (struct thread **t, int copy);
 pid_t process_get_pid (struct process *process);
 
-void user_mode (void *addr) __noreturn;
-
 __END_DECLS
 
 #endif

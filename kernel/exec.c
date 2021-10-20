@@ -18,10 +18,20 @@
 
 #include <pml/elf.h>
 #include <pml/process.h>
+#include <pml/memory.h>
+#include <pml/mman.h>
 #include <pml/syscall.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+/*!
+ * Loads the program headers of an ELF file into memory.
+ *
+ * @param ehdr the ELF file header
+ * @param vp the vnode of the ELF file
+ * @return zero on success
+ */
 
 int
 elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
@@ -32,10 +42,25 @@ elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
     {
       if (vfs_read (vp, &phdr, sizeof (Elf64_Phdr), ehdr->e_phoff + i *
 		    ehdr->e_phentsize) != sizeof (Elf64_Phdr))
-	RETV_ERROR (ENOEXEC, -1);
+	RETV_ERROR (EIO, -1);
       if (phdr.p_type == PT_LOAD)
-	printf ("Load %zu bytes (%zu in file from offset %ld) to %p\n",
-		phdr.p_memsz, phdr.p_filesz, phdr.p_offset, phdr.p_vaddr);
+	{
+	  int flags = 0;
+	  if (phdr.p_flags & PF_R)
+	    flags |= PROT_READ;
+	  if (phdr.p_flags & PF_W)
+	    flags |= PROT_WRITE;
+	  if (phdr.p_flags & PF_X)
+	    flags |= PROT_EXEC;
+	  if (phdr.p_vaddr + phdr.p_memsz > USER_MEMORY_LIMIT)
+	    RETV_ERROR (EFAULT, -1);
+	  if (add_mmap ((void *) phdr.p_vaddr, phdr.p_memsz, flags))
+	    return -1;
+	  if (phdr.p_filesz
+	      && vfs_read (vp, (void *) phdr.p_vaddr, phdr.p_filesz,
+			   phdr.p_offset) != (ssize_t) phdr.p_filesz)
+	    RETV_ERROR (EIO, -1);
+	}
     }
   return 0;
 }
@@ -43,12 +68,13 @@ elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
 /*!
  * Loads the contents of an ELF file into memory.
  *
+ * @param exec the ELF execution info structure to store info in
  * @param vp the vnode representing the ELF file to load
  * @return zero on success
  */
 
 int
-elf_load_file (struct vnode *vp)
+elf_load_file (struct elf_exec *exec, struct vnode *vp)
 {
   Elf64_Ehdr ehdr;
   if (vfs_read (vp, &ehdr, sizeof (Elf64_Ehdr), 0) != sizeof (Elf64_Ehdr)
@@ -64,6 +90,7 @@ elf_load_file (struct vnode *vp)
     RETV_ERROR (ENOEXEC, -1);
   if (elf_load_phdrs (&ehdr, vp))
     return -1;
+  exec->entry = (void *) ehdr.e_entry;
   return 0;
 }
 
@@ -71,12 +98,13 @@ int
 sys_execve (const char *path, char *const *argv, char *const *envp)
 {
   struct vnode *vp = vnode_namei (path);
+  struct elf_exec exec;
   int ret;
   if (!vp)
     return -1;
-  ret = elf_load_file (vp);
+  ret = elf_load_file (&exec, vp);
   UNREF_OBJECT (vp);
   if (ret)
     return -1;
-  RETV_ERROR (ENOSYS, -1);
+  sched_exec (exec.entry);
 }

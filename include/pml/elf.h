@@ -36,7 +36,8 @@ struct elf_exec
 
 __BEGIN_DECLS
 
-int elf_load_file (struct vnode *vp);
+int elf_load_file (struct elf_exec *exec, struct vnode *vp);
+int elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp);
 
 __END_DECLS
 

@@ -23,6 +23,7 @@ ASM_FUNC_BEGIN (user_mode):
 	mov	%rsp, %rax
 	pushq	$0x20
 	push	%rax
+	pushf
 	pushq	$0x18
 	push	%rdi
 	iretq

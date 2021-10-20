@@ -54,6 +54,8 @@
 
 /*! First memory address in upper memory */
 #define LOW_MEMORY_LIMIT        0x0000000000100000
+/*! Last byte of user-space memory */
+#define USER_MEMORY_LIMIT       0x00007fffffffffff
 /*! Maximum addressible physical address supported */
 #define PHYS_ADDR_LIMIT         0x0000020000000000
 
