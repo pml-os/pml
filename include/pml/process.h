@@ -23,6 +23,7 @@
  */
 
 #include <pml/lock.h>
+#include <pml/mman.h>
 #include <pml/thread.h>
 
 /*! Number of file descriptors in system file descriptor table */
@@ -90,6 +91,7 @@ struct process
   struct thread_queue threads;  /*!< Process thread queue */
   int priority;                 /*!< Process priority */
   struct fd_table fds;          /*!< File descriptor table */
+  struct mmap_table mmaps;      /*!< Memory regions allocated to process */
 };
 
 /*!

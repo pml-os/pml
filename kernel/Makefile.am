@@ -19,6 +19,7 @@ kernel_SOURCES =	\
 	exec.c		\
 	fd.c		\
 	heap.c		\
+	mman.c		\
 	pid.c		\
 	process.c
 kernel_LDFLAGS = -T $(link_script) -nostdlib -z max-page-size=4096

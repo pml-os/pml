@@ -37,6 +37,7 @@ pmlinclude_HEADERS =	\
 	hpet.h		\
 	lock.h		\
 	map.h		\
+	mman.h		\
 	object.h	\
 	pci.h		\
 	pit.h		\

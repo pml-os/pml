@@ -199,6 +199,7 @@ thread_attach_process (struct process *process, struct thread *thread)
 
  err0:
   thread_switch_lock = 0;
+  process->threads.len--;
   return -1;
 }
 

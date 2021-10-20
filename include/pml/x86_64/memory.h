@@ -24,8 +24,10 @@
  * Virtual memory layout on x86_64: <table>
  * <tr><th>Start address</th><th>End address</th><th>Size</th>
  * <th>Description</th></tr>
- * <tr><td>@c 0x0000000000000000</td><td>@c 0x00007fffffffffff</td><td>128T</td>
- * <td>User space memory</td></tr>
+ * <tr><td>@c 0x0000000000000000</td><td>@c 0x00003fffffffffff</td><td>64T</td>
+ * <td>User-space static/program memory</td></tr>
+ * <tr><td>@c 0x0000400000000000</td><td>@c 0x00007fffffffffff</td><td>64T</td>
+ * <td>User-space memory mappings</td></tr>
  * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffd7fffffffff</td>
  * <td>~125T</td><td>Reserved kernel memory</td></tr>
  * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffdffbfffffff</td><td>511G</td>
@@ -39,6 +41,8 @@
  * to access physical memory beyond the 2 TiB address (@ref PHYS_ADDR_LIMIT).
  */
 
+/*! Base virtual address of user-space memory mappings */
+#define USER_MMAP_BASE_VMA      0x0000400000000000
 /*! Base virtual address of thread-local storage */
 #define THREAD_LOCAL_BASE_VMA   0xfffffd8000000000
 /*! Base virtual address of process stack */
