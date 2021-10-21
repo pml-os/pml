@@ -120,6 +120,7 @@ void free_fd (int fd);
 
 struct process *process_alloc (int priority);
 void process_free (struct process *process);
+void process_exit (unsigned int index, int status);
 int process_enqueue (struct process *process);
 struct process *process_fork (struct thread **t, int copy);
 pid_t process_get_pid (struct process *process);

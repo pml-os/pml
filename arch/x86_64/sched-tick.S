@@ -40,6 +40,16 @@ ASM_FUNC_BEGIN (sched_tick):
 	mov	%rsp, %rsi
 	call	thread_save_stack
 
+	movabs	$exit_process, %rax
+	mov	(%rax), %edi
+	test	%edi, %edi
+	jz	.switch
+
+	movabs	$exit_status, %rax
+	mov	(%rax), %esi
+	call	process_exit
+
+.switch:
 	/* Switch threads */
 	sub	$16, %rsp
 	lea	(%rsp), %rdi

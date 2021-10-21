@@ -3,6 +3,7 @@
 [DEFAULT]
 return_type = int
 params = void
+attr =
 
 [fork]
 number = 0
@@ -28,6 +29,12 @@ return_type = pid_t
 [execve]
 number = 5
 params = const char *path, char *const *argv, char *const *envp
+
+[exit]
+number = 6
+return_type = void
+params = int status
+attr = __noreturn
 
 [open]
 number = 10

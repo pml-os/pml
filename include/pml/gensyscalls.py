@@ -12,13 +12,17 @@ with open(sys.argv[2], 'r') as f:
     header = f.read()
 
 macros = ""
-protos = ""
+protos = ''
 for syscall in config.sections():
-    number = config[syscall]["number"]
-    return_type = config[syscall]["return_type"]
-    params = config[syscall]["params"]
+    number = config[syscall]['number']
+    return_type = config[syscall]['return_type']
+    params = config[syscall]['params']
+    if config[syscall]['attr']:
+        attr = ' ' + config[syscall]['attr']
+    else:
+        attr = ''
     macros += '\n#define SYS_{}    {}'.format(syscall, number)
-    protos += '\n{} sys_{} ({});'.format(return_type, syscall, params)
+    protos += '\n{} sys_{} ({}){};'.format(return_type, syscall, params, attr)
 
 header = header.replace('@MACROS@', macros).replace('@PROTOS@', protos)
 with open('syscall.h', 'w') as f:

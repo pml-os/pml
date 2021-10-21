@@ -67,6 +67,21 @@ process_free (struct process *process)
 }
 
 /*!
+ * Free's a terminated process's data.
+ *
+ * @param index index into the process queue of the freed process
+ * @param status exit status of the process
+ */
+
+void
+process_exit (unsigned int index, int status)
+{
+  process_free (process_queue.queue[index]);
+  memmove (process_queue.queue + index, process_queue.queue + index + 1,
+	   --process_queue.len - index);
+}
+
+/*!
  * Adds a process to the process queue. This function must not be called
  * on a process already in the queue.
  *
