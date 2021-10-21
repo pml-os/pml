@@ -85,7 +85,7 @@ void
 init_gdt (void)
 {
   uintptr_t tss = (uintptr_t) &kernel_tss;
-  kernel_tss.rsp0 = (uint64_t) int_stack;
+  kernel_tss.rsp0 = (uint64_t) int_stack + sizeof (int_stack) - 0x10;
 
   gdt_table[0] = gdt_entry (0, 0, 0, 0, 0, 0, 0);
   gdt_table[1] = gdt_entry (0, 0xffffffff, 1, 0, 1, 0, 0);

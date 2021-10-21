@@ -26,14 +26,13 @@ ASM_FUNC_BEGIN (user_mode):
 	mov	%ax, %es
 	mov	%ax, %fs
 	mov	%ax, %gs
-	mov	%ax, %ss
 
 	/* Do a fake interrupt into ring 3 */
 	mov	%rsp, %rax
-	pushq	$0x20
+	pushq	$0x23
 	push	%rax
 	pushf
-	pushq	$0x18
+	pushq	$0x1b
 	push	%rdi
 	iretq
 ASM_FUNC_END (user_mode)
