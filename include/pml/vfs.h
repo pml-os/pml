@@ -72,6 +72,21 @@
 #define __DT_LNK                10
 #define __DT_SOCK               12
 
+#define __O_RDONLY              0
+#define __O_WRONLY              1
+#define __O_RDWR                2
+#define __O_ACCMODE             3
+#define __O_APPEND              (1 << 2)
+#define __O_CREAT               (1 << 3)
+#define __O_TRUNC               (1 << 4)
+#define __O_EXCL                (1 << 5)
+#define __O_SYNC                (1 << 6)
+#define __O_NONBLOCK            (1 << 7)
+#define __O_NOCTTY              (1 << 8)
+#define __O_CLOEXEC             (1 << 9)
+#define __O_NOFOLLOW            (1 << 10)
+#define __O_DIRECTORY           (1 << 11)
+
 /* Vnode flags */
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
@@ -400,7 +415,7 @@ struct mount *mount_filesystem (const char *type, dev_t device,
 const char *guess_filesystem_type (struct vnode *vp);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
-struct vnode *vnode_namei (const char *path);
+struct vnode *vnode_namei (const char *path, int follow_links);
 
 __END_DECLS
 

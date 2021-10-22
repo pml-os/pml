@@ -72,11 +72,12 @@ vnode_lookup_child (struct vnode *dir, const char *name)
  *
  * @todo follow symbolic links
  * @param path the path to resolve
+ * @param follow_links whether to follow symbolic links
  * @return the vnode corresponding to the path, or NULL on failure
  */
 
 struct vnode *
-vnode_namei (const char *path)
+vnode_namei (const char *path, int follow_links)
 {
   struct vnode *vp;
   char *p = strdup (path);

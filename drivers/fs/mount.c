@@ -87,7 +87,7 @@ mount_root (void)
 
   if (!boot_options.root_device)
     panic ("No root device file specified");
-  vp = vnode_namei (boot_options.root_device);
+  vp = vnode_namei (boot_options.root_device, 1);
   if (!vp)
     panic ("Failed to open root device: %s\n", boot_options.root_device);
 
