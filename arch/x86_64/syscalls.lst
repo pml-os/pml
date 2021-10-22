@@ -44,4 +44,14 @@ params = const char *path, int flags, ...
 number = 11
 params = int fd
 
+[read]
+number = 12
+return_type = ssize_t
+params = int fd, void *buffer, size_t len
+
+[write]
+number = 13
+return_type = ssize_t
+params = int fd, const void *buffer, size_t len
+
 # End of system calls list
