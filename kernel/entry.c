@@ -20,6 +20,7 @@
 #include <pml/panic.h>
 #include <pml/process.h>
 #include <pml/syscall.h>
+#include <pml/tty.h>
 #include <pml/vfs.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,7 @@ kentry (void)
   ata_init ();
   device_map_init ();
   device_ata_init ();
+  tty_device_init ();
   mount_root ();
   init_pid_allocator ();
   sched_yield ();

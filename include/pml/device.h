@@ -23,7 +23,7 @@
  *
  * Device numbering namespace: <table>
  * <tr><th>Major</th><th>Minor</th><th>Description</th></tr>
- * <tr><td>0</td><td>*</td><td>Special character devices</td></tr>
+ * <tr><td>0</td><td>0</td><td>Console device</td></tr>
  * <tr><td>1-4</td><td>0</td><td>IDE devices</td></tr>
  * <tr><td>1-4</td><td>1-4</td><td>IDE device partitions</td></tr>
  * </table>
@@ -205,6 +205,8 @@ extern struct strmap *device_name_map;
 extern struct hashmap *device_num_map;
 
 void device_map_init (void);
+struct device *device_add (const char *name, dev_t major, dev_t minor,
+			   enum device_type type);
 void device_ata_init (void);
 
 ssize_t ata_device_read (struct block_device *device, void *buffer, size_t len,

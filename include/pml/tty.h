@@ -61,6 +61,9 @@ __BEGIN_DECLS
 extern struct tty kernel_tty;
 extern struct tty *current_tty;
 
+void tty_device_init (void);
+int tty_putchar (struct tty *tty, int c);
+
 __END_DECLS
 
 #endif

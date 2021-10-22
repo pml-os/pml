@@ -157,20 +157,16 @@ thread_create (struct thread_args *args)
 void
 thread_free (struct thread *thread)
 {
-  /* Unallocate the thread's ID */
+  unsigned int pml4e = PML4T_INDEX (THREAD_LOCAL_BASE_VMA);
   free_pid (thread->tid);
-
-  /* Unallocate the thread's stack and TLS */
-  if (thread->args.pml4t[507] & PAGE_FLAG_PRESENT)
+  if (thread->args.pml4t[pml4e] & PAGE_FLAG_PRESENT)
     {
-      uintptr_t tlp_phys = ALIGN_DOWN (thread->args.pml4t[507], PAGE_SIZE);
+      uintptr_t tlp_phys = ALIGN_DOWN (thread->args.pml4t[pml4e], PAGE_SIZE);
       uintptr_t *tlp = (uintptr_t *) PHYS_REL (tlp_phys);
       free_pdpt (tlp);
       free_page (tlp_phys);
     }
   free_virtual_page (thread->args.pml4t);
-
-  /* Free the thread structure */
   free (thread);
 }
 

@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <pml/tty.h>
 #include <stdio.h>
 
@@ -23,43 +25,56 @@ struct tty *current_tty = &kernel_tty;
 int
 putchar (int c)
 {
+  return tty_putchar (current_tty, c);
+}
+
+/*!
+ * Writes a character to a terminal.
+ *
+ * @param tty the terminal to write to
+ * @param c the character to write, which will be converted to a byte
+ */
+
+int
+tty_putchar (struct tty *tty, int c)
+{
   int wrap = 0;
   if (c == '\0')
     return c;
   switch (c)
     {
     case '\n':
-      current_tty->x = 0;
+      tty->x = 0;
       __fallthrough;
     case '\v':
     case '\f':
       wrap = 1;
       break;
     case '\r':
-      current_tty->x = 0;
-      current_tty->output->update_cursor (current_tty);
+      tty->x = 0;
+      tty->output->update_cursor (tty);
       return c;
     case '\t':
-      current_tty->x |= 7;
+      tty->x |= 7;
       break;
     default:
-      if (current_tty->output->write_char (current_tty, current_tty->x,
-					   current_tty->y, c))
+      if (tty->output->write_char (tty, tty->x,
+					   tty->y, c))
 	return EOF;
     }
 
-  if (!wrap && ++current_tty->x == current_tty->width)
+  if (!wrap && ++tty->x == tty->width)
     {
-      current_tty->x = 0;
+      tty->x = 0;
       wrap = 1;
     }
 
-  if (wrap && ++current_tty->y == current_tty->height)
+  if (wrap && ++tty->y == tty->height)
     {
-      if (current_tty->output->scroll_down (current_tty))
+      if (tty->output->scroll_down (tty))
 	return EOF;
-      current_tty->y--;
+      tty->y--;
     }
-  current_tty->output->update_cursor (current_tty);
+  tty->output->update_cursor (tty);
   return c;
 }
