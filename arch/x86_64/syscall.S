@@ -15,13 +15,25 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/asm.h>
+#include <pml/memory.h>
+
+	.section .bss
+	.global int_stack
+	.align PAGE_SIZE
+int_stack:
+	.skip 16384
+	.global int_stack_top
+int_stack_top:
 
 	.section .text
 	.global syscall
 ASM_FUNC_BEGIN (syscall):
+	push	%rsp
+	movabs	$int_stack_top, %rsp
 	push	%rbx
 	push	%rcx
 	push	%rdx
+	push	%rbp
 	push	%rsi
 	push	%rdi
 	push	%r8
@@ -51,8 +63,10 @@ ASM_FUNC_BEGIN (syscall):
 	pop	%r8
 	pop	%rdi
 	pop	%rsi
+	pop	%rbp
 	pop	%rdx
 	pop	%rcx
 	pop	%rbx
+	mov	(%rsp), %rsp
 	sysretq
 ASM_FUNC_END (syscall)

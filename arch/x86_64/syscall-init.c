@@ -27,6 +27,6 @@ void
 syscall_init (void)
 {
   uintptr_t addr = (uintptr_t) syscall;
-  msr_write (MSR_STAR, 0, 8 << 16);
+  msr_write (MSR_STAR, 0, 0x08 | (0x08 << 16));
   msr_write (MSR_LSTAR, addr & 0xffffffff, addr >> 32);
 }

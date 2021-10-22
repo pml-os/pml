@@ -45,8 +45,10 @@ ASM_FUNC_BEGIN (sched_tick):
 	test	%edi, %edi
 	jz	.switch
 
+	movl	$0, (%rax)
 	movabs	$exit_status, %rax
 	mov	(%rax), %esi
+	movl	$0, (%rax)
 	call	process_exit
 
 .switch:

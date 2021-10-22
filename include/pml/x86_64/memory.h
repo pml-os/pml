@@ -48,7 +48,7 @@
 /*! Base virtual address of process stack */
 #define PROCESS_STACK_BASE_VMA  0xfffffdffc0000000
 /*! Starting virtual address of the stack */
-#define PROCESS_STACK_TOP_VMA   0xfffffdfffffffff8
+#define PROCESS_STACK_TOP_VMA   0xfffffe0000000000
 /*! Base of physical memory map */
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 

@@ -76,9 +76,13 @@ process_free (struct process *process)
 void
 process_exit (unsigned int index, int status)
 {
+  thread_switch_lock = 1;
   process_free (process_queue.queue[index]);
   memmove (process_queue.queue + index, process_queue.queue + index + 1,
-	   --process_queue.len - index);
+	   sizeof (struct process *) * (--process_queue.len - index));
+  if (process_queue.len == process_queue.front)
+    process_queue.front--;
+  thread_switch_lock = 0;
 }
 
 /*!

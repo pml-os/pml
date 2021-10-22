@@ -26,7 +26,7 @@
 struct tss kernel_tss;
 
 /*! Stack for interrupts to ring 0 from ring 3, used in TSS */
-static unsigned char int_stack[16384];
+extern unsigned char *int_stack_top;
 
 /*! The kernel GDT */
 static uint64_t gdt_table[7];
@@ -85,7 +85,7 @@ void
 init_gdt (void)
 {
   uintptr_t tss = (uintptr_t) &kernel_tss;
-  kernel_tss.rsp0 = (uint64_t) int_stack + sizeof (int_stack) - 0x10;
+  kernel_tss.rsp0 = (uint64_t) &int_stack_top;
 
   gdt_table[0] = gdt_entry (0, 0, 0, 0, 0, 0, 0);
   gdt_table[1] = gdt_entry (0, 0xffffffff, 1, 0, 1, 0, 0);
