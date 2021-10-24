@@ -86,6 +86,7 @@ struct process
   uid_t euid;                   /*!< Effective user ID */
   gid_t gid;                    /*!< Real group ID */
   gid_t egid;                   /*!< Effective group ID */
+  mode_t umask;                 /*!< File creation mode mask */
   struct vnode *cwd;            /*!< Current working directory */
   char *cwd_path;               /*!< Absolute path to CWD */
   struct thread_queue threads;  /*!< Process thread queue */

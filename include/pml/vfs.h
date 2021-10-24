@@ -87,6 +87,9 @@
 #define __O_NOFOLLOW            (1 << 10)
 #define __O_DIRECTORY           (1 << 11)
 
+/*! Constant with all permission bits set */
+#define FULL_PERM               (__S_IRWXU | __S_IRWXG | __S_IRWXO)
+
 /* Vnode flags */
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
@@ -416,6 +419,7 @@ const char *guess_filesystem_type (struct vnode *vp);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 struct vnode *vnode_namei (const char *path, int follow_links);
+int vnode_dir_name (const char *path, struct vnode **dir, const char **name);
 
 __END_DECLS
 

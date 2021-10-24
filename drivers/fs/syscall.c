@@ -19,6 +19,7 @@
 #include <pml/process.h>
 #include <pml/syscall.h>
 #include <errno.h>
+#include <string.h>
 
 /*!
  * Obtains the file structure from a file descriptor in the current process.
@@ -55,7 +56,22 @@ sys_open (const char *path, int flags, ...)
 	  goto found;
 	}
     }
-  RETV_ERROR (EMFILE, -1);
+  if (fds->size < fds->max_size)
+    {
+      /* Expand the file descriptor table up to the soft limit */
+      size_t new_size =
+	fds->size * 2 < fds->max_size ? fds->size * 2 : fds->max_size;
+      struct fd **table = realloc (fds->table, sizeof (struct fd *) * new_size);
+      if (UNLIKELY (!table))
+	return -1;
+      fds->table = table;
+      fds->size = new_size;
+      if (fds->curr >= fds->size)
+	RETV_ERROR (EMFILE, -1);
+      fd = fds->curr++;
+    }
+  else
+    RETV_ERROR (EMFILE, -1);
 
  found:
   vp = vnode_namei (path, !(flags & __O_NOFOLLOW));
@@ -63,7 +79,24 @@ sys_open (const char *path, int flags, ...)
     {
       if (errno == ENOENT && (flags & __O_CREAT))
 	{
-	  /* TODO Create new file or directory */
+	  struct vnode *dir;
+	  const char *name;
+	  int ret;
+	  if (vnode_dir_name (path, &dir, &name))
+	    return -1;
+	  if (!strcmp (name, ".") || !strcmp (name, ".."))
+	    {
+	      UNREF_OBJECT (dir);
+	      RETV_ERROR (ENOENT, -1);
+	    }
+	  if (flags & __O_DIRECTORY)
+	    ret = vfs_mkdir (&vp, dir, name, FULL_PERM & ~THIS_PROCESS->umask);
+	  else
+	    ret = vfs_create (&vp, dir, name,
+			      FULL_PERM & ~THIS_PROCESS->umask, 0);
+	  UNREF_OBJECT (dir);
+	  if (ret)
+	    return -1;
 	}
       return -1;
     }

@@ -21,7 +21,7 @@
 	.global user_mode
 ASM_FUNC_BEGIN (user_mode):
 	/* Set segment selectors with ring 3 segments */
-	mov	$0x23, %ax
+	mov	$0x1b, %ax
 	mov	%ax, %ds
 	mov	%ax, %es
 	mov	%ax, %fs
@@ -29,10 +29,10 @@ ASM_FUNC_BEGIN (user_mode):
 
 	/* Do a fake interrupt into ring 3 */
 	mov	%rsp, %rax
-	pushq	$0x23
+	pushq	$0x1b
 	push	%rax
 	pushf
-	pushq	$0x1b
+	pushq	$0x23
 	push	%rdi
 	iretq
 ASM_FUNC_END (user_mode)

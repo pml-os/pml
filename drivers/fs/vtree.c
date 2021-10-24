@@ -124,3 +124,47 @@ vnode_namei (const char *path, int follow_links)
   UNREF_OBJECT (vp);
   return NULL;
 }
+
+/*!
+ * Separates a path into a parent directory and name, based on the final
+ * component of the path.
+ *
+ * @param path the path to separate
+ * @param dir pointer to store vnode of parent directory, which should be
+ * passed to UNREF_OBJECT() when no longer needed
+ * @param name pointer to store name of last path component
+ * @return zero on success
+ */
+
+int
+vnode_dir_name (const char *path, struct vnode **dir, const char **name)
+{
+  char *ptr = strdup (path);
+  char *end;
+  struct vnode *vp;
+  if (UNLIKELY (!ptr))
+    return -1;
+
+  end = strrchr (ptr, '/');
+  if (!end)
+    {
+      /* No directory path components, the path is just the name itself */
+      REF_ASSIGN (*dir, THIS_PROCESS->cwd);
+      *name = path;
+      goto end;
+    }
+  *end = '\0';
+  vp = vnode_namei (ptr, 1);
+  if (!vp)
+    goto err0;
+
+  *dir = vp;
+  *name = path + (end - ptr);
+ end:
+  free (ptr);
+  return 0;
+
+ err0:
+  free (ptr);
+  return -1;
+}

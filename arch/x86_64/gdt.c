@@ -90,8 +90,8 @@ init_gdt (void)
   gdt_table[0] = gdt_entry (0, 0, 0, 0, 0, 0, 0);
   gdt_table[1] = gdt_entry (0, 0xffffffff, 1, 0, 1, 0, 0);
   gdt_table[2] = gdt_entry (0, 0xffffffff, 1, 0, 0, 0, 0);
-  gdt_table[3] = gdt_entry (0, 0xffffffff, 1, 0, 1, 0, 3);
-  gdt_table[4] = gdt_entry (0, 0xffffffff, 1, 0, 0, 0, 3);
+  gdt_table[3] = gdt_entry (0, 0xffffffff, 1, 0, 0, 0, 3);
+  gdt_table[4] = gdt_entry (0, 0xffffffff, 1, 0, 1, 0, 3);
   gdt_table[5] = gdt_entry (tss & 0xffffffff, sizeof (struct tss),
 			    0, 0, 1, 1, 0);
   gdt_table[6] = tss >> 32;

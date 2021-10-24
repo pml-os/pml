@@ -44,6 +44,15 @@ fork_init (void)
     panic ("Failed to fork init process");
   if (!pid)
     {
+      /* Setup file descriptor table */
+      struct fd_table *fds = &THIS_PROCESS->fds;
+      fds->size = 64;
+      fds->table = malloc (sizeof (struct fd *) * fds->size);
+      if (UNLIKELY (!fds->table))
+	panic ("Failed to allocate file descriptor table");
+      fds->max_size = 256;
+
+      /* Run an init process */
       sys_execve ("/sbin/init", NULL, NULL);
       sys_execve ("/bin/init", NULL, NULL);
       sys_execve ("/init", NULL, NULL);

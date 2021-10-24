@@ -136,6 +136,8 @@ process_fork (struct thread **t, int copy)
     goto err1;
   process->pid = thread->tid;
   process->ppid = THIS_PROCESS->pid;
+  REF_ASSIGN (process->cwd, THIS_PROCESS->cwd);
+  process->cwd_path = strdup (THIS_PROCESS->cwd_path);
   *t = thread;
   return process;
 

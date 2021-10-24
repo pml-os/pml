@@ -49,6 +49,7 @@ tty_device_init (void)
       printf ("tty: failed to allocate /dev/console\n");
       return;
     }
+  device->device.data = current_tty;
   device->read = tty_device_read;
   device->write = tty_device_write;
 }

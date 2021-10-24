@@ -28,8 +28,6 @@ int_stack_top:
 	.section .text
 	.global syscall
 ASM_FUNC_BEGIN (syscall):
-	push	%rsp
-	movabs	$int_stack_top, %rsp
 	push	%rbx
 	push	%rcx
 	push	%rdx
@@ -42,6 +40,12 @@ ASM_FUNC_BEGIN (syscall):
 	push	%r11
 	mov	%r10, %rcx
 
+	/* Switch stacks */
+	mov	%rsp, %rbp
+	movabs	$int_stack_top, %rsp
+	push	%rbp
+
+	/* Clear error value and call function in syscall table */
 	movabs	$errno, %rbx
 	movl	$0, (%rbx)
 	movabs	$syscall_table, %rbx
@@ -54,10 +58,14 @@ ASM_FUNC_BEGIN (syscall):
 	test	%ebx, %ebx
 	jz	1f
 	mov	%ebx, %eax
-	orl	$0x0001, (%rsp)
+	mov	(%rsp), %rsp
+	pop	%r11
+	or	$0x0001, %r11
 
 1:
+	mov	(%rsp), %rsp
 	pop	%r11
+2:
 	pop	%r10
 	pop	%r9
 	pop	%r8
@@ -67,6 +75,5 @@ ASM_FUNC_BEGIN (syscall):
 	pop	%rdx
 	pop	%rcx
 	pop	%rbx
-	mov	(%rsp), %rsp
 	sysretq
 ASM_FUNC_END (syscall)
