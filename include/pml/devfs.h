@@ -31,31 +31,31 @@
 #define DEVFS_ROOT_INO          DEVFS_SPECIAL_INO
 
 /*! Mode of directories in devfs */
-#define DEVFS_DIR_MODE          (__S_IFDIR	\
-				 | __S_IRUSR	\
-				 | __S_IXUSR	\
-				 | __S_IRGRP	\
-				 | __S_IXGRP	\
-				 | __S_IROTH	\
-				 | __S_IXOTH)
+#define DEVFS_DIR_MODE          (S_IFDIR	\
+				 | S_IRUSR	\
+				 | S_IXUSR	\
+				 | S_IRGRP	\
+				 | S_IXGRP	\
+				 | S_IROTH	\
+				 | S_IXOTH)
 
 /*! Mode of block device files in devfs */
-#define DEVFS_BLOCK_DEVICE_MODE (__S_IFBLK	\
-				 | __S_IRUSR	\
-				 | __S_IWUSR	\
-				 | __S_IRGRP	\
-				 | __S_IWGRP	\
-				 | __S_IROTH	\
-				 | __S_IWOTH)
+#define DEVFS_BLOCK_DEVICE_MODE (S_IFBLK	\
+				 | S_IRUSR	\
+				 | S_IWUSR	\
+				 | S_IRGRP	\
+				 | S_IWGRP	\
+				 | S_IROTH	\
+				 | S_IWOTH)
 
 /*! Mode of character device files in devfs */
-#define DEVFS_CHAR_DEVICE_MODE  (__S_IFCHR	\
-				 | __S_IRUSR	\
-				 | __S_IWUSR	\
-				 | __S_IRGRP	\
-				 | __S_IWGRP	\
-				 | __S_IROTH	\
-				 | __S_IWOTH)
+#define DEVFS_CHAR_DEVICE_MODE  (S_IFCHR	\
+				 | S_IRUSR	\
+				 | S_IWUSR	\
+				 | S_IRGRP	\
+				 | S_IWGRP	\
+				 | S_IROTH	\
+				 | S_IWOTH)
 
 __BEGIN_DECLS
 
@@ -70,7 +70,7 @@ int devfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
 ssize_t devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t devfs_write (struct vnode *vp, const void *buffer, size_t len,
 		     off_t offset);
-off_t devfs_readdir (struct vnode *dir, struct pml_dirent *dirent,
+off_t devfs_readdir (struct vnode *dir, struct dirent *dirent,
 		     off_t offset);
 ssize_t devfs_readlink (struct vnode *vp, char *buffer, size_t len);
 int devfs_fill (struct vnode *vp);

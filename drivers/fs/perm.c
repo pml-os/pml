@@ -19,16 +19,9 @@
 #include <pml/process.h>
 #include <errno.h>
 
-/*!
- * Macro to pass a VFS permission check.
- */
-
+/*! Macro to pass a VFS permission check. */
 #define PASS                    return 1
-
-/*!
- * Macro to fail a VFS permission check.
- */
-
+/*! Macro to fail a VFS permission check. */
 #define FAIL                    RETV_ERROR (EACCES, 0)
 
 /*!
@@ -50,21 +43,21 @@ vfs_can_read (struct vnode *vp, int real)
     PASS; /* Super-user has all permissions */
   if (vp->uid == uid)
     {
-      if (!(vp->mode & __S_IRUSR))
+      if (!(vp->mode & S_IRUSR))
 	FAIL;
-      if (__S_ISDIR (vp->mode) && !(vp->mode & __S_IXUSR))
+      if (S_ISDIR (vp->mode) && !(vp->mode & S_IXUSR))
 	FAIL;
     }
   else if (vp->gid == gid)
     {
-      if (!(vp->mode & __S_IRGRP))
+      if (!(vp->mode & S_IRGRP))
 	FAIL;
-      if (__S_ISDIR (vp->mode) && !(vp->mode & __S_IXGRP))
+      if (S_ISDIR (vp->mode) && !(vp->mode & S_IXGRP))
 	FAIL;
     }
-  else if (!(vp->mode & __S_IROTH))
+  else if (!(vp->mode & S_IROTH))
     FAIL;
-  else if (__S_ISDIR (vp->mode) && !(vp->mode & __S_IXOTH))
+  else if (S_ISDIR (vp->mode) && !(vp->mode & S_IXOTH))
     FAIL;
   PASS;
 }
@@ -88,21 +81,21 @@ vfs_can_write (struct vnode *vp, int real)
     PASS; /* Super-user has all permissions */
   if (vp->uid == uid)
     {
-      if (!(vp->mode & __S_IWUSR))
+      if (!(vp->mode & S_IWUSR))
 	FAIL;
-      if (__S_ISDIR (vp->mode) && !(vp->mode & __S_IXUSR))
+      if (S_ISDIR (vp->mode) && !(vp->mode & S_IXUSR))
 	FAIL;
     }
   else if (vp->gid == gid)
     {
-      if (!(vp->mode & __S_IWGRP))
+      if (!(vp->mode & S_IWGRP))
 	FAIL;
-      if (__S_ISDIR (vp->mode) && !(vp->mode & __S_IXGRP))
+      if (S_ISDIR (vp->mode) && !(vp->mode & S_IXGRP))
 	FAIL;
     }
-  else if (!(vp->mode & __S_IWOTH))
+  else if (!(vp->mode & S_IWOTH))
     FAIL;
-  else if (__S_ISDIR (vp->mode) && !(vp->mode & __S_IXOTH))
+  else if (S_ISDIR (vp->mode) && !(vp->mode & S_IXOTH))
     FAIL;
   PASS;
 }
@@ -124,22 +117,22 @@ vfs_can_exec (struct vnode *vp, int real)
   if (!uid)
     {
       /* Super-user can execute as long as any execute bit is set */
-      if (vp->mode & (__S_IXUSR | __S_IXGRP | __S_IXOTH))
+      if (vp->mode & (S_IXUSR | S_IXGRP | S_IXOTH))
 	PASS;
       else
 	FAIL;
     }
   if (vp->uid == uid)
     {
-      if (!(vp->mode & __S_IXUSR))
+      if (!(vp->mode & S_IXUSR))
 	FAIL;
     }
   else if (vp->gid == gid)
     {
-      if (!(vp->mode & __S_IXGRP))
+      if (!(vp->mode & S_IXGRP))
 	FAIL;
     }
-  else if (!(vp->mode & __S_IXOTH))
+  else if (!(vp->mode & S_IXOTH))
     FAIL;
   PASS;
 }

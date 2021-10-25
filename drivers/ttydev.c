@@ -1,4 +1,4 @@
-/* tty-device.c -- This file is part of PML.
+/* ttydev.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify

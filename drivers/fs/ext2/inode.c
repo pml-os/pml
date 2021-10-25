@@ -442,10 +442,10 @@ ext2_fill (struct vnode *vp)
   vp->uid = file->inode.i_uid;
   vp->gid = file->inode.i_gid;
   vp->rdev = 0;
-  vp->atime.sec = file->inode.i_atime;
-  vp->mtime.sec = file->inode.i_mtime;
-  vp->ctime.sec = file->inode.i_ctime;
-  vp->atime.nsec = vp->mtime.nsec = vp->ctime.nsec = 0;
+  vp->atime.tv_sec = file->inode.i_atime;
+  vp->mtime.tv_sec = file->inode.i_mtime;
+  vp->ctime.tv_sec = file->inode.i_ctime;
+  vp->atime.tv_nsec = vp->mtime.tv_nsec = vp->ctime.tv_nsec = 0;
   vp->blocks =
     (file->inode.i_blocks * 512 + fs->block_size - 1) / fs->block_size;
   vp->blksize = fs->block_size;

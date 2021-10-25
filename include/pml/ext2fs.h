@@ -585,7 +585,7 @@ int ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 int ext2_rename (struct vnode *vp, struct vnode *dir, const char *name);
 int ext2_link (struct vnode *dir, struct vnode *vp, const char *name);
 int ext2_symlink (struct vnode *dir, const char *name, const char *target);
-off_t ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset);
+off_t ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t ext2_readlink (struct vnode *vp, char *buffer, size_t len);
 int ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num);
 int ext2_fill (struct vnode *vp);

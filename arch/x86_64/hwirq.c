@@ -16,10 +16,12 @@
 
 #include <pml/interrupt.h>
 #include <pml/io.h>
+#include <pml/kbd.h>
 
 void
 int_ps2_keyboard (void)
 {
+  kbd_recv_key (inb (PS2KBD_PORT_DATA));
   EOI (1);
 }
 

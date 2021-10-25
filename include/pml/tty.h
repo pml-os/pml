@@ -24,6 +24,8 @@
 
 #include <pml/cdefs.h>
 
+#define TTY_INPUT_BUFFER_SIZE   1024
+
 struct tty;
 
 /*! Vector of functions used by a TTY output backend. */
@@ -40,6 +42,16 @@ struct tty_output
   int (*scroll_down) (struct tty *);
 };
 
+/*! Buffer structure used to store data sent as input to a terminal. */
+
+struct tty_input
+{
+  unsigned char buffer[TTY_INPUT_BUFFER_SIZE]; /*!< Buffer of bytes */
+  size_t start;                 /*!< Index of start of unread data */
+  size_t end;                   /*!< Index of last byte written */
+  size_t size;                  /*!< Number of unread bytes */
+};
+
 /*!
  * Represents a teletypewriter (TTY). Used for displaying output to
  * the VGA text mode console or a terminal-like device.
@@ -53,6 +65,7 @@ struct tty
   size_t x;                         /*!< Current column number */
   size_t y;                         /*!< Current row number */
   void *screen;                     /*!< Buffer containing contents of screen */
+  struct tty_input input;           /*!< Terminal input buffer */
   const struct tty_output *output;  /*!< Output function vector */
 };
 
@@ -63,6 +76,7 @@ extern struct tty *current_tty;
 
 void tty_device_init (void);
 int tty_putchar (struct tty *tty, int c);
+void tty_recv (struct tty *tty, unsigned char c);
 
 __END_DECLS
 

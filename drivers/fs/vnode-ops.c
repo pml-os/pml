@@ -68,7 +68,7 @@ vfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 {
   if (!vfs_can_read (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->lookup)
     return dir->ops->lookup (result, dir, name);
@@ -85,23 +85,23 @@ vfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
  */
 
 int
-vfs_getattr (struct pml_stat *stat, struct vnode *vp)
+vfs_getattr (struct stat *stat, struct vnode *vp)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
-  stat->mode = vp->mode;
-  stat->nlink = vp->nlink;
-  stat->ino = vp->ino;
-  stat->uid = vp->uid;
-  stat->gid = vp->gid;
-  stat->dev = vp->mount->device;
-  stat->rdev = vp->rdev;
-  stat->atime = vp->atime;
-  stat->mtime = vp->mtime;
-  stat->ctime = vp->ctime;
-  stat->size = vp->size;
-  stat->blocks = vp->blocks;
-  stat->blksize = vp->blksize;
+  stat->st_mode = vp->mode;
+  stat->st_nlink = vp->nlink;
+  stat->st_ino = vp->ino;
+  stat->st_uid = vp->uid;
+  stat->st_gid = vp->gid;
+  stat->st_dev = vp->mount->device;
+  stat->st_rdev = vp->rdev;
+  stat->st_atime = vp->atime;
+  stat->st_mtime = vp->mtime;
+  stat->st_ctime = vp->ctime;
+  stat->st_size = vp->size;
+  stat->st_blocks = vp->blocks;
+  stat->st_blksize = vp->blksize;
   if (vp->ops->getattr)
     return vp->ops->getattr (stat, vp);
   else
@@ -123,7 +123,7 @@ vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
-  if (__S_ISDIR (vp->mode))
+  if (S_ISDIR (vp->mode))
     RETV_ERROR (EISDIR, -1);
   if (!len)
     return 0;
@@ -148,7 +148,7 @@ vfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
-  if (__S_ISDIR (vp->mode))
+  if (S_ISDIR (vp->mode))
     RETV_ERROR (EISDIR, -1);
   if (!len)
     return 0;
@@ -191,7 +191,7 @@ vfs_create (struct vnode **result, struct vnode *dir, const char *name,
 {
   if (!vfs_can_write (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->create)
     return dir->ops->create (result, dir, name, mode, rdev);
@@ -216,7 +216,7 @@ vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 {
   if (!vfs_can_write (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->mkdir)
     return dir->ops->mkdir (result, dir, name, mode);
@@ -238,7 +238,7 @@ vfs_rename (struct vnode *vp, struct vnode *dir, const char *name)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->rename)
     return dir->ops->rename (vp, dir, name);
@@ -260,7 +260,7 @@ vfs_link (struct vnode *dir, struct vnode *vp, const char *name)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->link)
     return dir->ops->link (dir, vp, name);
@@ -282,7 +282,7 @@ vfs_symlink (struct vnode *dir, const char *name, const char *target)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->symlink)
     return dir->ops->symlink (dir, name, target);
@@ -306,19 +306,19 @@ vfs_symlink (struct vnode *dir, const char *name, const char *target)
  */
 
 off_t
-vfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
+vfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
 {
   off_t ret;
   if (!vfs_can_read (dir, 0))
     return -1;
-  if (!__S_ISDIR (dir->mode))
+  if (!S_ISDIR (dir->mode))
     RETV_ERROR (ENOTDIR, -1);
   if (!dir->ops->readdir)
     RETV_ERROR (ENOTSUP, -1);
   ret = dir->ops->readdir (dir, dirent, offset);
   if (ret == -1)
     return -1;
-  dirent->reclen = offsetof (struct pml_dirent, name) + dirent->namlen + 1;
+  dirent->d_reclen = offsetof (struct dirent, d_name) + dirent->d_namlen + 1;
   return ret;
 }
 
@@ -339,7 +339,7 @@ vfs_readlink (struct vnode *vp, char *buffer, size_t len)
 {
   if (!vfs_can_read (vp, 0))
     return -1;
-  if (!__S_ISLNK (vp->mode))
+  if (!S_ISLNK (vp->mode))
     RETV_ERROR (EINVAL, -1);
   if (vp->ops->readlink)
     return vp->ops->readlink (vp, buffer, len);

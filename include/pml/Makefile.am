@@ -27,14 +27,17 @@ pmlinclude_HEADERS =	\
 	alloc.h		\
 	asm.h		\
 	ata.h		\
+	cdefs.h		\
 	devfs.h		\
 	device.h	\
+	dirent.h	\
 	elf.h		\
 	errno.h		\
 	ext2fs.h	\
-	cdefs.h		\
+	fcntl.h		\
 	hash.h		\
 	hpet.h		\
+	kbd.h		\
 	lock.h		\
 	map.h		\
 	mman.h		\
@@ -42,6 +45,8 @@ pmlinclude_HEADERS =	\
 	pci.h		\
 	pit.h		\
 	process.h	\
+	stat.h		\
+	time.h		\
 	tty.h		\
 	types.h		\
 	vfs.h		\
@@ -52,5 +57,7 @@ EXTRA_DIST = \
 	x86_64 $(arch_x86_64_headers) \
 	gensyscalls.py
 
-syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst gensyscalls.py syscall.h.in
-	$(AM_V_GEN)$(PYTHON) $(srcdir)/gensyscalls.py $< $(srcdir)/syscall.h.in
+syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst \
+    $(top_srcdir)/$(ARCH_DIR)/syscall-part.h gensyscalls.py syscall.h.in
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/gensyscalls.py \
+	    $(top_srcdir)/$(ARCH_DIR) $(srcdir)/syscall.h.in

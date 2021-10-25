@@ -128,7 +128,7 @@ ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
 }
 
 off_t
-ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
+ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
 {
   struct ext2_fs *fs = dir->mount->data;
   struct ext2_dirent *entry = NULL;
@@ -137,12 +137,12 @@ ext2_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
     return -1;
   if (!entry)
     return 0;
-  dirent->ino = entry->d_inode;
-  dirent->namlen = ext2_dirent_name_len (entry);
-  name_len = ALIGN_UP (dirent->namlen + 1, 8);
-  dirent->reclen = offsetof (struct pml_dirent, name) + name_len;
-  dirent->type = ext2_dirent_file_type (entry);
-  strncpy (dirent->name, entry->d_name, dirent->namlen);
-  dirent->name[dirent->namlen] = '\0';
+  dirent->d_ino = entry->d_inode;
+  dirent->d_namlen = ext2_dirent_name_len (entry);
+  name_len = ALIGN_UP (dirent->d_namlen + 1, 8);
+  dirent->d_reclen = offsetof (struct dirent, d_name) + name_len;
+  dirent->d_type = ext2_dirent_file_type (entry);
+  strncpy (dirent->d_name, entry->d_name, dirent->d_namlen);
+  dirent->d_name[dirent->d_namlen] = '\0';
   return offset + entry->d_rec_len;
 }

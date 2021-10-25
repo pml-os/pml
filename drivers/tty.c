@@ -1,4 +1,4 @@
-/* tty-output.c -- This file is part of PML.
+/* tty.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -77,4 +77,22 @@ tty_putchar (struct tty *tty, int c)
     }
   tty->output->update_cursor (tty);
   return c;
+}
+
+/*!
+ * Appends a byte to a terminal input buffer.
+ *
+ * @param tty the terminal
+ * @param c the byte
+ */
+
+void
+tty_recv (struct tty *tty, unsigned char c)
+{
+  if (tty->input.size == TTY_INPUT_BUFFER_SIZE)
+    return;
+  tty->input.buffer[tty->input.end] = c;
+  if (++tty->input.end == TTY_INPUT_BUFFER_SIZE)
+    tty->input.end = 0;
+  tty->input.size++;
 }

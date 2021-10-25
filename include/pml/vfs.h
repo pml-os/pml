@@ -24,71 +24,13 @@
  * vnodes for a single inode
  */
 
+#include <pml/dirent.h>
 #include <pml/object.h>
 #include <pml/map.h>
-
-#define __S_IFMT                0170000
-#define __S_IFIFO               0010000
-#define __S_IFCHR               0020000
-#define __S_IFDIR               0040000
-#define __S_IFBLK               0060000
-#define __S_IFREG               0100000
-#define __S_IFLNK               0120000
-#define __S_IFSOCK              0140000
-
-#define __S_IRUSR               00400
-#define __S_IWUSR               00200
-#define __S_IXUSR               00100
-#define __S_IRWXU               (__S_IRUSR | __S_IWUSR | __S_IXUSR)
-
-#define __S_IRGRP               00040
-#define __S_IWGRP               00020
-#define __S_IXGRP               00010
-#define __S_IRWXG               (__S_IRGRP | __S_IWGRP | __S_IXGRP)
-
-#define __S_IROTH               00004
-#define __S_IWOTH               00002
-#define __S_IXOTH               00001
-#define __S_IRWXO               (__S_IROTH | __S_IWOTH | __S_IXOTH)
-
-#define __S_ISUID               04000
-#define __S_ISGID               02000
-#define __S_ISVTX               01000
-
-#define __S_ISBLK(x)            (((x) & __S_IFMT) == __S_IFBLK)
-#define __S_ISCHR(x)            (((x) & __S_IFMT) == __S_IFCHR)
-#define __S_ISDIR(x)            (((x) & __S_IFMT) == __S_IFDIR)
-#define __S_ISFIFO(x)           (((x) & __S_IFMT) == __S_IFIFO)
-#define __S_ISREG(x)            (((x) & __S_IFMT) == __S_IFREG)
-#define __S_ISLNK(x)            (((x) & __S_IFMT) == __S_IFLNK)
-#define __S_ISSOCK(x)           (((x) & __S_IFMT) == __S_IFSOCK)
-
-#define __DT_UNKNOWN            0
-#define __DT_FIFO               1
-#define __DT_CHR                2
-#define __DT_DIR                4
-#define __DT_BLK                6
-#define __DT_REG                8
-#define __DT_LNK                10
-#define __DT_SOCK               12
-
-#define __O_RDONLY              0
-#define __O_WRONLY              1
-#define __O_RDWR                2
-#define __O_ACCMODE             3
-#define __O_APPEND              (1 << 2)
-#define __O_CREAT               (1 << 3)
-#define __O_TRUNC               (1 << 4)
-#define __O_EXCL                (1 << 5)
-#define __O_SYNC                (1 << 6)
-#define __O_NONBLOCK            (1 << 7)
-#define __O_NOCTTY              (1 << 8)
-#define __O_CLOEXEC             (1 << 9)
-#define __O_NOFOLLOW            (1 << 10)
-#define __O_DIRECTORY           (1 << 11)
+#include <pml/stat.h>
 
 /*! Constant with all permission bits set */
-#define FULL_PERM               (__S_IRWXU | __S_IRWXG | __S_IRWXO)
+#define FULL_PERM               (S_IRWXU | S_IRWXG | S_IRWXO)
 
 /* Vnode flags */
 
@@ -195,7 +137,7 @@ struct vnode_ops
    * @param vp the vnode to stat
    * @return zero on success
    */
-  int (*getattr) (struct pml_stat *stat, struct vnode *vp);
+  int (*getattr) (struct stat *stat, struct vnode *vp);
 
   /*!
    * Reads data from a file.
@@ -288,7 +230,7 @@ struct vnode_ops
 
   /*!
    * Reads a directory entry. Implementations of this function do not need
-   * to set the @ref pml_dirent.reclen member.
+   * to set the @ref dirent.reclen member.
    *
    * @param dir the directory to read
    * @param dirent pointer to store directory entry data
@@ -301,7 +243,7 @@ struct vnode_ops
    * call to this function to read the next directory entry</td></tr>
    * </table>
    */
-  off_t (*readdir) (struct vnode *dir, struct pml_dirent *dirent, off_t offset);
+  off_t (*readdir) (struct vnode *dir, struct dirent *dirent, off_t offset);
 
   /*!
    * Reads the contents of a symbolic link.
@@ -361,9 +303,9 @@ struct vnode
   uid_t uid;                    /*!< User ID of vnode owner */
   gid_t gid;                    /*!< Group ID of vnode owner */
   dev_t rdev;                   /*!< Device number (for special device files) */
-  struct pml_timespec atime;    /*!< Time of last access */
-  struct pml_timespec mtime;    /*!< Time of last data modification */
-  struct pml_timespec ctime;    /*!< Time of last metadata modification */
+  struct timespec atime;        /*!< Time of last access */
+  struct timespec mtime;        /*!< Time of last data modification */
+  struct timespec ctime;        /*!< Time of last metadata modification */
   size_t size;                  /*!< Number of bytes in file */
   blkcnt_t blocks;              /*!< Number of blocks allocated to file */
   blksize_t blksize;            /*!< Optimal I/O block size */
@@ -392,7 +334,7 @@ struct vnode *vnode_alloc (void);
 void vnode_free_child (void *data);
 
 int vfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
-int vfs_getattr (struct pml_stat *stat, struct vnode *vp);
+int vfs_getattr (struct stat *stat, struct vnode *vp);
 ssize_t vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t vfs_write (struct vnode *vp, const void *buffer, size_t len,
 		   off_t offset);
@@ -404,7 +346,7 @@ int vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 int vfs_rename (struct vnode *vp, struct vnode *dir, const char *name);
 int vfs_link (struct vnode *dir, struct vnode *vp, const char *name);
 int vfs_symlink (struct vnode *dir, const char *name, const char *target);
-off_t vfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset);
+off_t vfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t vfs_readlink (struct vnode *vp, char *buffer, size_t len);
 int vfs_bmap (struct vnode *vp, block_t *result, block_t block, size_t num);
 int vfs_fill (struct vnode *vp);

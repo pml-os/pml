@@ -10,6 +10,7 @@ libdrivers_a_SOURCES =	\
 	hpet.c		\
 	pci.c		\
 	pit.c		\
-	tty-device.c	\
-	tty-output.c	\
+	ps2kbd.c	\
+	tty.c		\
+	ttydev.c	\
 	vgatext.c

@@ -161,7 +161,7 @@ devfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 }
 
 off_t
-devfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
+devfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
 {
   if (dir->ino == DEVFS_ROOT_INO)
     {
@@ -187,14 +187,14 @@ devfs_readdir (struct vnode *dir, struct pml_dirent *dirent, off_t offset)
       device = hashmap_lookup (device_num_map, offset);
       if (!device)
 	RETV_ERROR (EINVAL, -1);
-      dirent->ino = offset;
+      dirent->d_ino = offset;
       if (device->type == DEVICE_TYPE_BLOCK)
-	dirent->type = __DT_BLK;
+	dirent->d_type = DT_BLK;
       else
-	dirent->type = __DT_CHR;
-      dirent->namlen = strlen (device->name);
-      strncpy (dirent->name, device->name, dirent->namlen);
-      dirent->name[dirent->namlen] = '\0';
+	dirent->d_type = DT_CHR;
+      dirent->d_namlen = strlen (device->name);
+      strncpy (dirent->d_name, device->name, dirent->d_namlen);
+      dirent->d_name[dirent->d_namlen] = '\0';
 
       key = offset;
       index = siphash (&key, sizeof (unsigned long), 0) %
@@ -228,8 +228,8 @@ devfs_fill (struct vnode *vp)
 {
   vp->uid = 0;
   vp->gid = 0;
-  vp->atime.sec = vp->mtime.sec = vp->ctime.sec = real_time;
-  vp->atime.nsec = vp->mtime.nsec = vp->ctime.nsec = 0;
+  vp->atime.tv_sec = vp->mtime.tv_sec = vp->ctime.tv_sec = real_time;
+  vp->atime.tv_nsec = vp->mtime.tv_nsec = vp->ctime.tv_nsec = 0;
   switch (vp->ino)
     {
     case DEVFS_ROOT_INO:

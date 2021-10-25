@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/fcntl.h>
 #include <pml/process.h>
 #include <pml/syscall.h>
 #include <errno.h>
@@ -74,10 +75,10 @@ sys_open (const char *path, int flags, ...)
     RETV_ERROR (EMFILE, -1);
 
  found:
-  vp = vnode_namei (path, !(flags & __O_NOFOLLOW));
+  vp = vnode_namei (path, !(flags & O_NOFOLLOW));
   if (!vp)
     {
-      if (errno == ENOENT && (flags & __O_CREAT))
+      if (errno == ENOENT && (flags & O_CREAT))
 	{
 	  struct vnode *dir;
 	  const char *name;
@@ -89,7 +90,7 @@ sys_open (const char *path, int flags, ...)
 	      UNREF_OBJECT (dir);
 	      RETV_ERROR (ENOENT, -1);
 	    }
-	  if (flags & __O_DIRECTORY)
+	  if (flags & O_DIRECTORY)
 	    ret = vfs_mkdir (&vp, dir, name, FULL_PERM & ~THIS_PROCESS->umask);
 	  else
 	    ret = vfs_create (&vp, dir, name,
@@ -100,13 +101,13 @@ sys_open (const char *path, int flags, ...)
 	}
       return -1;
     }
-  else if ((flags & __O_CREAT) && (flags & __O_EXCL))
+  else if ((flags & O_CREAT) && (flags & O_EXCL))
     {
       UNREF_OBJECT (vp);
       RETV_ERROR (EEXIST, -1);
     }
   system_fd_table[sysfd].vnode = vp;
-  system_fd_table[sysfd].flags = flags & (__O_ACCMODE | __O_NONBLOCK);
+  system_fd_table[sysfd].flags = flags & (O_ACCMODE | O_NONBLOCK);
   system_fd_table[sysfd].count = 1;
   fds->table[fd] = system_fd_table + sysfd;
   return 0;

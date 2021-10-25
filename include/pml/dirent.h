@@ -1,4 +1,4 @@
-/* syscall.h -- This file is part of PML.
+/* dirent.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,31 +14,32 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/* DO NOT MODIFY THIS FILE */
+#ifndef __PML_DIRENT_H
+#define __PML_DIRENT_H
 
-#ifndef __PML_SYSCALL_H
-#define __PML_SYSCALL_H
+/*!
+ * @file
+ * @brief Directory entry structures
+ */
 
-/* System call numbers */
-@MACROS@
-
-#ifndef __ASSEMBLER__
-
-#include <pml/cdefs.h>
 #include <pml/types.h>
 
-@PART@
+#define DT_UNKNOWN              0
+#define DT_FIFO                 1
+#define DT_CHR                  2
+#define DT_DIR                  4
+#define DT_BLK                  6
+#define DT_REG                  8
+#define DT_LNK                  10
+#define DT_SOCK                 12
 
-__BEGIN_DECLS
-
-/* System call functions */
-@PROTOS@
-
-void syscall_init (void);
-long syscall (long num, ...);
-
-__END_DECLS
-
-#endif /* !__ASSEMBLER__ */
+struct dirent
+{
+  ino_t d_ino;
+  uint16_t d_reclen;
+  uint16_t d_namlen;
+  unsigned char d_type;
+  char d_name[256];
+};
 
 #endif
