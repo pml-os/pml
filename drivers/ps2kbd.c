@@ -17,12 +17,13 @@
 /*! @file */
 
 #include <pml/kbd.h>
+#include <stdio.h>
 
 /*! Whether a shift key is being held */
-#define SHIFT_DOWN (kbd_layout[PS2_KSC_LSHIFT] || kbd_layout[PS2_KSC_RSHIFT])
+#define SHIFT_DOWN (kbd_pressed[PS2_KSC_LSHIFT] || kbd_pressed[PS2_KSC_RSHIFT])
 
 /*! Whether a control key is being held */
-#define CTRL_DOWN (kbd_layout[PS2_KSC_LCTRL])
+#define CTRL_DOWN (kbd_pressed[PS2_KSC_LCTRL])
 
 /*! The scancode mapping corresponding to a standard US QWERTY keyboard */
 static char kbd_layout[128] = PS2_QWERTY_LAYOUT;
@@ -80,5 +81,6 @@ kbd_recv_key (int scancode)
       if (CTRL_DOWN && kbd_ctrl_kmap[c])
 	c = kbd_ctrl_kmap[c];
       tty_recv (&kernel_tty, c);
+      putchar (c);
     }
 }

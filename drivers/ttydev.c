@@ -25,7 +25,22 @@
 ssize_t
 tty_device_read (struct char_device *dev, unsigned char *c, int block)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct tty *tty = dev->device.data;
+  if (block)
+    {
+      while (!tty->input.size)
+	;
+    }
+  if (tty->input.size)
+    {
+      *c = tty->input.buffer[tty->input.start];
+      tty->input.size--;
+      if (++tty->input.start == TTY_INPUT_BUFFER_SIZE)
+	tty->input.start = 0;
+      return 1;
+    }
+  else
+    return 0;
 }
 
 ssize_t
