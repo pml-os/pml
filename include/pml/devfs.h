@@ -29,6 +29,8 @@
 
 /*! Root inode of the devfs filesystem */
 #define DEVFS_ROOT_INO          DEVFS_SPECIAL_INO
+/*! Inode of the /dev/fd directory */
+#define DEVFS_FD_INO            (DEVFS_SPECIAL_INO | 1)
 
 /*! Mode of directories in devfs */
 #define DEVFS_DIR_MODE          (S_IFDIR	\

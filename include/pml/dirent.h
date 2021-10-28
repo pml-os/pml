@@ -22,7 +22,7 @@
  * @brief Directory entry structures
  */
 
-#include <pml/types.h>
+#include <pml/stat.h>
 
 #define DT_UNKNOWN              0
 #define DT_FIFO                 1
@@ -32,6 +32,9 @@
 #define DT_REG                  8
 #define DT_LNK                  10
 #define DT_SOCK                 12
+
+#define IFTODT(mode)            (((mode) & S_IFMT) >> 12)
+#define DTTOIF(type)            ((type) << 12)
 
 struct dirent
 {
