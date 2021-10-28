@@ -96,9 +96,9 @@ vfs_getattr (struct stat *stat, struct vnode *vp)
   stat->st_gid = vp->gid;
   stat->st_dev = vp->mount->device;
   stat->st_rdev = vp->rdev;
-  stat->st_atime = vp->atime;
-  stat->st_mtime = vp->mtime;
-  stat->st_ctime = vp->ctime;
+  stat->st_atim = vp->atime;
+  stat->st_mtim = vp->mtime;
+  stat->st_ctim = vp->ctime;
   stat->st_size = vp->size;
   stat->st_blocks = vp->blocks;
   stat->st_blksize = vp->blksize;

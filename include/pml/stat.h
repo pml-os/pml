@@ -73,9 +73,9 @@ struct stat
   gid_t st_gid;                 /*!< Group ID of file owner */
   dev_t st_dev;                 /*!< Device number of device containing file */
   dev_t st_rdev;                /*!< Device number (for special device files) */
-  struct timespec st_atime;     /*!< Time of last access */
-  struct timespec st_mtime;     /*!< Time of last data modification */
-  struct timespec st_ctime;     /*!< Time of last metadata modification */
+  struct timespec st_atim;      /*!< Time of last access */
+  struct timespec st_mtim;      /*!< Time of last data modification */
+  struct timespec st_ctim;      /*!< Time of last metadata modification */
   size_t st_size;               /*!< Number of bytes in file */
   blkcnt_t st_blocks;           /*!< Number of blocks allocated to file */
   blksize_t st_blksize;         /*!< Optimal I/O block size */
