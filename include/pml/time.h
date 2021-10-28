@@ -32,4 +32,12 @@ struct timespec
   long tv_nsec;                 /*!< Additional nanoseconds elapsed */
 };
 
+/*! Represents an elapsed or absolute time with microsecond resolution. */
+
+struct timeval
+{
+  time_t tv_sec;                /*!< Seconds elapsed */
+  suseconds_t tv_usec;          /*!< Additional microseconds elapsed */
+};
+
 #endif
