@@ -25,6 +25,7 @@
  */
 
 #include <pml/dirent.h>
+#include <pml/fcntl.h>
 #include <pml/object.h>
 #include <pml/map.h>
 #include <pml/stat.h>

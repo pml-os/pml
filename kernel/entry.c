@@ -46,11 +46,20 @@ fork_init (void)
     {
       /* Setup file descriptor table */
       struct fd_table *fds = &THIS_PROCESS->fds;
+      int fd;
       fds->size = 64;
       fds->table = malloc (sizeof (struct fd *) * fds->size);
       if (UNLIKELY (!fds->table))
 	panic ("Failed to allocate file descriptor table");
       fds->max_size = 256;
+
+      /* Setup standard streams to kernel console */
+      fd = sys_open ("/dev/console", O_RDWR);
+      if (LIKELY (fd != -1))
+	{
+	  sys_dup (fd);
+	  sys_dup (fd);
+	}
 
       /* Run an init process */
       sys_execve ("/sbin/init", NULL, NULL);

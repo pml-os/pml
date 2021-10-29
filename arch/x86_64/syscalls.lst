@@ -54,4 +54,8 @@ number = 13
 return_type = ssize_t
 params = int fd, const void *buffer, size_t len
 
+[dup]
+number = 14
+params = int fd
+
 # End of system calls list

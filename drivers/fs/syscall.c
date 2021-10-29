@@ -35,27 +35,26 @@ static struct fd *
 file_fd (int fd)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;
-  if (fd < 0 || (size_t) fd >= fds->size)
+  if (fd < 0 || (size_t) fd >= fds->size || !fds->table[fd])
     RETV_ERROR (EBADF, NULL);
   return fds->table[fd];
 }
 
-int
-sys_open (const char *path, int flags, ...)
+/*!
+ * Allocates a file descriptor in the current process's file descriptor table.
+ * The file is not considered as allocated until a vnode is written to it.
+ *
+ * @return the file descriptor, or -1 on failure
+ */
+
+static int
+alloc_procfd (void)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;
-  struct vnode *vp;
-  int fd;
-  int sysfd = alloc_fd ();
-  if (UNLIKELY (sysfd == -1))
-    RETV_ERROR (ENFILE, -1);
   for (; fds->curr < fds->size; fds->curr++)
     {
       if (!fds->table[fds->curr])
-	{
-	  fd = fds->curr++;
-	  goto found;
-	}
+	return fds->curr++;
     }
   if (fds->size < fds->max_size)
     {
@@ -69,12 +68,24 @@ sys_open (const char *path, int flags, ...)
       fds->size = new_size;
       if (fds->curr >= fds->size)
 	RETV_ERROR (EMFILE, -1);
-      fd = fds->curr++;
+      return fds->curr++;
     }
   else
     RETV_ERROR (EMFILE, -1);
+}
 
- found:
+int
+sys_open (const char *path, int flags, ...)
+{
+  struct fd_table *fds = &THIS_PROCESS->fds;
+  struct vnode *vp;
+  int fd;
+  int sysfd = alloc_fd ();
+  if (UNLIKELY (sysfd == -1))
+    RETV_ERROR (ENFILE, -1);
+  fd = alloc_procfd ();
+  if (fd == -1)
+    return -1;
   vp = vnode_namei (path, !(flags & O_NOFOLLOW));
   if (!vp)
     {
@@ -150,4 +161,20 @@ sys_write (int fd, const void *buffer, size_t len)
     return -1;
   file->offset += ret;
   return ret;
+}
+
+int
+sys_dup (int fd)
+{
+  struct fd_table *fds = &THIS_PROCESS->fds;
+  struct fd *file = file_fd (fd);
+  int nfd;
+  if (!file)
+    return -1;
+  nfd = alloc_procfd ();
+  if (nfd == -1)
+    return -1;
+  fds->table[nfd] = file;
+  file->count++;
+  return nfd;
 }

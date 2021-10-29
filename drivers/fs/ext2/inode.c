@@ -287,7 +287,7 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
   /* Read unaligned ending bytes */
   if (end_diff)
     {
-      if (ext2_read_io_buffer_block (vp, start_block))
+      if (ext2_read_io_buffer_block (vp, end_block))
 	return -1;
       memcpy (buffer + start_diff + blocks * fs->block_size, file->io_buffer,
 	      end_diff);
