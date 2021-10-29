@@ -163,6 +163,33 @@ sys_write (int fd, const void *buffer, size_t len)
   return ret;
 }
 
+off_t
+sys_lseek (int fd, off_t offset, int whence)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  if (S_ISFIFO (file->vnode->mode) || S_ISSOCK (file->vnode->mode))
+    RETV_ERROR (ESPIPE, -1);
+  switch (whence)
+    {
+    case SEEK_SET:
+      break;
+    case SEEK_CUR:
+      offset += file->offset;
+      break;
+    case SEEK_END:
+      offset += file->vnode->size;
+      break;
+    default:
+      RETV_ERROR (EINVAL, -1);
+    }
+  if (offset < 0)
+    RETV_ERROR (EINVAL, -1);
+  file->offset = offset;
+  return offset;
+}
+
 int
 sys_dup (int fd)
 {

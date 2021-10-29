@@ -54,8 +54,13 @@ number = 13
 return_type = ssize_t
 params = int fd, const void *buffer, size_t len
 
-[dup]
+[lseek]
 number = 14
+return_type = off_t
+params = int fd, off_t offset, int whence
+
+[dup]
+number = 15
 params = int fd
 
 # End of system calls list
