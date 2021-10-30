@@ -74,6 +74,28 @@ alloc_procfd (void)
     RETV_ERROR (EMFILE, -1);
 }
 
+/*!
+ * Unified function for stat(2) and lstat(2) with an additional argument
+ * for whether to follow symbolic links.
+ *
+ * @param path the path to the file to stat
+ * @param st buffer to store file information
+ * @param follow_links whether to follow symbolic links
+ * @return zero on success
+ */
+
+static int
+xstat (const char *path, struct stat *st, int follow_links)
+{
+  struct vnode *vp = vnode_namei (path, follow_links);
+  int ret;
+  if (!vp)
+    return -1;
+  ret = vfs_getattr (st, vp);
+  UNREF_OBJECT (vp);
+  return ret;
+}
+
 int
 sys_open (const char *path, int flags, ...)
 {
@@ -188,6 +210,52 @@ sys_lseek (int fd, off_t offset, int whence)
     RETV_ERROR (EINVAL, -1);
   file->offset = offset;
   return offset;
+}
+
+int
+sys_stat (const char *path, struct stat *st)
+{
+  return xstat (path, st, 1);
+}
+
+int
+sys_fstat (int fd, struct stat *st)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_getattr (st, file->vnode);
+}
+
+int
+sys_lstat (const char *path, struct stat *st)
+{
+  return xstat (path, st, 0);
+}
+
+int
+sys_link (const char *old_path, const char *new_path)
+{
+  struct vnode *vp = vnode_namei (old_path, 1);
+  struct vnode *dir;
+  const char *name;
+  if (!vp)
+    return -1;
+  if (vnode_dir_name (new_path, &dir, &name))
+    goto err0;
+  if (vp->mount != dir->mount)
+    GOTO_ERROR (EXDEV, err1);
+  if (vfs_link (dir, vp, name))
+    goto err1;
+  UNREF_OBJECT (dir);
+  UNREF_OBJECT (vp);
+  return 0;
+
+ err1:
+  UNREF_OBJECT (dir);
+ err0:
+  UNREF_OBJECT (vp);
+  return -1;
 }
 
 int

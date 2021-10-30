@@ -59,6 +59,5 @@ EXTRA_DIST =		\
 	genirq.sh	\
 	gensystab.py	\
 	interrupts.lst	\
-	syscall-part.h	\
 	syscalls.lst	\
 	link.ld

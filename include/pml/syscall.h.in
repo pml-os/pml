@@ -25,9 +25,7 @@
 #ifndef __ASSEMBLER__
 
 #include <pml/cdefs.h>
-#include <pml/types.h>
-
-@PART@
+#include <pml/stat.h>
 
 __BEGIN_DECLS
 

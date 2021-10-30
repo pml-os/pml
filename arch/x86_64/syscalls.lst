@@ -6,61 +6,60 @@ params = void
 attr =
 
 [fork]
-number = 0
 return_type = pid_t
 
 [vfork]
-number = 1
 return_type = pid_t
 
 [clone]
-number = 2
 return_type = pid_t
 params = int (*func) (void *), void *arg
 
 [getpid]
-number = 3
 return_type = pid_t
 
 [getppid]
-number = 4
 return_type = pid_t
 
 [execve]
-number = 5
 params = const char *path, char *const *argv, char *const *envp
 
 [exit]
-number = 6
 return_type = void
 params = int status
 attr = __noreturn
 
 [open]
-number = 10
 params = const char *path, int flags, ...
 
 [close]
-number = 11
 params = int fd
 
 [read]
-number = 12
 return_type = ssize_t
 params = int fd, void *buffer, size_t len
 
 [write]
-number = 13
 return_type = ssize_t
 params = int fd, const void *buffer, size_t len
 
 [lseek]
-number = 14
 return_type = off_t
 params = int fd, off_t offset, int whence
 
+[stat]
+params = const char *path, struct stat *st
+
+[fstat]
+params = int fd, struct stat *st
+
+[lstat]
+params = const char *path, struct stat *st
+
+[link]
+params = const char *old_path, const char *new_path
+
 [dup]
-number = 15
 params = int fd
 
 # End of system calls list

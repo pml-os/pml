@@ -57,7 +57,6 @@ EXTRA_DIST = \
 	x86_64 $(arch_x86_64_headers) \
 	gensyscalls.py
 
-syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst \
-    $(top_srcdir)/$(ARCH_DIR)/syscall-part.h gensyscalls.py syscall.h.in
+syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst gensyscalls.py syscall.h.in
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/gensyscalls.py \
 	    $(top_srcdir)/$(ARCH_DIR) $(srcdir)/syscall.h.in
