@@ -164,6 +164,60 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 }
 
 /*!
+ * Removes an existing virtual address mapping from an address space. The
+ * virtual address given does not need to be page-aligned, and if it is
+ * in a large page the entire large page will be unmapped.
+ *
+ * @param pml4t the address space to perform the unmapping
+ * @param addr the virtual address of the page to unmap
+ * @return zero on success or if no mapping existed
+ */
+
+int
+vm_unmap_page (uintptr_t *pml4t, void *addr)
+{
+  uintptr_t v = (uintptr_t) addr;
+  unsigned int pml4e;
+  unsigned int pdpe;
+  unsigned int pde;
+  unsigned int pte;
+  uintptr_t *pdpt;
+  uintptr_t *pdt;
+  uintptr_t *pt;
+
+  pml4e = PML4T_INDEX (v);
+  if (v >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
+    RETV_ERROR (EFAULT, -1);
+  if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
+    return 0;
+
+  pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
+  pdpe = PDPT_INDEX (v);
+  if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
+    return 0;
+  if (pdpt[pdpe] & PAGE_FLAG_SIZE)
+    {
+      pdpt[pdpe] = 0;
+      return 0;
+    }
+
+  pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
+  pde = PDT_INDEX (v);
+  if (!(pdt[pde] & PAGE_FLAG_PRESENT))
+    return 0;
+  if (pdt[pde] & PAGE_FLAG_SIZE)
+    {
+      pdt[pde] = 0;
+      return 0;
+    }
+
+  pt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
+  pte = PT_INDEX (v);
+  pt[pte] = 0;
+  return 0;
+}
+
+/*!
  * Allocates a page frame and returns its physical address.
  *
  * @return the physical address of the new page frame, or 0 if the allocation
@@ -317,7 +371,7 @@ vm_init (void)
   for (i = 0; i < 4; i++)
     kernel_pml4t[i + 508] =
       ((uintptr_t) (phys_map_pdpt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)
-      | PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
+      | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_GLOBAL;
   for (addr = 0, i = 0; i < PAGE_STRUCT_ENTRIES * 4;
        addr += HUGE_PAGE_SIZE, i++)
     phys_map_pdpt[i] = addr | PAGE_FLAG_PRESENT | PAGE_FLAG_RW
@@ -342,4 +396,50 @@ vm_init (void)
   phys_page_stack.base = (uintptr_t *) next_phys_addr;
   phys_page_stack.ptr = phys_page_stack.base;
   next_phys_addr += ALIGN_UP (total_phys_mem / 512, PAGE_SIZE);
+}
+
+int
+sys_brk (void *addr)
+{
+  void *i;
+  if (addr < THIS_PROCESS->brk.base)
+    RETV_ERROR (ENOMEM, -1);
+  else if (addr > THIS_PROCESS->brk.base + THIS_PROCESS->brk.max)
+    RETV_ERROR (ENOMEM, -1);
+  else if (addr < THIS_PROCESS->brk.curr)
+    {
+      for (i = ALIGN_UP (addr, PAGE_SIZE); i < THIS_PROCESS->brk.curr;
+	   i += PAGE_SIZE)
+	{
+	  uintptr_t phys_addr = physical_addr (addr);
+	  if (phys_addr)
+	    free_page (phys_addr);
+	  vm_unmap_page (THIS_THREAD->args.pml4t, addr);
+	}
+      THIS_PROCESS->brk.curr = ALIGN_UP (addr, PAGE_SIZE);
+    }
+  else
+    {
+      for (i = THIS_PROCESS->brk.curr; i < ALIGN_UP (addr, PAGE_SIZE);
+	   i += PAGE_SIZE)
+	{
+	  uintptr_t phys_addr = alloc_page ();
+	  if (!phys_addr)
+	    RETV_ERROR (ENOMEM, -1);
+	  if (vm_map_page (THIS_THREAD->args.pml4t, phys_addr, i,
+			   PAGE_FLAG_RW | PAGE_FLAG_USER))
+	    RETV_ERROR (ENOMEM, -1);
+	}
+      THIS_PROCESS->brk.curr = ALIGN_UP (addr, PAGE_SIZE);
+    }
+  return 0;
+}
+
+void *
+sys_sbrk (intptr_t incr)
+{
+  void *ptr = THIS_PROCESS->brk.curr;
+  if (sys_brk (THIS_PROCESS->brk.curr + incr))
+    return (void *) -1;
+  return ptr;
 }

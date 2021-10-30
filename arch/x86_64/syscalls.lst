@@ -29,6 +29,13 @@ return_type = void
 params = int status
 attr = __noreturn
 
+[brk]
+params = void *addr
+
+[sbrk]
+return_type = void *
+params = intptr_t incr
+
 [open]
 params = const char *path, int flags, ...
 

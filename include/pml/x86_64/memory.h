@@ -221,6 +221,7 @@ uintptr_t physical_addr (void *addr);
 uintptr_t vm_phys_addr (uintptr_t *pml4t, void *addr);
 int vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 		 unsigned int flags);
+int vm_unmap_page (uintptr_t *pml4t, void *addr);
 void vm_skip_holes (void);
 void vm_init (void);
 

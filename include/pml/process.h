@@ -70,6 +70,13 @@ struct fd_table
   size_t max_size;              /*!< Soft limit on number of file descriptors */
 };
 
+struct brk
+{
+  void *base;                   /*!< Original end of program data segment */
+  void *curr;                   /*!< Current end of program data segment */
+  size_t max;                   /*!< Maximum size of program data segment */
+};
+
 /*!
  * Represents a process. Processes have a unique ID and also store their
  * parent process's ID. Each process is assigned a priority, but currently
@@ -93,7 +100,7 @@ struct process
   int priority;                 /*!< Process priority */
   struct fd_table fds;          /*!< File descriptor table */
   struct mmap_table mmaps;      /*!< Memory regions allocated to process */
-  uintptr_t brk_addr;           /*!< Location of program break */
+  struct brk brk;               /*!< Program break */
 };
 
 /*!
