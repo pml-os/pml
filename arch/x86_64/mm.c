@@ -436,7 +436,7 @@ sys_brk (void *addr)
 }
 
 void *
-sys_sbrk (intptr_t incr)
+sys_sbrk (ptrdiff_t incr)
 {
   void *ptr = THIS_PROCESS->brk.curr;
   if (sys_brk (THIS_PROCESS->brk.curr + incr))

@@ -34,7 +34,7 @@ params = void *addr
 
 [sbrk]
 return_type = void *
-params = intptr_t incr
+params = ptrdiff_t incr
 
 [open]
 params = const char *path, int flags, ...
