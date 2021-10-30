@@ -93,6 +93,7 @@ struct process
   int priority;                 /*!< Process priority */
   struct fd_table fds;          /*!< File descriptor table */
   struct mmap_table mmaps;      /*!< Memory regions allocated to process */
+  uintptr_t brk_addr;           /*!< Location of program break */
 };
 
 /*!

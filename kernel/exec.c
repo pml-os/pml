@@ -45,6 +45,7 @@ elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
 	RETV_ERROR (EIO, -1);
       if (phdr.p_type == PT_LOAD)
 	{
+	  uintptr_t brk;
 	  int flags = 0;
 	  if (phdr.p_flags & PF_R)
 	    flags |= PROT_READ;
@@ -60,6 +61,10 @@ elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
 	      && vfs_read (vp, (void *) phdr.p_vaddr, phdr.p_filesz,
 			   phdr.p_offset) != (ssize_t) phdr.p_filesz)
 	    RETV_ERROR (EIO, -1);
+
+	  brk = ALIGN_UP (phdr.p_vaddr + phdr.p_memsz, PAGE_SIZE);
+	  if (brk > THIS_PROCESS->brk_addr)
+	    THIS_PROCESS->brk_addr = brk;
 	}
     }
   return 0;
@@ -88,6 +93,7 @@ elf_load_file (struct elf_exec *exec, struct vnode *vp)
       || ehdr.e_type != ET_EXEC
       || ehdr.e_machine != ELF_MACHINE)
     RETV_ERROR (ENOEXEC, -1);
+  THIS_PROCESS->brk_addr = 0;
   if (elf_load_phdrs (&ehdr, vp))
     return -1;
   exec->entry = (void *) ehdr.e_entry;
