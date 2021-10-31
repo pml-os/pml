@@ -277,6 +277,7 @@ kh_realloc (void *ptr, size_t size)
 		 using it all for the allocated block */
 	      struct kh_header *new_header;
 	      struct kh_tail *new_tail;
+	      size_t next_size = next_header->size;
 
 	      new_tail = (struct kh_tail *) ((uintptr_t) header +
 					     sizeof (struct kh_header) + size);
@@ -287,7 +288,7 @@ kh_realloc (void *ptr, size_t size)
 	      new_header = (struct kh_header *) (new_tail + 1);
 	      new_header->magic = KH_HEADER_MAGIC;
 	      new_header->flags = header->flags & ~KH_FLAG_ALLOC;
-	      new_header->size = header->size + next_header->size - size;
+	      new_header->size = header->size + next_size - size;
 	      header->size = size;
 	      next_tail->header = new_header;
 	    }

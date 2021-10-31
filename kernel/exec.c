@@ -114,5 +114,5 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   UNREF_OBJECT (vp);
   if (ret)
     return -1;
-  sched_exec (exec.entry);
+  sched_exec (exec.entry, argv, envp);
 }
