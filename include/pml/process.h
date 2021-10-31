@@ -28,6 +28,8 @@
 
 /*! Number of file descriptors in system file descriptor table */
 #define SYSTEM_FD_TABLE_SIZE    65536
+/*! Default maximum size of process data segment */
+#define DATA_SEGMENT_MAX        0x10000000000
 
 /*! Minimum process priority value */
 #define PRIO_MIN                19
@@ -36,7 +38,6 @@
 
 /*! Expands to a pointer to the currently running process */
 #define THIS_PROCESS (process_queue.queue[process_queue.front])
-
 /*! Expands to a pointer to the currently running thread */
 #define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
 

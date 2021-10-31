@@ -97,6 +97,8 @@ elf_load_file (struct elf_exec *exec, struct vnode *vp)
   if (elf_load_phdrs (&ehdr, vp))
     return -1;
   exec->entry = (void *) ehdr.e_entry;
+  THIS_PROCESS->brk.curr = THIS_PROCESS->brk.base;
+  THIS_PROCESS->brk.max = DATA_SEGMENT_MAX;
   return 0;
 }
 

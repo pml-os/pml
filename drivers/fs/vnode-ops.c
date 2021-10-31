@@ -94,7 +94,8 @@ vfs_getattr (struct stat *stat, struct vnode *vp)
   stat->st_ino = vp->ino;
   stat->st_uid = vp->uid;
   stat->st_gid = vp->gid;
-  stat->st_dev = vp->mount->device;
+  if (vp->mount)
+    stat->st_dev = vp->mount->device;
   stat->st_rdev = vp->rdev;
   stat->st_atim = vp->atime;
   stat->st_mtim = vp->mtime;
