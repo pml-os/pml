@@ -270,6 +270,27 @@ vfs_link (struct vnode *dir, struct vnode *vp, const char *name)
 }
 
 /*!
+ * Unlinks a file from a directory.
+ *
+ * @param dir the directory containing the file to unlink
+ * @param name the name of the file to unlink
+ * @return zero on success
+ */
+
+int
+vfs_unlink (struct vnode *dir, const char *name)
+{
+  if (!vfs_can_write (dir, 0))
+    return -1;
+  if (!S_ISDIR (dir->mode))
+    RETV_ERROR (ENOTDIR, -1);
+  if (dir->ops->unlink)
+    return dir->ops->unlink (dir, name);
+  else
+    RETV_ERROR (ENOTSUP, -1);
+}
+
+/*!
  * Creates a symbolic link.
  *
  * @param dir the directory to create the link in

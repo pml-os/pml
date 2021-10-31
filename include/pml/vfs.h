@@ -220,6 +220,16 @@ struct vnode_ops
   int (*link) (struct vnode *dir, struct vnode *vp, const char *name);
 
   /*!
+   * Unlinks a file from a directory. If no more links exist to the unlinked
+   * file, it should be deallocated.
+   *
+   * @param dir the directory containing the file to unlink
+   * @param name the name of the file to unlink
+   * @return zero on success
+   */
+  int (*unlink) (struct vnode *dir, const char *name);
+
+  /*!
    * Creates a symbolic link.
    *
    * @param dir the directory to create the link in
@@ -346,6 +356,7 @@ int vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 	       mode_t mode);
 int vfs_rename (struct vnode *vp, struct vnode *dir, const char *name);
 int vfs_link (struct vnode *dir, struct vnode *vp, const char *name);
+int vfs_unlink (struct vnode *dir, const char *name);
 int vfs_symlink (struct vnode *dir, const char *name, const char *target);
 off_t vfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t vfs_readlink (struct vnode *vp, char *buffer, size_t len);

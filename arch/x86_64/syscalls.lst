@@ -66,6 +66,9 @@ params = const char *path, struct stat *st
 [link]
 params = const char *old_path, const char *new_path
 
+[unlink]
+params = const char *path
+
 [dup]
 params = int fd
 

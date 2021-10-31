@@ -259,6 +259,23 @@ sys_link (const char *old_path, const char *new_path)
 }
 
 int
+sys_unlink (const char *path)
+{
+  struct vnode *dir;
+  const char *name;
+  if (vnode_dir_name (path, &dir, &name))
+    return -1;
+  if (vfs_unlink (dir, name))
+    goto err0;
+  UNREF_OBJECT (dir);
+  return 0;
+
+ err0:
+  UNREF_OBJECT (dir);
+  return -1;
+}
+
+int
 sys_dup (int fd)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;

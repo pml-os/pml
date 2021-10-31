@@ -30,6 +30,7 @@ const struct vnode_ops ext2_vnode_ops = {
   .mkdir = ext2_mkdir,
   .rename = ext2_rename,
   .link = ext2_link,
+  .unlink = ext2_unlink,
   .symlink = ext2_symlink,
   .readdir = ext2_readdir,
   .bmap = ext2_bmap,
@@ -329,6 +330,12 @@ ext2_rename (struct vnode *vp, struct vnode *dir, const char *name)
 
 int
 ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
+{
+  RETV_ERROR (ENOSYS, -1);
+}
+
+int
+ext2_unlink (struct vnode *dir, const char *name)
 {
   RETV_ERROR (ENOSYS, -1);
 }
