@@ -18,19 +18,26 @@
 
 #include <pml/interrupt.h>
 #include <pml/panic.h>
+#include <pml/process.h>
 
 /*!
  * Handles a page fault. This function will perform necessary copying-on-writes
  * and deliver a fatal kernel panic if the exception cannot be handled.
  *
+ * @todo implement signal throwing
  * @param err the error code pushed by the page fault exception
  */
 
 void
 int_page_fault (unsigned long err)
 {
-  void *addr;
+  uintptr_t addr;
   __asm__ volatile ("mov %%cr2, %0" : "=r" (addr));
-  panic ("CPU exception: page fault\n"
-	 "Virtual address: %p\n", addr);
+
+  /* Assume page faults on the kernel thread are fatal */
+  if (!THIS_PROCESS->pid)
+    goto fatal;
+
+ fatal:
+  panic ("CPU exception: page fault\nVirtual address: %p\n", addr);
 }
