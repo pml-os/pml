@@ -275,10 +275,13 @@ thread_clone (struct thread *thread, int copy)
   for (i = 0; i < KERNEL_STACK_SIZE; i++)
     {
       uintptr_t page = alloc_page ();
+      addr = (void *) (KERNEL_STACK_TOP_VMA - PAGE_SIZE - i);
       if (UNLIKELY (!page))
 	goto err3;
-      if (vm_map_page (pml4t, page, (void *) (KERNEL_STACK_TOP_VMA - i),
-		       PAGE_FLAG_RW | PAGE_FLAG_USER))
+      memcpy ((void *) PHYS_REL (page),
+	      (void *) PHYS_REL (vm_phys_addr (thread->args.pml4t, addr)),
+	      PAGE_SIZE);
+      if (vm_map_page (pml4t, page, addr, PAGE_FLAG_RW | PAGE_FLAG_USER))
 	{
 	  free_page (page);
 	  goto err3;

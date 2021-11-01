@@ -16,34 +16,22 @@
 
 #include <pml/asm.h>
 #include <pml/errno.h>
+#include <pml/memory.h>
 
 	.section .text
 	.global __fork
 ASM_FUNC_BEGIN (__fork):
-	/* RDI: whether to copy the stack
-	   RSI: whether	this function is called from a system call */
-
-	push	%rbx
-	push	%r12
-	mov	%esi, %ebx
-	mov	%rsp, %r12
-	test	%esi, %esi
-	jz	1f
-	mov	%rbp, %rsp
-	jmp	2f
-1:
 	push	%rbp
 	mov	%rsp, %rbp
-2:
 	sub	$40, %rsp
 
-	/* -8(%rbp): Process structure
+	/* -8(%rbp) : Process structure
 	   -16(%rbp): Thread structure
 	   -24(%rbp): Thread PML4T
 	   -32(%rbp): Stack pointer
 	   -40(%rbp): Current PML4T */
 
-	xor	%esi, %esi
+	mov	%edi, %esi
 	lea	-16(%rbp), %rdi
 	call	process_fork
 	test	%rax, %rax
@@ -105,29 +93,18 @@ ASM_FUNC_BEGIN (__fork):
 .end:
 	movabs	$thread_switch_lock, %rcx
 	movl	$0, (%rcx)
-
-	test	%ebx, %ebx
-	jnz	3f
 	leave
-	jmp	4f
-3:
-	mov	%r12, %rsp
-4:
-	pop	%r12
-	pop	%rbx
 	ret
 ASM_FUNC_END (__fork)
 
 	.global sys_fork
 ASM_FUNC_BEGIN (sys_fork):
 	mov	$1, %edi
-	mov	$1, %esi
 	jmp	__fork
 ASM_FUNC_END (sys_fork)
 
 	.global sys_vfork
 ASM_FUNC_BEGIN (sys_vfork):
 	xor	%edi, %edi
-	mov	$1, %esi
 	jmp	__fork
 ASM_FUNC_END (sys_vfork)

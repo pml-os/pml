@@ -137,7 +137,7 @@ int process_enqueue (struct process *process);
 struct process *process_fork (struct thread **t, int copy);
 pid_t process_get_pid (struct process *process);
 
-pid_t __fork (int copy, int syscall);
+pid_t __fork (int copy);
 
 __END_DECLS
 
