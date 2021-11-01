@@ -39,7 +39,7 @@ splash (void)
 void
 fork_init (void)
 {
-  pid_t pid = sys_fork ();
+  pid_t pid = __fork (0, 0);
   if (UNLIKELY (pid == -1))
     panic ("Failed to fork init process");
   if (!pid)

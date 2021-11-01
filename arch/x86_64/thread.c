@@ -201,8 +201,8 @@ thread_attach_process (struct process *process, struct thread *thread)
 
 /*!
  * Clones a thread by creating another copy of the thread with the same
- * address space but a separate stack. The new thread will not be attached
- * to a process.
+ * address space but a separate stack. An additional stack for kernel-mode
+ * code is also created. The new thread will not be attached to a process.
  *
  * @param thread the thread to clone
  * @param copy whether to copy the user-mode address space
@@ -218,6 +218,7 @@ thread_clone (struct thread *thread, int copy)
   void *addr;
   void *cptr;
   pid_t tid;
+  size_t i;
   if (UNLIKELY (!t))
     return NULL;
   pml4t = alloc_virtual_page ();
@@ -266,6 +267,18 @@ thread_clone (struct thread *thread, int copy)
 	      (void *) PHYS_REL (vm_phys_addr (thread->args.pml4t, addr)),
 	      PAGE_SIZE);
       if (vm_map_page (pml4t, page, addr, PAGE_FLAG_RW | PAGE_FLAG_USER))
+	{
+	  free_page (page);
+	  goto err3;
+	}
+    }
+  for (i = 0; i < KERNEL_STACK_SIZE; i++)
+    {
+      uintptr_t page = alloc_page ();
+      if (UNLIKELY (!page))
+	goto err3;
+      if (vm_map_page (pml4t, page, (void *) (KERNEL_STACK_TOP_VMA - i),
+		       PAGE_FLAG_RW | PAGE_FLAG_USER))
 	{
 	  free_page (page);
 	  goto err3;

@@ -18,9 +18,6 @@
 #include <pml/memory.h>
 
 	.section .bss
-	.global int_stack
-	.align PAGE_SIZE
-int_stack:
 	.skip 16384
 	.global int_stack_top
 int_stack_top:
@@ -42,7 +39,7 @@ ASM_FUNC_BEGIN (syscall):
 
 	/* Switch stacks */
 	mov	%rsp, %rbp
-	movabs	$int_stack_top, %rsp
+	movabs	$KERNEL_STACK_TOP_VMA, %rsp
 	push	%rbp
 
 	/* Clear error value and call function in syscall table */

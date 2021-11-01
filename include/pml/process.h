@@ -30,6 +30,8 @@
 #define SYSTEM_FD_TABLE_SIZE    65536
 /*! Default maximum size of process data segment */
 #define DATA_SEGMENT_MAX        0x10000000000
+/*! Size of per-process kernel-mode stack */
+#define KERNEL_STACK_SIZE       16384
 
 /*! Minimum process priority value */
 #define PRIO_MIN                19
@@ -134,6 +136,8 @@ void process_exit (unsigned int index, int status);
 int process_enqueue (struct process *process);
 struct process *process_fork (struct thread **t, int copy);
 pid_t process_get_pid (struct process *process);
+
+pid_t __fork (int copy, int syscall);
 
 __END_DECLS
 

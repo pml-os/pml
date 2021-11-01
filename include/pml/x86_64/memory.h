@@ -47,7 +47,9 @@
 #define THREAD_LOCAL_BASE_VMA   0xfffffd8000000000
 /*! Base virtual address of process stack */
 #define PROCESS_STACK_BASE_VMA  0xfffffdffc0000000
-/*! Starting virtual address of the stack */
+/*! Virtual address of the top of the kernel-mode process stack */
+#define KERNEL_STACK_TOP_VMA    0xfffffdffe0000000
+/*! Virtual address of the top of the user-mode process stack */
 #define PROCESS_STACK_TOP_VMA   0xfffffe0000000000
 /*! Base of physical memory map */
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
