@@ -78,9 +78,8 @@
 #define PAGE_FLAG_SIZE          (1 << 7)  /*!< Use larger page size */
 #define PAGE_FLAG_GLOBAL        (1 << 8)  /*!< Global page */
 
-#define PAGE_NP_FLAG_AOA        (1 << 1)  /*!< Allocate page on access */
-#define PAGE_NP_FLAG_SWAP       (1 << 2)  /*!< Fetch page from swap space */
-#define PAGE_NP_FLAG_COW        (1 << 9)  /*!< Copy page on write */
+#define PAGE_FLAG_SWAP          (1 << 1)  /*!< Fetch page from swap space */
+#define PAGE_FLAG_COW           (1 << 9)  /*!< Copy page on write */
 
 /*! Standard page size (4 kilobytes) */
 #define PAGE_SIZE               0x1000

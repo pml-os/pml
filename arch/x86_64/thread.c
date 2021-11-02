@@ -250,7 +250,7 @@ thread_clone (struct thread *thread, int copy)
 	  if (pml4t[i] & PAGE_FLAG_PRESENT)
 	    {
 	      pml4t[i] &= ~PAGE_FLAG_RW;
-	      pml4t[i] |= PAGE_NP_FLAG_COW;
+	      pml4t[i] |= PAGE_FLAG_COW;
 	    }
 	}
     }
