@@ -88,6 +88,9 @@
 /*! Huge page size (1 gigabyte), used when PDPT.S is set */
 #define HUGE_PAGE_SIZE          0x40000000
 
+/*! Address of system memory map */
+#define MMAP_ADDR               0xfffffe0000009000
+
 /*!
  * Calculates the index in a PML4T corresponding to a virtual address.
  *
@@ -164,10 +167,36 @@
 /*! Page-align a variable */
 #define __page_align            __attribute__ ((aligned (PAGE_SIZE)))
 
-struct page_stack
+/*!
+ * Metadata of a page for the physical page frame allocator.
+ */
+
+struct page_meta
 {
-  uintptr_t *base;
-  uintptr_t *ptr;
+  /*! Number of references to this page, zero means the page is not allocated */
+  unsigned int count;
+};
+
+/*!
+ * Represents a region of accessible physical memory. This structure is used
+ * to generate a memory map of the system on boot.
+ */
+
+struct mem_region
+{
+  uint64_t base;                /*!< First physical address of memory region */
+  uint64_t len;                 /*!< Length of memory region */
+};
+
+/*!
+ * Represents a memory map of the system.
+ */
+
+struct mem_map
+{
+  struct mem_region *regions;   /*!< Array of memory region structures */
+  size_t count;                 /*!< Number of memory regions */
+  size_t curr;                  /*!< Current memory region */
 };
 
 /*!
@@ -214,17 +243,19 @@ extern uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t kernel_thread_local_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 
-extern struct page_stack phys_page_stack;
+extern struct page_meta *phys_alloc_table;
 extern uintptr_t next_phys_addr;
 extern uintptr_t total_phys_mem;
+extern struct mem_map mmap;
 
 uintptr_t physical_addr (void *addr);
 uintptr_t vm_phys_addr (uintptr_t *pml4t, void *addr);
 int vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 		 unsigned int flags);
 int vm_unmap_page (uintptr_t *pml4t, void *addr);
-void vm_skip_holes (void);
+void vm_next_page (void);
 void vm_init (void);
+void mark_resv_mem_alloc (void);
 
 void free_pt (uintptr_t *pt);
 void free_pdt (uintptr_t *pdt);

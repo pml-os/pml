@@ -22,35 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static struct mb_mmap_tag *multiboot_mmap;
-static size_t mmap_curr_region;
-static size_t mmap_region_count;
-
-/*!
- * Checks if the next physical address is in a memory hole according to
- * the memory map given by Multiboot2.
- */
-
-void
-vm_skip_holes (void)
-{
-  struct mb_mmap_entry *entry = multiboot_mmap->entries + mmap_curr_region;
-  if (next_phys_addr - KERNEL_VMA >= entry->base + entry->len)
-    {
-      /* Move to the next region. If we reach the end of all memory regions
-	 there is no more physical memory left. */
-      do
-	{
-	  if (UNLIKELY (++mmap_curr_region == mmap_region_count))
-	    panic ("Physical memory exhausted");
-	}
-      while (multiboot_mmap->entries[mmap_curr_region].type != 1);
-      next_phys_addr =
-	PHYS_REL (ALIGN_UP (multiboot_mmap->entries[mmap_curr_region].base,
-			    PAGE_SIZE));
-    }
-}
-
 /*!
  * Parses the Multiboot2 structure.
  *
@@ -74,23 +45,27 @@ multiboot_init (uintptr_t addr)
 	  printf ("Boot command line: %s\n", command_line);
 	  break;
 	case MULTIBOOT_TAG_TYPE_MMAP:
-	  multiboot_mmap = (struct mb_mmap_tag *) PHYS_REL (tag);
-	  printf ("System memory map:\n");
-	  for (i = 0; i < multiboot_mmap->tag.size -
-		 sizeof (struct mb_mmap_tag); i += multiboot_mmap->entry_size)
-	    {
-	      struct mb_mmap_entry *entry =
-		(struct mb_mmap_entry *) ((char *) multiboot_mmap->entries + i);
-	      mmap_region_count++;
-	      if (entry->type == 1)
-		{
-		  printf ("  %p-%p (%H)\n", (char *) entry->base,
-			  (char *) entry->base + entry->len, entry->len);
-		  if (entry->base >= LOW_MEMORY_LIMIT)
+	  {
+	    struct mb_mmap_tag *mb_mmap = (struct mb_mmap_tag *) PHYS_REL (tag);
+	    mmap.regions = (struct mem_region *) MMAP_ADDR;
+	    printf ("System memory map:\n");
+	    for (i = 0; i < mb_mmap->tag.size -
+		   sizeof (struct mb_mmap_tag); i += mb_mmap->entry_size)
+	      {
+		struct mb_mmap_entry *entry =
+		  (struct mb_mmap_entry *) ((char *) mb_mmap->entries + i);
+		if (entry->type == 1)
+		  {
+		    printf ("  %p-%p (%H)\n", (char *) entry->base,
+			    (char *) entry->base + entry->len, entry->len);
+		    mmap.regions[mmap.count].base = entry->base;
+		    mmap.regions[mmap.count].len = entry->len;
+		    mmap.count++;
 		    total_phys_mem += entry->len;
-		}
-	    }
-	  break;
+		  }
+	      }
+	    break;
+	  }
 	case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME:
 	  printf ("Boot loader name: %s\n",
 		  ((struct mb_str_tag *) tag)->string);
@@ -101,16 +76,6 @@ multiboot_init (uintptr_t addr)
 	  break;
 	}
     }
-  if (UNLIKELY (!multiboot_mmap))
+  if (UNLIKELY (!mmap.regions))
     panic ("No memory map provided by boot loader");
-  /* Skip memory regions in low memory */
-  while (multiboot_mmap->entries[mmap_curr_region].base < LOW_MEMORY_LIMIT)
-    {
-      do
-	{
-	  if (UNLIKELY (++mmap_curr_region == mmap_region_count))
-	    panic ("Physical memory exhausted");
-	}
-      while (multiboot_mmap->entries[mmap_curr_region].type != 1);
-    }
 }

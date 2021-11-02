@@ -18,6 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/memory.h>
+#include <pml/multiboot.h>
 #include <pml/process.h>
 #include <errno.h>
 #include <string.h>
@@ -26,14 +27,16 @@ extern void *boot_stack;
 
 static uintptr_t kernel_stack_pdt[PAGE_STRUCT_ENTRIES] __page_align;
 static uintptr_t kernel_stack_pt[PAGE_STRUCT_ENTRIES] __page_align;
+static int mem_avail;
 
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];
 uintptr_t kernel_thread_local_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
 
-struct page_stack phys_page_stack;
+struct page_meta *phys_alloc_table;
 uintptr_t next_phys_addr;
 uintptr_t total_phys_mem;
+struct mem_map mmap;
 
 /*! 
  * Returns the physical address of the virtual address, or zero if the
@@ -218,6 +221,34 @@ vm_unmap_page (uintptr_t *pml4t, void *addr)
 }
 
 /*!
+ * Moves @ref next_phys_addr to the next accessible physical page, skipping
+ * any memory holes specified in the Multiboot2 memory map.
+ */
+
+void
+vm_next_page (void)
+{
+  for (; mmap.curr < mmap.count - 1; mmap.curr++)
+    {
+      if (next_phys_addr >= mmap.regions[mmap.curr].base +
+	  mmap.regions[mmap.curr].len
+	  && next_phys_addr < mmap.regions[mmap.curr + 1].base)
+	{
+	  next_phys_addr = mmap.regions[mmap.curr + 1].base;
+	  return;
+	}
+    }
+  if (LIKELY (next_phys_addr < mmap.regions[mmap.count - 1].base +
+	      mmap.regions[mmap.count - 1].len))
+    {
+      mmap.curr = mmap.count - 1;
+      next_phys_addr += PAGE_SIZE;
+    }
+  else
+    mem_avail = 0;
+}
+
+/*!
  * Allocates a page frame and returns its physical address.
  *
  * @return the physical address of the new page frame, or 0 if the allocation
@@ -227,19 +258,19 @@ vm_unmap_page (uintptr_t *pml4t, void *addr)
 uintptr_t
 alloc_page (void)
 {
-  uintptr_t addr;
-  if (phys_page_stack.ptr > phys_page_stack.base)
+  while (mem_avail)
     {
-      addr = *--phys_page_stack.ptr;
-      memset ((void *) PHYS_REL (addr), 0, PAGE_SIZE);
+      struct page_meta *page = phys_alloc_table + next_phys_addr / PAGE_SIZE;
+      if (!page->count)
+	{
+	  uintptr_t addr = next_phys_addr;
+	  page->count++;
+	  vm_next_page ();
+	  return addr;
+	}
+      vm_next_page ();
     }
-  else
-    {
-      addr = next_phys_addr - LOW_PHYSICAL_BASE_VMA;
-      next_phys_addr += PAGE_SIZE;
-    }
-  vm_skip_holes ();
-  return addr;
+  return 0;
 }
 
 /*!
@@ -252,10 +283,19 @@ alloc_page (void)
 void
 free_page (uintptr_t addr)
 {
+  struct page_meta *page;
   if (!addr)
     return;
   addr = ALIGN_DOWN (addr, PAGE_SIZE);
-  *phys_page_stack.ptr++ = addr;
+  page = phys_alloc_table + next_phys_addr / PAGE_SIZE;
+  if (page->count)
+    page->count--;
+  if (addr < next_phys_addr)
+    {
+      next_phys_addr = addr;
+      while (mmap.curr && mmap.regions[mmap.curr].base > next_phys_addr)
+	mmap.curr--;
+    }
 }
 
 /*!
@@ -393,9 +433,21 @@ vm_init (void)
   vm_set_cr3 ((uintptr_t) kernel_pml4t - KERNEL_VMA);
 
   next_phys_addr = ALIGN_UP (KERNEL_END, PAGE_SIZE);
-  phys_page_stack.base = (uintptr_t *) next_phys_addr;
-  phys_page_stack.ptr = phys_page_stack.base;
-  next_phys_addr += ALIGN_UP (total_phys_mem / 512, PAGE_SIZE);
+  mem_avail = 1;
+  phys_alloc_table = (struct page_meta *) next_phys_addr;
+  next_phys_addr -= KERNEL_VMA;
+  next_phys_addr += total_phys_mem / PAGE_SIZE * sizeof (struct page_meta);
+  next_phys_addr = ALIGN_UP (next_phys_addr, PAGE_SIZE);
+}
+
+void
+mark_resv_mem_alloc (void)
+{
+  size_t i;
+  for (i = 0; i < next_phys_addr / PAGE_SIZE; i++)
+    phys_alloc_table[i].count = 1;
+  memset (phys_alloc_table + i, 0,
+	  (total_phys_mem - next_phys_addr) / PAGE_SIZE);
 }
 
 int

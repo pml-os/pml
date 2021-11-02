@@ -32,7 +32,7 @@ static void
 init_kernel_heap (void)
 {
   uintptr_t size = ALIGN_UP (total_phys_mem / 16, PAGE_SIZE);
-  kh_init (next_phys_addr, size);
+  kh_init (PHYS_REL (next_phys_addr), size);
   next_phys_addr += size;
 }
 
@@ -41,7 +41,7 @@ init_kernel_heap (void)
 static void
 init_system_fd_table (void)
 {
-  system_fd_table = (struct fd *) next_phys_addr;
+  system_fd_table = (struct fd *) PHYS_REL (next_phys_addr);
   next_phys_addr += sizeof (struct fd) * SYSTEM_FD_TABLE_SIZE;
 }
 
@@ -55,6 +55,7 @@ arch_init (void)
   /* Initialize the heap and system file descriptor table */
   init_kernel_heap ();
   init_system_fd_table ();
+  mark_resv_mem_alloc ();
 
   /* Remap the 8259 PIC and disable it if using the APIC */
   pic_8259_remap ();
