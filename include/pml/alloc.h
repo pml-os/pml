@@ -64,6 +64,7 @@ struct kh_tail
 __BEGIN_DECLS
 
 uintptr_t alloc_page (void);
+void ref_page (uintptr_t addr);
 void free_page (uintptr_t addr);
 void *alloc_virtual_page (void);
 void free_virtual_page (void *ptr);

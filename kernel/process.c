@@ -125,6 +125,7 @@ process_fork (struct thread **t, int copy)
   struct thread *thread;
   struct process *process = process_alloc (THIS_PROCESS->priority);
   uintptr_t cr3;
+  size_t i;
   if (UNLIKELY (!process))
     return NULL;
 
@@ -139,8 +140,24 @@ process_fork (struct thread **t, int copy)
   REF_ASSIGN (process->cwd, THIS_PROCESS->cwd);
   process->cwd_path = strdup (THIS_PROCESS->cwd_path);
   *t = thread;
+
+  process->fds.curr = THIS_PROCESS->fds.curr;
+  process->fds.size = THIS_PROCESS->fds.size;
+  process->fds.max_size = THIS_PROCESS->fds.max_size;
+  process->fds.table = malloc (sizeof (struct fd *) * process->fds.size);
+  if (UNLIKELY (!process->fds.table))
+    goto err2;
+  for (i = 0; i < process->fds.size; i++)
+    {
+      process->fds.table[i] = THIS_PROCESS->fds.table[i];
+      if (process->fds.table[i])
+	process->fds.table[i]->count++;
+    }
   return process;
 
+ err2:
+  free (process->cwd_path);
+  UNREF_OBJECT (process->cwd);
  err1:
   thread_free (thread);
  err0:

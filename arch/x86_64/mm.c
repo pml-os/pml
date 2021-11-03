@@ -274,6 +274,24 @@ alloc_page (void)
 }
 
 /*!
+ * Increments the reference count of a physical page frame. The address does
+ * not need to be page-aligned.
+ *
+ * @param addr the physical address
+ */
+
+void
+ref_page (uintptr_t addr)
+{
+  struct page_meta *page;
+  if (!addr)
+    return;
+  page = phys_alloc_table + addr / PAGE_SIZE;
+  if (page->count)
+    page->count++;
+}
+
+/*!
  * Frees the page frame containing the given physical address. The address
  * does not need to be page-aligned.
  *
@@ -290,7 +308,7 @@ free_page (uintptr_t addr)
   page = phys_alloc_table + next_phys_addr / PAGE_SIZE;
   if (page->count)
     page->count--;
-  if (addr < next_phys_addr)
+  if (!page->count && addr < next_phys_addr)
     {
       next_phys_addr = addr;
       while (mmap.curr && mmap.regions[mmap.curr].base > next_phys_addr)
@@ -329,6 +347,65 @@ free_virtual_page (void *ptr)
 }
 
 /*!
+ * Increments the reference count of all present pages in a page table.
+ *
+ * @param pt the page table
+ */
+
+void
+ref_pt (uintptr_t *pt)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if (pt[i] & PAGE_FLAG_PRESENT)
+	ref_page (pt[i]);
+    }
+}
+
+/*!
+ * Increments the reference count of all present page tables in a page
+ * directory table.
+ *
+ * @param pdt the page directory table
+ */
+
+void
+ref_pdt (uintptr_t *pdt)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if (pdt[i] & PAGE_FLAG_PRESENT)
+	{
+	  ref_page (pdt[i]);
+	  ref_pt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[i], PAGE_SIZE)));
+	}
+    }
+}
+
+/*!
+ * Increments the reference count of all present page directories in a page
+ * directory pointer table (PDPT).
+ *
+ * @param pdpt the PDPT
+ */
+
+void
+ref_pdpt (uintptr_t *pdpt)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if (pdpt[i] & PAGE_FLAG_PRESENT)
+	{
+	  ref_page (pdpt[i]);
+	  ref_pdt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[i], PAGE_SIZE)));
+	}
+    }
+}
+
+/*!
  * Frees all physical memory contained in a page table. The page table
  * itself is not freed.
  *
@@ -343,7 +420,6 @@ free_pt (uintptr_t *pt)
     {
       if (pt[i] & PAGE_FLAG_PRESENT)
 	free_page (pt[i]);
-      pt[i] = 0;
     }
 }
 
@@ -368,7 +444,6 @@ free_pdt (uintptr_t *pdt)
 	  free_pt (pt);
 	  free_page (pt_phys);
 	}
-      pdt[i] = 0;
     }
 }
 
@@ -393,7 +468,6 @@ free_pdpt (uintptr_t *pdpt)
 	  free_pdt (pdt);
 	  free_page (pdt_phys);
 	}
-      pdpt[i] = 0;
     }
 }
 

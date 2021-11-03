@@ -257,6 +257,9 @@ void vm_next_page (void);
 void vm_init (void);
 void mark_resv_mem_alloc (void);
 
+void ref_pt (uintptr_t *pt);
+void ref_pdt (uintptr_t *pdt);
+void ref_pdpt (uintptr_t *pdpt);
 void free_pt (uintptr_t *pt);
 void free_pdt (uintptr_t *pdt);
 void free_pdpt (uintptr_t *pdpt);

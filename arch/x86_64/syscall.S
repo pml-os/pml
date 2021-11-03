@@ -58,6 +58,7 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rsp), %rsp
 	pop	%r11
 	or	$0x0001, %r11
+	jmp	2f
 
 1:
 	mov	(%rsp), %rsp
