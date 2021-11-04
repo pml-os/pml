@@ -167,7 +167,8 @@ sys_read (int fd, void *buffer, size_t len)
   ret = vfs_read (file->vnode, buffer, len, file->offset);
   if (ret == -1)
     return -1;
-  file->offset += ret;
+  if (vfs_can_seek (file->vnode))
+    file->offset += ret;
   return ret;
 }
 
@@ -181,7 +182,8 @@ sys_write (int fd, const void *buffer, size_t len)
   ret = vfs_write (file->vnode, buffer, len, file->offset);
   if (ret == -1)
     return -1;
-  file->offset += ret;
+  if (vfs_can_seek (file->vnode))
+    file->offset += ret;
   return ret;
 }
 
@@ -191,7 +193,7 @@ sys_lseek (int fd, off_t offset, int whence)
   struct fd *file = file_fd (fd);
   if (!file)
     return -1;
-  if (S_ISFIFO (file->vnode->mode) || S_ISSOCK (file->vnode->mode))
+  if (!vfs_can_seek (file->vnode))
     RETV_ERROR (ESPIPE, -1);
   switch (whence)
     {

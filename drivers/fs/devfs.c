@@ -95,6 +95,7 @@ devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 ssize_t
 devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
+  static lock_t lock;
   struct device *device = hashmap_lookup (device_num_map, vp->rdev);
   int block = !(vp->flags & VN_FLAG_NO_BLOCK);
   if (!device)
@@ -109,6 +110,7 @@ devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
       struct char_device *cdev = (struct char_device *) device;
       unsigned char *ptr = buffer;
       size_t i;
+      spinlock_acquire (&lock);
       for (i = 0; i < len; i++)
 	{
 	  unsigned char c;
@@ -118,14 +120,17 @@ devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 	      *ptr++ = c;
 	      break;
 	    case 0:
+	      spinlock_release (&lock);
 	      if (!i)
 		RETV_ERROR (EAGAIN, -1);
 	      else
 		return i;
 	    default:
+	      spinlock_release (&lock);
 	      return -1;
 	    }
 	}
+      spinlock_release (&lock);
       return len;
     }
 }
@@ -133,6 +138,7 @@ devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 ssize_t
 devfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 {
+  static lock_t lock;
   struct device *device = hashmap_lookup (device_num_map, vp->rdev);
   int block = !(vp->flags & VN_FLAG_NO_BLOCK);
   if (!device)
@@ -147,6 +153,7 @@ devfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
       struct char_device *cdev = (struct char_device *) device;
       const unsigned char *ptr = buffer;
       size_t i;
+      spinlock_acquire (&lock);
       for (i = 0; i < len; i++)
 	{
 	  switch (cdev->write (cdev, *ptr++, block))
@@ -154,14 +161,17 @@ devfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 	    case 1:
 	      break;
 	    case 0:
+	      spinlock_release (&lock);
 	      if (!i)
 		RETV_ERROR (EAGAIN, -1);
 	      else
 		return i;
 	    default:
+	      spinlock_release (&lock);
 	      return -1;
 	    }
 	}
+      spinlock_release (&lock);
       return len;
     }
 }

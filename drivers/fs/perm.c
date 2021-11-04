@@ -136,3 +136,19 @@ vfs_can_exec (struct vnode *vp, int real)
     FAIL;
   PASS;
 }
+
+/*!
+ * Checks whether a vnode supports seeking by checking its file type.
+ * Pipes, sockets, and character devices do not support seeking.
+ *
+ * @param vp the vnode
+ * @return nonzero if the vnode is seekable
+ */
+
+int
+vfs_can_seek (struct vnode *vp)
+{
+  if (S_ISFIFO (vp->mode) || S_ISSOCK (vp->mode) || S_ISCHR (vp->mode))
+    RETV_ERROR (ESPIPE, 0);
+  return 1;
+}

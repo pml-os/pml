@@ -276,7 +276,7 @@ thread_clone (struct thread *thread, int copy)
 	  goto err3;
 	}
     }
-  for (i = 0; i < KERNEL_STACK_SIZE; i++)
+  for (i = 0; i < KERNEL_STACK_SIZE; i += PAGE_SIZE)
     {
       uintptr_t page = alloc_page ();
       addr = (void *) (KERNEL_STACK_TOP_VMA - PAGE_SIZE - i);

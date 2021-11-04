@@ -58,8 +58,7 @@ tty_putchar (struct tty *tty, int c)
       tty->x |= 7;
       break;
     default:
-      if (tty->output->write_char (tty, tty->x,
-					   tty->y, c))
+      if (tty->output->write_char (tty, tty->x, tty->y, c))
 	return EOF;
     }
 

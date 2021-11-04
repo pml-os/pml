@@ -337,6 +337,7 @@ extern struct vnode *root_vnode;
 int vfs_can_read (struct vnode *vp, int real);
 int vfs_can_write (struct vnode *vp, int real);
 int vfs_can_exec (struct vnode *vp, int real);
+int vfs_can_seek (struct vnode *vp);
 
 int vfs_mount (struct mount *mp, unsigned int flags);
 int vfs_unmount (struct mount *mp, unsigned int flags);
