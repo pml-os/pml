@@ -110,6 +110,9 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   int ret;
   if (!vp)
     return -1;
+  /* TODO Copy argv strings out of user-space memory so they don't get
+     unmapped */
+  vm_unmap_user_mem ();
   ret = elf_load_file (&exec, vp);
   UNREF_OBJECT (vp);
   if (ret)

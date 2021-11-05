@@ -472,6 +472,26 @@ free_pdpt (uintptr_t *pdpt)
 }
 
 /*!
+ * Frees all user-space memory allocated to the current thread.
+ */
+
+void
+vm_unmap_user_mem (void)
+{
+  size_t i;
+  for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
+    {
+      if (THIS_THREAD->args.pml4t[i] & PAGE_FLAG_PRESENT)
+	{
+	  uintptr_t pdpt = ALIGN_DOWN (THIS_THREAD->args.pml4t[i], PAGE_SIZE);
+	  free_pdpt ((uintptr_t *) PHYS_REL (pdpt));
+	  free_page (pdpt);
+	  THIS_THREAD->args.pml4t[i] = 0;
+	}
+    }
+}
+
+/*!
  * Initializes the kernel virtual address space.
  */
 

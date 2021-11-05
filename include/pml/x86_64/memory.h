@@ -254,6 +254,7 @@ int vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 		 unsigned int flags);
 int vm_unmap_page (uintptr_t *pml4t, void *addr);
 void vm_next_page (void);
+void vm_unmap_user_mem (void);
 void vm_init (void);
 void mark_resv_mem_alloc (void);
 
