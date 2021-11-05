@@ -15,6 +15,7 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/asm.h>
+#include <pml/memory.h>
 #include <pml/syscall.h>
 
 	.section .text
@@ -28,11 +29,12 @@ ASM_FUNC_BEGIN (user_mode):
 	mov	%ax, %gs
 
 	/* Do a fake interrupt into ring 3 */
-	mov	%rsp, %rax
 	pushq	$0x1b
+	movabs	$PROCESS_STACK_TOP_VMA, %rax
 	push	%rax
 	pushf
 	pushq	$0x23
 	push	%rdi
+	xor	%ebp, %ebp
 	iretq
 ASM_FUNC_END (user_mode)
