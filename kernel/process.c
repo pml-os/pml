@@ -141,6 +141,10 @@ process_fork (struct thread **t, int copy)
   process->cwd_path = strdup (THIS_PROCESS->cwd_path);
   *t = thread;
 
+  /* Copy program break data */
+  memcpy (&process->brk, &THIS_PROCESS->brk, sizeof (struct brk));
+
+  /* Copy file descriptor table */
   process->fds.curr = THIS_PROCESS->fds.curr;
   process->fds.size = THIS_PROCESS->fds.size;
   process->fds.max_size = THIS_PROCESS->fds.max_size;

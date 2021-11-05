@@ -73,6 +73,7 @@ int_page_fault (unsigned long err)
 	      np[i] = cp[i] | PAGE_FLAG_COW;
 	      np[i] &= ~PAGE_FLAG_RW;
 	    }
+	  free_page (pml4t[pml4e]);
 	  pml4t[pml4e] = page | PAGE_FLAG_RW | (pml4t[pml4e] & (PAGE_SIZE - 1));
 	  pml4t[pml4e] &= ~PAGE_FLAG_COW;
 	}
@@ -94,6 +95,7 @@ int_page_fault (unsigned long err)
 	      np[i] = cp[i] | PAGE_FLAG_COW;
 	      np[i] &= ~PAGE_FLAG_RW;
 	    }
+	  free_page (pdpt[pdpe]);
 	  pdpt[pdpe] = page | PAGE_FLAG_RW | (pdpt[pdpe] & (PAGE_SIZE - 1));
 	  pdpt[pdpe] &= ~PAGE_FLAG_COW;
 	}
@@ -115,6 +117,7 @@ int_page_fault (unsigned long err)
 	      np[i] = cp[i] | PAGE_FLAG_COW;
 	      np[i] &= ~PAGE_FLAG_RW;
 	    }
+	  free_page (pdt[pde]);
 	  pdt[pde] = page | PAGE_FLAG_RW | (pdt[pde] & (PAGE_SIZE - 1));
 	  pdt[pde] &= ~PAGE_FLAG_COW;
 	}
@@ -131,6 +134,7 @@ int_page_fault (unsigned long err)
 	  memcpy ((void *) PHYS_REL (page),
 		  (void *) PHYS_REL (ALIGN_DOWN (pt[pte], PAGE_SIZE)),
 		  PAGE_SIZE);
+	  free_page (pt[pte]);
 	  pt[pte] = page | PAGE_FLAG_RW | (pt[pte] & (PAGE_SIZE - 1));
 	  pt[pte] &= ~PAGE_FLAG_COW;
 	  vm_clear_page ((void *) ALIGN_DOWN (addr, PAGE_SIZE));

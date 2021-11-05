@@ -240,23 +240,26 @@ thread_clone (struct thread *thread, int copy)
   tlp = alloc_virtual_page ();
   if (UNLIKELY (!tlp))
     goto err2;
-  memcpy (pml4t, thread->args.pml4t, PAGE_STRUCT_SIZE);
   if (copy)
     {
       for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
 	{
-	  /* Mark allocated pages as copy-on-write */
-	  if (pml4t[i] & PAGE_FLAG_PRESENT)
+	  /*! Mark allocated pages as copy-on-write */
+	  if (thread->args.pml4t[i] & PAGE_FLAG_PRESENT)
 	    {
-	      pml4t[i] &= ~PAGE_FLAG_RW;
-	      pml4t[i] |= PAGE_FLAG_COW;
+	      thread->args.pml4t[i] &= ~PAGE_FLAG_RW;
+	      thread->args.pml4t[i] |= PAGE_FLAG_COW;
 	    }
 	}
     }
+  memcpy (pml4t, thread->args.pml4t, PAGE_STRUCT_SIZE);
   for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
     {
       if (pml4t[i] & PAGE_FLAG_PRESENT)
-	ref_pdpt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[i], PAGE_SIZE)));
+	{
+	  ref_page (pml4t[i]);
+	  ref_pdpt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[i], PAGE_SIZE)));
+	}
     }
   pml4t[PML4T_INDEX (THREAD_LOCAL_BASE_VMA)] = ((uintptr_t) tlp - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
