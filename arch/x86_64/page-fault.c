@@ -54,6 +54,7 @@ int_page_fault (unsigned long err)
      page that needs to be copied-on-write */
   if (err == 7)
     {
+      thread_switch_lock = 1;
       pml4t = THIS_THREAD->args.pml4t;
       pml4e = PML4T_INDEX (addr);
       if (addr >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
@@ -138,6 +139,7 @@ int_page_fault (unsigned long err)
 	  pt[pte] = page | PAGE_FLAG_RW | (pt[pte] & (PAGE_SIZE - 1));
 	  pt[pte] &= ~PAGE_FLAG_COW;
 	  vm_clear_page ((void *) ALIGN_DOWN (addr, PAGE_SIZE));
+	  thread_switch_lock = 0;
 	  return;
 	}
     }

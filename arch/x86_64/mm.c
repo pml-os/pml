@@ -305,7 +305,7 @@ free_page (uintptr_t addr)
   if (!addr)
     return;
   addr = ALIGN_DOWN (addr, PAGE_SIZE);
-  page = phys_alloc_table + next_phys_addr / PAGE_SIZE;
+  page = phys_alloc_table + addr / PAGE_SIZE;
   if (page->count)
     page->count--;
   if (!page->count && addr < next_phys_addr)
