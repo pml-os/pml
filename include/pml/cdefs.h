@@ -17,7 +17,7 @@
 #ifndef __PML_CDEFS_H
 #define __PML_CDEFS_H
 
-#ifdef HAVE_CONFIG_H
+#if defined PML_KERNEL && defined HAVE_CONFIG_H
 #include <pml-config.h>
 #endif
 

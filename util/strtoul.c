@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#define _SYS_CDEFS_H_
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdlib.h>
