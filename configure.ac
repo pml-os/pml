@@ -69,6 +69,7 @@ include/pml/io.h:include/pml/$ARCH/io.h
 include/pml/interrupt.h:include/pml/$ARCH/interrupt.h
 include/pml/memory.h:include/pml/$ARCH/memory.h
 include/pml/panic.h:include/pml/$ARCH/panic.h
+include/pml/serial.h:include/pml/$ARCH/serial.h
 include/pml/thread.h:include/pml/$ARCH/thread.h
 ])
 

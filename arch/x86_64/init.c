@@ -24,6 +24,7 @@
 #include <pml/panic.h>
 #include <pml/pit.h>
 #include <pml/process.h>
+#include <pml/serial.h>
 #include <pml/syscall.h>
 
 /*! Initializes the kernel heap. */
@@ -63,15 +64,12 @@ arch_init (void)
   pic_8259_disable ();
 #endif
 
-  /* Initialize ACPI and related services */
+  /* Initialize services */
   pit_set_freq (0, 1000);
   acpi_init ();
-
-  /* Initialize the real-time clock and enable interrupts */
   real_time = cmos_read_real_time ();
   cmos_enable_rtc_int ();
-
-  /* Initialize the scheduler */
+  serial_init ();
   sched_init ();
 
   /* Start interrupts, system calls, and user mode */

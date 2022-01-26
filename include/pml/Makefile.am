@@ -19,6 +19,7 @@ nodist_pmlinclude_HEADERS = \
 	interrupt.h	\
 	memory.h	\
 	panic.h		\
+	serial.h	\
 	syscall.h	\
 	thread.h
 

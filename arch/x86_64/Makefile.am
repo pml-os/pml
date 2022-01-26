@@ -34,6 +34,7 @@ libarch_a_SOURCES =	\
 	pic8259.c	\
 	rtc.c		\
 	save-reg.S	\
+	serial.c	\
 	sched-tick.S	\
 	smp.c		\
 	smp-init.S	\
