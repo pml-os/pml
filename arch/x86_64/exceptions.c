@@ -20,7 +20,7 @@
 void
 int_div_zero (uintptr_t addr)
 {
-  panic ("CPU exception: division by zero");
+  panic ("CPU exception: division by zero\nInstruction: %p", addr);
 }
 
 void
@@ -41,89 +41,93 @@ int_breakpoint (uintptr_t addr)
 void
 int_overflow (uintptr_t addr)
 {
-  panic ("CPU exception: overflow");
+  panic ("CPU exception: overflow\nInstruction: %p", addr);
 }
 
 void
 int_bound_range (uintptr_t addr)
 {
-  panic ("CPU exception: bound range exceeded");
+  panic ("CPU exception: bound range exceeded\nInstruction: %p", addr);
 }
 
 void
 int_bad_opcode (uintptr_t addr)
 {
-  panic ("CPU exception: invalid opcode");
+  panic ("CPU exception: invalid opcode\nInstruction: %p", addr);
 }
 
 void
 int_no_device (uintptr_t addr)
 {
-  panic ("CPU exception: device not available");
+  panic ("CPU exception: device not available\nInstruction: %p", addr);
 }
 
 void
 int_double_fault (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: double fault");
+  panic ("CPU exception: double fault\nInstruction: %p", addr);
 }
 
 void
 int_bad_tss (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: invalid TSS selector %#02lx", err);
+  panic ("CPU exception: invalid TSS selector %#02lx\nInstruction: %p",
+	 err, addr);
 }
 
 void
 int_bad_segment (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: invalid segment selector %#02lx", err);
+  panic ("CPU exception: invalid segment selector %#02lx\nInstruction: %p",
+	 err, addr);
 }
 
 void
 int_stack_segment (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: stack-segment fault on selector %#02lx", err);
+  panic ("CPU exception: stack-segment fault on selector %#02lx\n"
+	 "Instruction: %p", err, addr);
 }
 
 void
 int_gpf (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: general protection fault (segment %#02lx)", err);
+  panic ("CPU exception: general protection fault (segment %#02lx)\n"
+	 "Instruction: %p", err, addr);
 }
 
 void
 int_fpu (uintptr_t addr)
 {
-  panic ("CPU exception: x87 FPU exception");
+  panic ("CPU exception: x87 FPU exception\nInstruction: %p", addr);
 }
 
 void
 int_align_check (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: alignment check");
+  panic ("CPU exception: alignment check\nInstruction: %p", addr);
 }
 
 void
 int_machine_check (uintptr_t addr)
 {
-  panic ("CPU exception: machine check");
+  panic ("CPU exception: machine check\nInstruction: %p", addr);
 }
 
 void
 int_simd_fpu (uintptr_t addr)
 {
-  panic ("CPU exception: SIMD FPU exception");
+  panic ("CPU exception: SIMD FPU exception\nInstruction: %p", addr);
 }
 
 void
 int_virtualization (uintptr_t addr)
 {
-  panic ("CPU exception: virtualization exception");
+  panic ("CPU exception: virtualization exception\nInstruction: %p", addr);
 }
 
 void
 int_security (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: security exception");
+  panic ("CPU exception: security exception\nInstruction: %p", addr);
 }
