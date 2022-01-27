@@ -16,11 +16,15 @@
 
 /*! @file */
 
+#include <pml/acpi.h>
 #include <pml/memory.h>
 #include <pml/multiboot.h>
 #include <pml/panic.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+static uintptr_t rel_addr = MULTIBOOT_REL_ADDR;
 
 /*!
  * Parses the Multiboot2 structure.
@@ -40,10 +44,15 @@ multiboot_init (uintptr_t addr)
       switch (tag->type)
 	{
 	case MULTIBOOT_TAG_TYPE_CMDLINE:
-	  command_line =
-	    PHYS_REL ((char *) ((struct mb_str_tag *) tag)->string);
-	  printf ("Boot command line: %s\n", command_line);
-	  break;
+	  {
+	    char *str = (char *) ((struct mb_str_tag *) tag)->string;
+	    size_t len = strlen (str) + 1;
+	    memcpy ((void *) rel_addr, str, len);
+	    command_line = PHYS_REL ((void *) rel_addr);
+	    rel_addr += len;
+	    printf ("Boot command line: %s\n", command_line);
+	    break;
+	  }
 	case MULTIBOOT_TAG_TYPE_MMAP:
 	  {
 	    struct mb_mmap_tag *mb_mmap = (struct mb_mmap_tag *) PHYS_REL (tag);
@@ -72,7 +81,10 @@ multiboot_init (uintptr_t addr)
 	  break;
 	case MULTIBOOT_TAG_TYPE_ACPI_OLD:
 	case MULTIBOOT_TAG_TYPE_ACPI_NEW:
-	  acpi_rsdp = PHYS_REL (&((struct mb_acpi_rsdp_tag *) tag)->rsdp);
+	  memcpy ((void *) rel_addr, &((struct mb_acpi_rsdp_tag *) tag)->rsdp,
+		  sizeof (struct acpi_rsdp));
+	  acpi_rsdp = PHYS_REL ((void *) rel_addr);
+	  rel_addr += sizeof (struct acpi_rsdp);
 	  break;
 	}
     }

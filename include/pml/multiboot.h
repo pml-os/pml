@@ -14,10 +14,13 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/* Definitions for the Multiboot2 specification */
-
 #ifndef __PML_MULTIBOOT_H
 #define __PML_MULTIBOOT_H
+
+/*!
+ * @file
+ * Definitions for the Multiboot2 specification
+ */
 
 #define MULTIBOOT_SEARCH                           32768
 #define MULTIBOOT_HEADER_ALIGN                     8
@@ -78,6 +81,14 @@
 #define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED         0
 #define MULTIBOOT_FRAMEBUFFER_TYPE_RGB             1
 #define MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT        2
+
+/*!
+ * Address to begin relocating Multiboot structures. Relocating
+ * Multiboot structures to lower memory is necessary since GRUB
+ * can place these structures in memory that will be later overwritten
+ * when allocating memory for the page frame allocator.
+ */
+#define MULTIBOOT_REL_ADDR                         0x0500
 
 #ifndef __ASSEMBLER__
 

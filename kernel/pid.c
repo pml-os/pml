@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/map.h>
 #include <pml/panic.h>
 #include <pml/process.h>
 #include <errno.h>
@@ -28,6 +29,7 @@ static void *pid_bitmap;        /* Bitmap of allocated PIDs */
 static size_t next_pid;         /* PID to start searching from */
 static size_t pid_bitmap_size;  /* Size of bitmap in bytes */
 static lock_t pid_bitmap_lock;
+static struct hashmap *pid_hashmap; /* Map of PIDs to process structures */
 
 /*!
  * Initializes the PID allocator by marking PID 0 as used and allocating
@@ -37,12 +39,21 @@ static lock_t pid_bitmap_lock;
 void
 init_pid_allocator (void)
 {
+  pid_t pid = 0;
+  hash_t key;
   pid_bitmap = calloc (PID_BITMAP_INCREMENT, 1);
   if (UNLIKELY (!pid_bitmap))
     panic ("Failed to allocate PID bitmap");
   pid_bitmap_size = PID_BITMAP_INCREMENT;
   set_bit (pid_bitmap, 0);
   next_pid = 1;
+
+  pid_hashmap = hashmap_create ();
+  if (UNLIKELY (!pid_hashmap))
+    panic ("Failed to create PID hashmap\n");
+  key = siphash (&pid, sizeof (pid_t), 0);
+  if (hashmap_insert (pid_hashmap, key, process_queue.queue[0]))
+    panic ("Failed to initialize PID hashmap\n");
 }
 
 /*!
