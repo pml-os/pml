@@ -39,8 +39,6 @@ static struct hashmap *pid_hashmap; /* Map of PIDs to process structures */
 void
 init_pid_allocator (void)
 {
-  pid_t pid = 0;
-  hash_t key;
   pid_bitmap = calloc (PID_BITMAP_INCREMENT, 1);
   if (UNLIKELY (!pid_bitmap))
     panic ("Failed to allocate PID bitmap");
@@ -51,9 +49,7 @@ init_pid_allocator (void)
   pid_hashmap = hashmap_create ();
   if (UNLIKELY (!pid_hashmap))
     panic ("Failed to create PID hashmap\n");
-  key = siphash (&pid, sizeof (pid_t), 0);
-  if (hashmap_insert (pid_hashmap, key, process_queue.queue[0]))
-    panic ("Failed to initialize PID hashmap\n");
+  map_pid_process (0, process_queue.queue[0]);
 }
 
 /*!
@@ -114,4 +110,39 @@ free_pid (pid_t pid)
   if ((size_t) pid < next_pid)
     next_pid = pid;
   spinlock_release (&pid_bitmap_lock);
+}
+
+/*!
+ * Inserts a mapping into the PID hashmap. This function panics on failure.
+ *
+ * @param pid the process ID
+ * @param process the process structure corresponding to the PID
+ */
+
+void
+map_pid_process (pid_t pid, struct process *process)
+{
+  hash_t key = siphash (&pid, sizeof (pid_t), 0);
+  if (hashmap_insert (pid_hashmap, key, process))
+    panic ("Failed to add into PID hashmap\n");
+}
+
+/*!
+ * Removes a mapping from the PID hashmap, if one exists.
+ *
+ * @param pid the process ID
+ */
+
+void
+unmap_pid (pid_t pid)
+{
+  hash_t key = siphash (&pid, sizeof (pid_t), 0);
+  hashmap_remove (pid_hashmap, key);
+}
+
+struct process *
+lookup_pid (pid_t pid)
+{
+  hash_t key = siphash (&pid, sizeof (pid_t), 0);
+  return hashmap_lookup (pid_hashmap, key);
 }

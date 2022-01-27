@@ -80,6 +80,12 @@ struct brk
   size_t max;                   /*!< Maximum size of program data segment */
 };
 
+struct cpid_table
+{
+  size_t len;                   /*!< Number of child PIDs */
+  pid_t *pids;                  /*!< Array of process IDs */
+};
+
 /*!
  * Represents a process. Processes have a unique ID and also store their
  * parent process's ID. Each process is assigned a priority, but currently
@@ -104,6 +110,7 @@ struct process
   struct fd_table fds;          /*!< File descriptor table */
   struct mmap_table mmaps;      /*!< Memory regions allocated to process */
   struct brk brk;               /*!< Program break */
+  struct cpid_table cpids;      /*!< Child process ID list */
 };
 
 /*!
@@ -126,6 +133,9 @@ extern struct fd *system_fd_table;
 void init_pid_allocator (void);
 pid_t alloc_pid (void);
 void free_pid (pid_t pid);
+void map_pid_process (pid_t pid, struct process *process);
+void unmap_pid (pid_t pid);
+struct process *lookup_pid (pid_t pid);
 
 int alloc_fd (void);
 void free_fd (int fd);

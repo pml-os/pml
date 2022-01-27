@@ -63,6 +63,13 @@ process_free (struct process *process)
   for (i = 0; i < process->threads.len; i++)
     thread_free (process->threads.queue[i]);
   free (process->threads.queue);
+  unmap_pid (process->pid);
+  for (i = 0; i < process->cpids.len; i++)
+    {
+      struct process *child = lookup_pid (process->cpids.pids[i]);
+      child->ppid = 1;
+    }
+  free (process->cpids.pids);
   free (process);
 }
 
@@ -107,6 +114,7 @@ process_enqueue (struct process *process)
     }
   queue[process_queue.len - 1] = process;
   process_queue.queue = queue;
+  map_pid_process (process->pid, process);
   thread_switch_lock = 0;
   return 0;
 }
@@ -157,6 +165,12 @@ process_fork (struct thread **t, int copy)
       if (process->fds.table[i])
 	process->fds.table[i]->count++;
     }
+
+  /* Add new process to child process table */
+  THIS_PROCESS->cpids.pids =
+    realloc (THIS_PROCESS->cpids.pids,
+	     sizeof (pid_t *) * ++THIS_PROCESS->cpids.len);
+  THIS_PROCESS->cpids.pids[THIS_PROCESS->cpids.len - 1] = process->pid;
   return process;
 
  err2:
