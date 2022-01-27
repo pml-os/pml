@@ -40,15 +40,20 @@ while IFS= read -r line; do
 	echo "	.global int_stub_$name" >> $stubs_file
 	echo "ASM_FUNC_BEGIN (int_stub_$name):" >> $stubs_file
 	if $error; then
-	    echo '	push	%rcx' >> $stubs_file
-	    echo '	mov	8(%rsp), %rcx' >> $stubs_file
+	    echo '	push	%rsi' >> $stubs_file
+	    echo '	mov	16(%rsp), %rsi' >> $stubs_file
+	    echo '	push	%rdi' >> $stubs_file
+	    echo '	mov	16(%rsp), %rdi' >> $stubs_file
+	else
+	    echo '	push	%rdi' >> $stubs_file
+	    echo '	mov	8(%rsp), %rdi' >> $stubs_file
 	fi
 	echo '	call	int_save_registers' >> $stubs_file
-	$error && echo '	mov	%rcx, %rdi' >> $stubs_file
 	echo "	call	int_$name" >> $stubs_file
 	echo '	call	int_restore_registers' >> $stubs_file
+	echo '	pop	%rdi' >> $stubs_file
 	if $error; then
-	    echo '	pop	%rcx' >> $stubs_file
+	    echo '	pop	%rsi' >> $stubs_file
 	    echo '	add	$8, %rsp' >> $stubs_file
 	fi
 	echo '	iretq' >> $stubs_file

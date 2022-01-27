@@ -18,112 +18,112 @@
 #include <pml/panic.h>
 
 void
-int_div_zero (void)
+int_div_zero (uintptr_t addr)
 {
   panic ("CPU exception: division by zero");
 }
 
 void
-int_debug (void)
+int_debug (uintptr_t addr)
 {
 }
 
 void
-int_nmi (void)
+int_nmi (uintptr_t addr)
 {
 }
 
 void
-int_breakpoint (void)
+int_breakpoint (uintptr_t addr)
 {
 }
 
 void
-int_overflow (void)
+int_overflow (uintptr_t addr)
 {
   panic ("CPU exception: overflow");
 }
 
 void
-int_bound_range (void)
+int_bound_range (uintptr_t addr)
 {
   panic ("CPU exception: bound range exceeded");
 }
 
 void
-int_bad_opcode (void)
+int_bad_opcode (uintptr_t addr)
 {
   panic ("CPU exception: invalid opcode");
 }
 
 void
-int_no_device (void)
+int_no_device (uintptr_t addr)
 {
   panic ("CPU exception: device not available");
 }
 
 void
-int_double_fault (unsigned long err)
+int_double_fault (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: double fault");
 }
 
 void
-int_bad_tss (unsigned long err)
+int_bad_tss (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: invalid TSS selector %#02lx", err);
 }
 
 void
-int_bad_segment (unsigned long err)
+int_bad_segment (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: invalid segment selector %#02lx", err);
 }
 
 void
-int_stack_segment (unsigned long err)
+int_stack_segment (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: stack-segment fault on selector %#02lx", err);
 }
 
 void
-int_gpf (unsigned long err)
+int_gpf (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: general protection fault (segment %#02lx)", err);
 }
 
 void
-int_fpu (void)
+int_fpu (uintptr_t addr)
 {
   panic ("CPU exception: x87 FPU exception");
 }
 
 void
-int_align_check (unsigned long err)
+int_align_check (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: alignment check");
 }
 
 void
-int_machine_check (void)
+int_machine_check (uintptr_t addr)
 {
   panic ("CPU exception: machine check");
 }
 
 void
-int_simd_fpu (void)
+int_simd_fpu (uintptr_t addr)
 {
   panic ("CPU exception: SIMD FPU exception");
 }
 
 void
-int_virtualization (void)
+int_virtualization (uintptr_t addr)
 {
   panic ("CPU exception: virtualization exception");
 }
 
 void
-int_security (unsigned long err)
+int_security (unsigned long err, uintptr_t addr)
 {
   panic ("CPU exception: security exception");
 }

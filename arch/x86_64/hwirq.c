@@ -19,38 +19,38 @@
 #include <pml/kbd.h>
 
 void
-int_ps2_keyboard (void)
+int_ps2_keyboard (uintptr_t addr)
 {
   kbd_recv_key (inb (PS2KBD_PORT_DATA));
   EOI (1);
 }
 
 void
-int_serial2 (void)
+int_serial2 (uintptr_t addr)
 {
   EOI (3);
 }
 
 void
-int_serial1 (void)
+int_serial1 (uintptr_t addr)
 {
   EOI (4);
 }
 
 void
-int_parallel2 (void)
+int_parallel2 (uintptr_t addr)
 {
   EOI (5);
 }
 
 void
-int_floppy_disk (void)
+int_floppy_disk (uintptr_t addr)
 {
   EOI (6);
 }
 
 void
-int_parallel1 (void)
+int_parallel1 (uintptr_t addr)
 {
   outb (PIC_8259_READ_ISR, PIC_8259_MASTER_COMMAND);
   if (inb (PIC_8259_MASTER_COMMAND) & 0x80)
@@ -59,31 +59,31 @@ int_parallel1 (void)
 }
 
 void
-int_acpi_control (void)
+int_acpi_control (uintptr_t addr)
 {
   EOI (9);
 }
 
 void
-int_peripheral1 (void)
+int_peripheral1 (uintptr_t addr)
 {
   EOI (10);
 }
 
 void
-int_peripheral2 (void)
+int_peripheral2 (uintptr_t addr)
 {
   EOI (11);
 }
 
 void
-int_ps2_mouse (void)
+int_ps2_mouse (uintptr_t addr)
 {
   EOI (12);
 }
 
 void
-int_coprocessor (void)
+int_coprocessor (uintptr_t addr)
 {
   EOI (13);
 }

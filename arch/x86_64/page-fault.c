@@ -29,10 +29,11 @@
  *
  * @todo implement signal throwing
  * @param err the error code pushed by the page fault exception
+ * @param inst_addr the address of the instruction that generated the page fault
  */
 
 void
-int_page_fault (unsigned long err)
+int_page_fault (unsigned long err, uintptr_t inst_addr)
 {
   uintptr_t addr;
   unsigned int pml4e;
@@ -145,5 +146,6 @@ int_page_fault (unsigned long err)
     }
 
  fatal:
-  panic ("CPU exception: page fault\nVirtual address: %p\n", addr);
+  panic ("CPU exception: page fault\nVirtual address: %p\nInstruction: %p",
+	 addr, inst_addr);
 }
