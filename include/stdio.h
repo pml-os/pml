@@ -19,7 +19,7 @@
 
 /*! @file */
 
-#include <pml/cdefs.h>
+#include <pml/tty.h>
 #include <stdarg.h>
 
 /*! Indicates the end of input. */
@@ -52,12 +52,13 @@ extern struct boot_options boot_options;
 void init_command_line (void);
 
 int putchar (int c);
-
 int printf (const char *__restrict__ fmt, ...);
+int tprintf (struct tty *tty, const char *__restrict__ fmt, ...);
 int sprintf (char *__restrict__ buffer, const char *__restrict__ fmt, ...);
 int snprintf (char *__restrict__ buffer, size_t len,
 	      const char *__restrict__ fmt, ...);
 int vprintf (const char *__restrict__ fmt, va_list args);
+int vtprintf (struct tty *tty, const char *__restrict__ fmt, va_list args);
 int vsprintf (char *__restrict__ buffer, const char *__restrict__ fmt,
 	      va_list args);
 int vsnprintf (char *__restrict__ buffer, size_t len,

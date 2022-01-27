@@ -16,17 +16,10 @@
 
 /*! @file */
 
-#include <pml/tty.h>
 #include <stdio.h>
 
 struct tty kernel_tty;
 struct tty *current_tty = &kernel_tty;
-
-int
-putchar (int c)
-{
-  return tty_putchar (current_tty, c);
-}
 
 /*!
  * Writes a character to a terminal.

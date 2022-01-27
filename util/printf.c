@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/*! @file */
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,8 +45,9 @@ write_buffer (char c, char *buffer, size_t index, size_t maxlen)
 static inline void
 write_tty (char c, char *buffer, size_t index, size_t maxlen)
 {
+  struct tty *tty = (struct tty *) buffer;
   if (c)
-    putchar (c);
+    tty_putchar (tty, c);
 }
 
 static unsigned int
@@ -414,6 +417,12 @@ print_internal (out_func_t func, char *buffer, size_t maxlen, const char *fmt,
   return index;
 }
 
+int
+putchar (int c)
+{
+  return tty_putchar (current_tty, c);
+}
+
 /*!
  * Kernel-space version of the C standard @c printf function. This
  * implementation writes to the kernel console and supports most of the
@@ -428,10 +437,31 @@ int
 printf (const char *fmt, ...)
 {
   va_list args;
-  char buffer[1];
   int ret;
   va_start (args, fmt);
-  ret = print_internal (write_tty, buffer, (size_t) -1, fmt, args);
+  ret =
+    print_internal (write_tty, (char *) current_tty, (size_t) -1, fmt, args);
+  va_end (args);
+  return ret;
+}
+
+/*!
+ * This function is a custom printf-like function that functions like normal
+ * printf(), but takes an additional argument specifying which TTY structure
+ * to print to.
+ *
+ * @param tty the TTY to print to
+ * @param fmt the printf-style format string
+ * @return the number of characters printed
+ */
+
+int
+tprintf (struct tty *tty, const char *fmt, ...)
+{
+  va_list args;
+  int ret;
+  va_start (args, fmt);
+  ret = print_internal (write_tty, (char *) tty, (size_t) -1, fmt, args);
   va_end (args);
   return ret;
 }
@@ -461,8 +491,13 @@ snprintf (char *buffer, size_t len, const char *fmt, ...)
 int
 vprintf (const char *fmt, va_list args)
 {
-  char buffer[1];
-  return print_internal (write_tty, buffer, (size_t) -1, fmt, args);
+  return vtprintf (current_tty, fmt, args);
+}
+
+int
+vtprintf (struct tty *tty, const char *fmt, va_list args)
+{
+  return print_internal (write_tty, (char *) tty, (size_t) -1, fmt, args);
 }
 
 int
