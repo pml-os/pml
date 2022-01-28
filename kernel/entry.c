@@ -48,7 +48,7 @@ fork_init (void)
       struct fd_table *fds = &THIS_PROCESS->fds;
       int fd;
       fds->size = 64;
-      fds->table = malloc (sizeof (struct fd *) * fds->size);
+      fds->table = calloc (sizeof (struct fd *), fds->size);
       if (UNLIKELY (!fds->table))
 	panic ("Failed to allocate file descriptor table");
       fds->max_size = 256;

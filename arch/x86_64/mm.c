@@ -419,7 +419,10 @@ free_pt (uintptr_t *pt)
   for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
     {
       if (pt[i] & PAGE_FLAG_PRESENT)
-	free_page (pt[i]);
+	{
+	  free_page (pt[i]);
+	  pt[i] = 0;
+	}
     }
 }
 
@@ -443,6 +446,7 @@ free_pdt (uintptr_t *pdt)
 	  uintptr_t *pt = (uintptr_t *) PHYS_REL (pt_phys);
 	  free_pt (pt);
 	  free_page (pt_phys);
+	  pdt[i] = 0;
 	}
     }
 }
@@ -467,6 +471,7 @@ free_pdpt (uintptr_t *pdpt)
 	  uintptr_t *pdt = (uintptr_t *) PHYS_REL (pdt_phys);
 	  free_pdt (pdt);
 	  free_page (pdt_phys);
+	  pdpt[i] = 0;
 	}
     }
 }
