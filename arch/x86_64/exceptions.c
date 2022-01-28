@@ -71,28 +71,28 @@ int_double_fault (unsigned long err, uintptr_t addr)
 void
 int_bad_tss (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: invalid TSS selector %#02lx\nInstruction: %p",
+  panic ("CPU exception: invalid TSS selector 0x%02lx\nInstruction: %p",
 	 err, addr);
 }
 
 void
 int_bad_segment (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: invalid segment selector %#02lx\nInstruction: %p",
+  panic ("CPU exception: invalid segment selector 0x%02lx\nInstruction: %p",
 	 err, addr);
 }
 
 void
 int_stack_segment (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: stack-segment fault on selector %#02lx\n"
+  panic ("CPU exception: stack-segment fault on selector 0x%02lx\n"
 	 "Instruction: %p", err, addr);
 }
 
 void
 int_gpf (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: general protection fault (segment %#02lx)\n"
+  panic ("CPU exception: general protection fault (segment 0x%02lx)\n"
 	 "Instruction: %p", err, addr);
 }
 
