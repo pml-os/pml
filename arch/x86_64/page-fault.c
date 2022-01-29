@@ -53,7 +53,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 
   /* Check if the error was caused by an attempted write to a read-only
      page that needs to be copied-on-write */
-  if (err == 7)
+  if (err & 4)
     {
       thread_switch_lock = 1;
       pml4t = THIS_THREAD->args.pml4t;

@@ -64,6 +64,8 @@ alloc_procfd (void)
       struct fd **table = realloc (fds->table, sizeof (struct fd *) * new_size);
       if (UNLIKELY (!table))
 	return -1;
+      memset (table + fds->size, 0,
+	      sizeof (struct fd *) * (new_size - fds->size));
       fds->table = table;
       fds->size = new_size;
       if (fds->curr >= fds->size)
