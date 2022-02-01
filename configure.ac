@@ -45,16 +45,16 @@ case "$bootdir" in
 esac
 AC_SUBST([bootdir])
 
-AC_ARG_WITH([gdb-scripts],
-AS_HELP_STRING([--with-gdb-scripts], [embed GDB scripts in kernel executable]),
-[if test "x$with_gdb_scripts" != xno; then
+AC_ARG_WITH([gdb-script],
+AS_HELP_STRING([--with-gdb-script], [embed GDB script in kernel executable]),
+[if test "x$with_gdb_script" != xno; then
     AC_PATH_PROG([XXD], [xxd], [no])
     if test "x$XXD" = xno; then
-	AC_MSG_ERROR([xxd program is required to build inline GDB scripts])
+	AC_MSG_ERROR([xxd program is required to build inline GDB script])
     fi
     AC_SUBST([XXD])
-fi], [with_gdb_scripts=no])
-AM_CONDITIONAL([GDB_SCRIPTS], [test "x$with_gdb_scripts" != xno])
+fi], [with_gdb_script=no])
+AM_CONDITIONAL([GDB_SCRIPT], [test "x$with_gdb_script" != xno])
 
 PML_DEFAULT_FEATURE([apic], [USE_APIC],
 [disable interrupt management with the APIC],

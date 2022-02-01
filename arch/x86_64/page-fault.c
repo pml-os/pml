@@ -72,8 +72,11 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	    goto fatal;
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
-	      np[i] = cp[i] | PAGE_FLAG_COW;
-	      np[i] &= ~PAGE_FLAG_RW;
+	      if (cp[i] & PAGE_FLAG_PRESENT)
+		{
+		  np[i] = cp[i] | PAGE_FLAG_COW;
+		  np[i] &= ~PAGE_FLAG_RW;
+		}
 	    }
 	  free_page (pml4t[pml4e]);
 	  pml4t[pml4e] = page | PAGE_FLAG_RW | (pml4t[pml4e] & (PAGE_SIZE - 1));
@@ -94,8 +97,11 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	    goto fatal;
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
-	      np[i] = cp[i] | PAGE_FLAG_COW;
-	      np[i] &= ~PAGE_FLAG_RW;
+	      if (cp[i] & PAGE_FLAG_PRESENT)
+		{
+		  np[i] = cp[i] | PAGE_FLAG_COW;
+		  np[i] &= ~PAGE_FLAG_RW;
+		}
 	    }
 	  free_page (pdpt[pdpe]);
 	  pdpt[pdpe] = page | PAGE_FLAG_RW | (pdpt[pdpe] & (PAGE_SIZE - 1));
@@ -116,8 +122,11 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	    goto fatal;
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
-	      np[i] = cp[i] | PAGE_FLAG_COW;
-	      np[i] &= ~PAGE_FLAG_RW;
+	      if (cp[i] & PAGE_FLAG_PRESENT)
+		{
+		  np[i] = cp[i] | PAGE_FLAG_COW;
+		  np[i] &= ~PAGE_FLAG_RW;
+		}
 	    }
 	  free_page (pdt[pde]);
 	  pdt[pde] = page | PAGE_FLAG_RW | (pdt[pde] & (PAGE_SIZE - 1));

@@ -22,17 +22,15 @@ kernel_SOURCES =	\
 	mman.c		\
 	pid.c		\
 	process.c
-if GDB_SCRIPTS
-nodist_kernel_SOURCES = gdb-scripts.c
+if GDB_SCRIPT
+nodist_kernel_SOURCES = gdb-script.c
 endif
 
 kernel_LDFLAGS = -T $(link_script) -nostdlib -z max-page-size=4096
 kernel_LDADD = $(component_libs) $(component_libs) -lgcc
 kernel_DEPENDENCIES = $(link_script) $(component_libs)
 
-BUILT_SOURCES = gdb-scripts.c
-CLEANFILES = gdb-scripts.c
+BUILT_SOURCES = gdb-script.c
 
-gdb-scripts.c: gdb-scripts.lst gdb-scripts.c.in gengdbscripts.sh
-	$(AM_V_GEN)XXD=$(XXD) $(srcdir)/gengdbscripts.sh $< \
-	    $(srcdir)/gdb-scripts.c.in $(top_srcdir)
+gdb-script.c: $(top_srcdir)/contrib/gdb.py gengdbscript.sh
+	$(AM_V_GEN)XXD=$(XXD) $(srcdir)/gengdbscript.sh $< pml.gdb
