@@ -85,7 +85,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 
       pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
       pdpe = PDPT_INDEX (addr);
-      if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
+      if ((pdpt[pdpe] & PAGE_FLAG_SIZE) || !(pdpt[pdpe] & PAGE_FLAG_PRESENT))
 	goto fatal;
       if (pdpt[pdpe] & PAGE_FLAG_COW)
 	{
@@ -110,7 +110,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 
       pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
       pde = PDT_INDEX (addr);
-      if (!(pdt[pde] & PAGE_FLAG_PRESENT))
+      if ((pdt[pde] & PAGE_FLAG_SIZE) || !(pdt[pde] & PAGE_FLAG_PRESENT))
 	goto fatal;
       if (pdt[pde] & PAGE_FLAG_COW)
 	{

@@ -240,6 +240,7 @@ thread_clone (struct thread *thread, int copy)
   tlp = alloc_virtual_page ();
   if (UNLIKELY (!tlp))
     goto err2;
+
   if (copy)
     {
       for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
@@ -252,15 +253,8 @@ thread_clone (struct thread *thread, int copy)
 	    }
 	}
     }
+
   memcpy (pml4t, thread->args.pml4t, PAGE_STRUCT_SIZE);
-  for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
-    {
-      if (pml4t[i] & PAGE_FLAG_PRESENT)
-	{
-	  ref_page (pml4t[i]);
-	  ref_pdpt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[i], PAGE_SIZE)));
-	}
-    }
   pml4t[PML4T_INDEX (THREAD_LOCAL_BASE_VMA)] = ((uintptr_t) tlp - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   for (addr = thread->args.stack_base;
@@ -292,6 +286,16 @@ thread_clone (struct thread *thread, int copy)
 	{
 	  free_page (page);
 	  goto err3;
+	}
+    }
+
+  /* Add another reference to all forked pages */
+  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
+    {
+      if (pml4t[i] & PAGE_FLAG_PRESENT)
+	{
+	  ref_page (pml4t[i]);
+	  ref_pdpt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[i], PAGE_SIZE)));
 	}
     }
   return t;

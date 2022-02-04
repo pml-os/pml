@@ -16,8 +16,6 @@
 
 #include <pml/asm.h>
 
-	/* Note: Saving and restoring registers in SSE mode uses 368 bytes */
-
 	.global int_save_registers
 ASM_FUNC_BEGIN (int_save_registers):
 	/* Save return pointer and write RAX */

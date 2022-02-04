@@ -376,7 +376,7 @@ ref_pdt (uintptr_t *pdt)
   size_t i;
   for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
     {
-      if (pdt[i] & PAGE_FLAG_PRESENT)
+      if ((pdt[i] & PAGE_FLAG_PRESENT) && !(pdt[i] & PAGE_FLAG_SIZE))
 	{
 	  ref_page (pdt[i]);
 	  ref_pt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[i], PAGE_SIZE)));
@@ -397,7 +397,7 @@ ref_pdpt (uintptr_t *pdpt)
   size_t i;
   for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
     {
-      if (pdpt[i] & PAGE_FLAG_PRESENT)
+      if ((pdpt[i] & PAGE_FLAG_PRESENT) && !(pdpt[i] & PAGE_FLAG_SIZE))
 	{
 	  ref_page (pdpt[i]);
 	  ref_pdt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[i], PAGE_SIZE)));
