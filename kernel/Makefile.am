@@ -20,6 +20,7 @@ kernel_SOURCES =	\
 	fd.c		\
 	heap.c		\
 	mman.c		\
+	panic.c		\
 	pid.c		\
 	process.c
 if GDB_SCRIPT

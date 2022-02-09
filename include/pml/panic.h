@@ -1,4 +1,4 @@
-/* panic.S -- This file is part of PML.
+/* panic.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,25 +14,20 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/asm.h>
+#ifndef __PML_PANIC_H
+#define __PML_PANIC_H
 
-	.section .text
-	.global __panic
-ASM_FUNC_BEGIN (__panic):
-	cli
-	call	panic_print_message
-	movabs	$panic_registers, %rax
-	pushq	56(%rax)
-	pushq	48(%rax)
-	mov	40(%rax), %r9
-	mov	32(%rax), %r8
-	mov	24(%rax), %rcx
-	mov	16(%rax), %rdx
-	mov	8(%rax), %rsi
-	mov	(%rax), %rdi
-	call	panic_print_registers
+/*!
+ * @file
+ * @brief Contains a kernel panic function
+ */
 
-1:
-	hlt
-	jmp	1b
-ASM_FUNC_END (__panic)
+#include <pml/cdefs.h>
+
+__BEGIN_DECLS
+
+void panic (const char *__restrict__ fmt, ...) __cold __noreturn;
+
+__END_DECLS
+
+#endif

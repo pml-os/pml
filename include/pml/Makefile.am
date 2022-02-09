@@ -18,7 +18,6 @@ nodist_pmlinclude_HEADERS = \
 	io.h		\
 	interrupt.h	\
 	memory.h	\
-	panic.h		\
 	serial.h	\
 	syscall.h	\
 	thread.h
@@ -43,6 +42,7 @@ pmlinclude_HEADERS =	\
 	map.h		\
 	mman.h		\
 	object.h	\
+	panic.h		\
 	pci.h		\
 	pit.h		\
 	process.h	\

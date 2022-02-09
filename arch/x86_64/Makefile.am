@@ -29,8 +29,6 @@ libarch_a_SOURCES =	\
 	mm.c		\
 	multiboot.c	\
 	page-fault.c	\
-	panic.S		\
-	panic-print.c	\
 	pic8259.c	\
 	rtc.c		\
 	save-reg.S	\

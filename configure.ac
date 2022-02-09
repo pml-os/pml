@@ -66,7 +66,9 @@ PML_DEFAULT_FEATURE([smp], [ENABLE_SMP],
 
 PML_CC_VEC
 
-AC_CHECK_HEADERS([elf.h], [], AC_MSG_ERROR([elf.h not found]))
+# For autoconf 2.69, CFLAGS seems to not take effect here so only issue
+# a warning if elf.h isn't found since it might be available when compiling
+AC_CHECK_HEADERS([elf.h], [], AC_MSG_WARN([elf.h not found]))
 
 CFLAGS="$save_CFLAGS"
 LDFLAGS="$save_LDFLAGS"
@@ -79,7 +81,6 @@ kernel/boot.S:$ARCH_DIR/boot.S
 include/pml/io.h:include/pml/$ARCH/io.h
 include/pml/interrupt.h:include/pml/$ARCH/interrupt.h
 include/pml/memory.h:include/pml/$ARCH/memory.h
-include/pml/panic.h:include/pml/$ARCH/panic.h
 include/pml/serial.h:include/pml/$ARCH/serial.h
 include/pml/thread.h:include/pml/$ARCH/thread.h
 ])
