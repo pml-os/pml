@@ -169,6 +169,24 @@ class PageState(gdb.Command):
         gdb.execute('print phys_alloc_table[(uintptr_t) ({}) >> 12]'
                     .format(arg), from_tty)
 
+class InterruptsOff(gdb.Command):
+    '''Disables hardware interrupts.'''
+
+    def __init__(self):
+        super(InterruptsOff, self).__init__('int-off', gdb.COMMAND_RUNNING)
+
+    def invoke(self, arg, from_tty):
+        gdb.execute('set $eflags = $eflags & ~0x200', from_tty)
+
+class InterruptsOn(gdb.Command):
+    '''Enables hardware interrupts.'''
+
+    def __init__(self):
+        super(InterruptsOn, self).__init__('int-on', gdb.COMMAND_RUNNING)
+
+    def invoke(self, arg, from_tty):
+        gdb.execute('set $eflags = $eflags | 0x200', from_tty)
+
 ExcUp()
 PrintPage()
 ThisProcess()
@@ -177,6 +195,8 @@ Relocate()
 PML4T()
 PrintPageIndex()
 PageState()
+InterruptsOff()
+InterruptsOn()
 
 gdb.execute('alias -a asf = add-symbol-file')
 gdb.execute('alias -a ppage = print-page')

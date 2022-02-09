@@ -17,11 +17,6 @@
 #include <pml/asm.h>
 #include <pml/memory.h>
 
-	.section .bss
-	.skip 16384
-	.global int_stack_top
-int_stack_top:
-
 	.section .text
 	.global syscall
 ASM_FUNC_BEGIN (syscall):
