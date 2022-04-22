@@ -66,7 +66,8 @@ process_free (struct process *process)
   for (i = 0; i < process->cpids.len; i++)
     {
       struct process *child = lookup_pid (process->cpids.pids[i]);
-      child->ppid = 1;
+      if (LIKELY (child))
+	child->ppid = 1;
     }
   free (process->cpids.pids);
   free (process);

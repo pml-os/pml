@@ -106,7 +106,8 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
   /* Switch to the next unblocked thread in the current process */
   do
     {
-      if (++THIS_PROCESS->threads.front == THIS_PROCESS->threads.len)
+      if (exit_process == process_queue.front
+	  || ++THIS_PROCESS->threads.front == THIS_PROCESS->threads.len)
 	{
 	  /* All threads have executed, go to the next process */
 	  THIS_PROCESS->threads.front = 0;

@@ -86,6 +86,8 @@ struct thread_list
 
 __BEGIN_DECLS
 
+extern unsigned int exit_process;
+
 void sched_init (void);
 void sched_exec (void *addr, char *const *argv, char *const *envp) __noreturn;
 void sched_yield (void);
