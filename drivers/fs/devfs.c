@@ -20,7 +20,6 @@
 #include <pml/devfs.h>
 #include <pml/device.h>
 #include <pml/memory.h>
-#include <pml/process.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

@@ -83,7 +83,7 @@ void
 init_gdt (void)
 {
   uintptr_t tss = (uintptr_t) &kernel_tss;
-  kernel_tss.rsp0 = KERNEL_STACK_TOP_VMA;
+  kernel_tss.rsp0 = INTERRUPT_STACK_TOP_VMA;
 
   gdt_table[0] = gdt_entry (0, 0, 0, 0, 0, 0, 0);
   gdt_table[1] = gdt_entry (0, 0xffffffff, 1, 0, 1, 0, 0);

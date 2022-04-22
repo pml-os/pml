@@ -17,7 +17,6 @@
 /*! @file */
 
 #include <pml/fcntl.h>
-#include <pml/process.h>
 #include <pml/syscall.h>
 #include <errno.h>
 #include <string.h>

@@ -18,8 +18,9 @@
 
 	.global int_save_registers
 ASM_FUNC_BEGIN (int_save_registers):
-	/* Save return pointer and write RAX */
+	/* Save return pointer, RAX, and flags */
 	xchg	%rax, (%rsp)
+	pushf
 
 	/* Save other general-purpose registers */
 	push	%rcx
@@ -151,7 +152,8 @@ ASM_FUNC_BEGIN (int_restore_registers):
 	pop	%rdx
 	pop	%rcx
 
-	/* Restore RAX and jump to saved pointer */
+	/* Restore RAX, flags, and jump to saved pointer */
+	popf
 	xchg	%rax, (%rsp)
 	ret
 ASM_FUNC_END (int_restore_registers)

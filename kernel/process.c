@@ -16,7 +16,6 @@
 
 /*! @file */
 
-#include <pml/process.h>
 #include <errno.h>
 #include <string.h>
 

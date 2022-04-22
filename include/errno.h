@@ -22,8 +22,8 @@
  * @brief Kernel error constants and macros
  */
 
-#include <pml/cdefs.h>
 #include <pml/errno.h>
+#include <pml/process.h>
 
 /*!
  * Sets the kernel @c errno value and returns from the calling function.
@@ -69,9 +69,17 @@
     }						\
   while (0)
 
+/*!
+ * Expands to an expression representing the thread-local error number.
+ * This value is modified by many functions in the kernel and is sent
+ * to user-space if nonzero when returning from a system call.
+ */
+
+#define errno THIS_THREAD->error
+
 __BEGIN_DECLS
 
-extern int errno;
+int *get_errno (void);
 
 __END_DECLS
 

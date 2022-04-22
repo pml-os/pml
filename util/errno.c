@@ -19,8 +19,14 @@
 #include <errno.h>
 
 /*!
- * The kernel-mode @c errno variable. Stores the reason why a previous
- * function call was unsuccessful.
+ * Retrieves the location of the thread-local errno variable. This function
+ * is useful for assembly code needing to read or write to errno.
+ *
+ * @return a pointer to the errno variable
  */
 
-int errno;
+int *
+get_errno (void)
+{
+  return &errno;
+}

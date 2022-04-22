@@ -19,7 +19,6 @@
 #include <pml/devfs.h>
 #include <pml/ext2fs.h>
 #include <pml/panic.h>
-#include <pml/process.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

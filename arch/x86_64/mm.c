@@ -19,7 +19,6 @@
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <pml/multiboot.h>
-#include <pml/process.h>
 #include <errno.h>
 #include <string.h>
 
@@ -27,6 +26,7 @@ extern void *boot_stack;
 
 static uintptr_t kernel_stack_pdt[PAGE_STRUCT_ENTRIES] __page_align;
 static uintptr_t kernel_stack_pt[PAGE_STRUCT_ENTRIES] __page_align;
+static unsigned char kernel_syscall_stack[KERNEL_STACK_SIZE] __page_align;
 static int mem_avail;
 
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];

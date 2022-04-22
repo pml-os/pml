@@ -58,6 +58,7 @@ struct thread
   struct process *process;      /*!< Process this thread belongs to */
   struct thread_args args;      /*!< Properties of thread */
   int state;                    /*!< Thread state */
+  int error;                    /*!< Thread-local error number (errno) */
 };
 
 /*!

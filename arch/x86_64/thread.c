@@ -18,7 +18,6 @@
 
 #include <pml/alloc.h>
 #include <pml/memory.h>
-#include <pml/process.h>
 #include <errno.h>
 #include <string.h>
 
@@ -34,9 +33,10 @@ sched_init (void)
 {
   kernel_thread.args.pml4t = kernel_pml4t;
   kernel_thread.args.stack_base =
-    (void *) (PROCESS_STACK_BASE_VMA + 0x3fffc000);
-  kernel_thread.args.stack_size = 16384;
+    (void *) (PROCESS_STACK_TOP_VMA - KERNEL_STACK_SIZE);
+  kernel_thread.args.stack_size = KERNEL_STACK_SIZE;
   kernel_thread.state = THREAD_STATE_RUNNING;
+  kernel_thread.error = 0;
   kernel_process.threads.queue = malloc (sizeof (struct thread *));
   kernel_process.threads.queue[0] = &kernel_thread;
   kernel_process.threads.len = 1;
@@ -231,6 +231,7 @@ thread_clone (struct thread *thread, int copy)
     goto err1;
   t->process = NULL;
   t->state = THREAD_STATE_RUNNING;
+  t->error = thread->error;
   t->args.pml4t = pml4t;
   t->args.stack = thread->args.stack;
   t->args.stack_base = thread->args.stack_base;
@@ -276,7 +277,22 @@ thread_clone (struct thread *thread, int copy)
   for (i = 0; i < KERNEL_STACK_SIZE; i += PAGE_SIZE)
     {
       uintptr_t page = alloc_page ();
-      addr = (void *) (KERNEL_STACK_TOP_VMA - PAGE_SIZE - i);
+      addr = (void *) (INTERRUPT_STACK_TOP_VMA - PAGE_SIZE - i);
+      if (UNLIKELY (!page))
+	goto err3;
+      memcpy ((void *) PHYS_REL (page),
+	      (void *) PHYS_REL (vm_phys_addr (thread->args.pml4t, addr)),
+	      PAGE_SIZE);
+      if (vm_map_page (pml4t, page, addr, PAGE_FLAG_RW | PAGE_FLAG_USER))
+	{
+	  free_page (page);
+	  goto err3;
+	}
+    }
+  for (i = 0; i < KERNEL_STACK_SIZE; i += PAGE_SIZE)
+    {
+      uintptr_t page = alloc_page ();
+      addr = (void *) (SYSCALL_STACK_TOP_VMA - PAGE_SIZE - i);
       if (UNLIKELY (!page))
 	goto err3;
       memcpy ((void *) PHYS_REL (page),

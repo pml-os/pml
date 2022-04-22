@@ -30,26 +30,44 @@ ASM_FUNC_BEGIN (syscall):
 	push	%r9
 	push	%r10
 	push	%r11
-	mov	%r10, %rcx
 
 	/* Switch stacks */
 	mov	%rsp, %rbp
-	movabs	$KERNEL_STACK_TOP_VMA, %rsp
+	movabs	$SYSCALL_STACK_TOP_VMA, %rsp
 	push	%rbp
 
-	/* Clear error value and call function in syscall table */
-	movabs	$errno, %rbx
-	movl	$0, (%rbx)
-	movabs	$syscall_table, %rbx
-	mov	(%rbx,%rax,8), %rax
+	push	%rdi
+	push	%rsi
+	push	%rdx
+	push	%r10
+	push	%r8
+	push	%r9
+
+	/* Clear error value */
+	mov	%eax, %ebx
+	call	get_errno
+	movl	$0, (%rax)
+
+	pop	%r9
+	pop	%r8
+	pop	%r10
+	pop	%rdx
+	pop	%rsi
+	pop	%rdi
+	mov	%r10, %rcx
+
+	/* Call function in syscall table */
+	movabs	$syscall_table, %rax
+	mov	(%rax,%rbx,8), %rax
 	call	*%rax
 
-	/* Error occurred, return errno value and set carry flag */
-	movabs	$errno, %rbx
-	mov	(%rbx), %ebx
-	test	%ebx, %ebx
+	/* If an error occurred, return errno value and set carry flag */
+	mov	%rax, %rbx
+	call	get_errno
+	mov	(%rax), %ecx
+	test	%ecx, %ecx
 	jz	1f
-	mov	%ebx, %eax
+	mov	%ecx, %ebx
 	mov	(%rsp), %rsp
 	pop	%r11
 	or	$0x0001, %r11
@@ -59,6 +77,7 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rsp), %rsp
 	pop	%r11
 2:
+	mov	%rbx, %rax
 	pop	%r10
 	pop	%r9
 	pop	%r8

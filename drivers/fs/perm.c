@@ -16,7 +16,6 @@
 
 /*! @file */
 
-#include <pml/process.h>
 #include <errno.h>
 
 /*! Macro to pass a VFS permission check. */

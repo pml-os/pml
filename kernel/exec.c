@@ -17,7 +17,6 @@
 /*! @file */
 
 #include <pml/elf.h>
-#include <pml/process.h>
 #include <pml/memory.h>
 #include <pml/mman.h>
 #include <pml/syscall.h>

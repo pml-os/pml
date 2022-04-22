@@ -14,9 +14,9 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-#include <pml/process.h>
 #include <pml/syscall.h>
 #include <errno.h>
+#include <stdio.h>
 
 pid_t
 sys_clone (int (*func) (void *), void *arg)
