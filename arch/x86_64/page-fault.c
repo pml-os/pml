@@ -70,12 +70,14 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	    (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
 	  if (UNLIKELY (!page))
 	    goto fatal;
+	  memset (np, 0, PAGE_SIZE);
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
 	      if (cp[i] & PAGE_FLAG_PRESENT)
 		{
 		  np[i] = cp[i] | PAGE_FLAG_COW;
 		  np[i] &= ~PAGE_FLAG_RW;
+		  ref_page (np[i]);
 		}
 	    }
 	  free_page (pml4t[pml4e]);
@@ -95,12 +97,14 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	    (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
 	  if (UNLIKELY (!page))
 	    goto fatal;
+	  memset (np, 0, PAGE_SIZE);
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
 	      if (cp[i] & PAGE_FLAG_PRESENT)
 		{
 		  np[i] = cp[i] | PAGE_FLAG_COW;
 		  np[i] &= ~PAGE_FLAG_RW;
+		  ref_page (np[i]);
 		}
 	    }
 	  free_page (pdpt[pdpe]);
@@ -120,12 +124,14 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	    (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
 	  if (UNLIKELY (!page))
 	    goto fatal;
+	  memset (np, 0, PAGE_SIZE);
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
 	      if (cp[i] & PAGE_FLAG_PRESENT)
 		{
 		  np[i] = cp[i] | PAGE_FLAG_COW;
 		  np[i] &= ~PAGE_FLAG_RW;
+		  ref_page (np[i]);
 		}
 	    }
 	  free_page (pdt[pde]);

@@ -308,11 +308,8 @@ thread_clone (struct thread *thread, int copy)
   /* Add another reference to all forked pages */
   for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
     {
-      if (pml4t[i] & PAGE_FLAG_PRESENT)
-	{
-	  ref_page (pml4t[i]);
-	  ref_pdpt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[i], PAGE_SIZE)));
-	}
+      if ((pml4t[i] & PAGE_FLAG_PRESENT) && (pml4t[i] & PAGE_FLAG_COW))
+	ref_page (pml4t[i]);
     }
   return t;
 
@@ -344,7 +341,6 @@ thread_free_user_mem (struct thread *thread)
       if (thread->args.pml4t[i] & PAGE_FLAG_PRESENT)
 	{
 	  uintptr_t pdpt = ALIGN_DOWN (thread->args.pml4t[i], PAGE_SIZE);
-	  free_pdpt ((uintptr_t *) PHYS_REL (pdpt));
 	  free_page (pdpt);
 	}
     }
