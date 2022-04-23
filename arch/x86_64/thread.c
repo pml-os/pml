@@ -247,12 +247,22 @@ thread_clone (struct thread *thread, int copy)
     {
       for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
 	{
-	  /*! Mark allocated pages as copy-on-write */
+	  /* Mark allocated pages as copy-on-write */
 	  if (thread->args.pml4t[i] & PAGE_FLAG_PRESENT)
 	    {
 	      thread->args.pml4t[i] &= ~PAGE_FLAG_RW;
 	      thread->args.pml4t[i] |= PAGE_FLAG_COW;
 	    }
+	}
+    }
+  for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
+    {
+      /* Add another reference to all user pages */
+      if (thread->args.pml4t[i] & PAGE_FLAG_PRESENT)
+	{
+	  ref_page (thread->args.pml4t[i]);
+	  ref_pdpt ((uintptr_t *) PHYS_REL (ALIGN_DOWN (thread->args.pml4t[i],
+							PAGE_SIZE)));
 	}
     }
 
@@ -305,13 +315,6 @@ thread_clone (struct thread *thread, int copy)
 	  goto err3;
 	}
     }
-
-  /* Add another reference to all forked pages */
-  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
-    {
-      if ((pml4t[i] & PAGE_FLAG_PRESENT) && (pml4t[i] & PAGE_FLAG_COW))
-	ref_page (pml4t[i]);
-    }
   return t;
 
  err3:
@@ -343,6 +346,7 @@ thread_free_user_mem (struct thread *thread)
 	{
 	  uintptr_t pdpt = ALIGN_DOWN (thread->args.pml4t[i], PAGE_SIZE);
 	  free_page (pdpt);
+	  free_pdpt ((uintptr_t *) PHYS_REL (pdpt));
 	}
     }
 }

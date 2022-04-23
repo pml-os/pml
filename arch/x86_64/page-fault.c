@@ -77,7 +77,6 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 		{
 		  np[i] = cp[i] | PAGE_FLAG_COW;
 		  np[i] &= ~PAGE_FLAG_RW;
-		  ref_page (np[i]);
 		}
 	    }
 	  free_page (pml4t[pml4e]);
@@ -104,7 +103,6 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 		{
 		  np[i] = cp[i] | PAGE_FLAG_COW;
 		  np[i] &= ~PAGE_FLAG_RW;
-		  ref_page (np[i]);
 		}
 	    }
 	  free_page (pdpt[pdpe]);
@@ -131,7 +129,6 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 		{
 		  np[i] = cp[i] | PAGE_FLAG_COW;
 		  np[i] &= ~PAGE_FLAG_RW;
-		  ref_page (np[i]);
 		}
 	    }
 	  free_page (pdt[pde]);

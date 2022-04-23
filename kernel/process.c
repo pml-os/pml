@@ -63,6 +63,11 @@ process_free (struct process *process)
     thread_free (process->threads.queue[i]);
   free (process->threads.queue);
   unmap_pid (process->pid);
+  for (i = 0; i < process->fds.size; i++)
+    {
+      if (process->fds.table[i])
+	process->fds.table[i]->count--;
+    }
   for (i = 0; i < process->cpids.len; i++)
     {
       struct process *child = lookup_pid (process->cpids.pids[i]);
