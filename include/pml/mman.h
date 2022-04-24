@@ -24,10 +24,10 @@
 
 #include <pml/cdefs.h>
 
-#define PROT_NONE               (1 << 0)    /*!< Memory is not accessible */
-#define PROT_READ               (1 << 1)    /*!< Memory may be read */
-#define PROT_WRITE              (1 << 2)    /*!< Memory may be written */
-#define PROT_EXEC               (1 << 3)    /*!< Memory may be executed */
+#define PROT_NONE               0           /*!< Memory is not accessible */
+#define PROT_READ               (1 << 0)    /*!< Memory may be read */
+#define PROT_WRITE              (1 << 1)    /*!< Memory may be written */
+#define PROT_EXEC               (1 << 2)    /*!< Memory may be executed */
 
 /*!
  * Stores info about an allocated region in the user-space half of an

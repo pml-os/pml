@@ -133,6 +133,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
       pml4t[pml4e] = alloc_page ();
       if (UNLIKELY (!pml4t[pml4e]))
 	return -1;
+      memset ((void *) PHYS_REL (pml4t[pml4e]), 0, PAGE_STRUCT_SIZE);
       pml4t[pml4e] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
     }
 
@@ -141,9 +142,9 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
   if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
     {
       pdpt[pdpe] = alloc_page ();
-      memset ((void *) PHYS_REL (pdpt[pdpe]), 0, PAGE_STRUCT_SIZE);
       if (UNLIKELY (!pdpt[pdpe]))
 	return -1;
+      memset ((void *) PHYS_REL (pdpt[pdpe]), 0, PAGE_STRUCT_SIZE);
       pdpt[pdpe] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
     }
   if (pdpt[pdpe] & PAGE_FLAG_SIZE)
@@ -154,9 +155,9 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
   if (!(pdt[pde] & PAGE_FLAG_PRESENT))
     {
       pdt[pde] = alloc_page ();
-      memset ((void *) PHYS_REL (pdt[pde]), 0, PAGE_STRUCT_SIZE);
       if (UNLIKELY (!pdt[pde]))
 	return -1;
+      memset ((void *) PHYS_REL (pdt[pde]), 0, PAGE_STRUCT_SIZE);
       pdt[pde] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
     }
   if (pdt[pde] & PAGE_FLAG_SIZE)
@@ -474,21 +475,23 @@ free_pdpt (uintptr_t *pdpt)
 }
 
 /*!
- * Frees all user-space memory allocated to the current thread.
+ * Frees all user-space memory in a PML4T structure.
+ *
+ * @param pml4t the PML4T structure
  */
 
 void
-vm_unmap_user_mem (void)
+vm_unmap_user_mem (uintptr_t *pml4t)
 {
   size_t i;
   for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
     {
-      if (THIS_THREAD->args.pml4t[i] & PAGE_FLAG_PRESENT)
+      if (pml4t[i] & PAGE_FLAG_PRESENT)
 	{
-	  uintptr_t pdpt = ALIGN_DOWN (THIS_THREAD->args.pml4t[i], PAGE_SIZE);
+	  uintptr_t pdpt = ALIGN_DOWN (pml4t[i], PAGE_SIZE);
 	  free_pdpt ((uintptr_t *) PHYS_REL (pdpt));
 	  free_page (pdpt);
-	  THIS_THREAD->args.pml4t[i] = 0;
+	  pml4t[i] = 0;
 	}
     }
 }

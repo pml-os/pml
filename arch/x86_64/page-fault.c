@@ -23,6 +23,12 @@
 #include <pml/process.h>
 #include <string.h>
 
+static char *present_msg[] = {"non-present page", "protection violation"};
+static char *write_msg[] = {"read access", "write access"};
+static char *user_msg[] = {"supervisor mode", "user mode"};
+static char *reserved_msg[] = {"", ", reserved write"};
+static char *inst_msg[] = {"", ", instruction fetch"};
+
 /*!
  * Handles a page fault. This function will perform necessary copying-on-writes
  * and deliver a fatal kernel panic if the exception cannot be handled.
@@ -53,9 +59,8 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
   if (!THIS_PROCESS->pid)
     goto fatal;
 
-  /* Check if the error was caused by an attempted write to a read-only
-     page that needs to be copied-on-write */
-  if (err & 4)
+  /* Check for copy-on-write */
+  if (err & PAGE_ERR_USER)
     {
       thread_switch_lock = 1;
       pml4t = THIS_THREAD->args.pml4t;
@@ -161,6 +166,10 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 
  fatal:
   panic ("CPU exception: page fault\nVirtual address: %p\nInstruction: %p\n"
-	 "CR3: %p\nPID: %d\nTID: %d\n",
-	 addr, inst_addr, cr3, THIS_PROCESS->pid, THIS_THREAD->tid);
+	 "Attributes: %s, %s, %s%s%s\nCR3: %p\nPID: %d\nTID: %d\n",
+	 addr, inst_addr, present_msg[!!(err & PAGE_ERR_PRESENT)],
+	 write_msg[!!(err & PAGE_ERR_WRITE)], user_msg[!!(err & PAGE_ERR_USER)],
+	 reserved_msg[!!(err & PAGE_ERR_RESERVED)],
+	 inst_msg[!!(err & PAGE_ERR_INST)], cr3, THIS_PROCESS->pid,
+	 THIS_THREAD->tid);
 }

@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/alloc.h>
 #include <pml/elf.h>
 #include <pml/memory.h>
 #include <pml/mman.h>
@@ -25,8 +26,49 @@
 #include <string.h>
 
 /*!
+ * Maps a continuous region of virtual memory. This function is used to
+ * map memory in preparation for loading an ELF file's code or data.
+ *
+ * @param base starting virtual address to map
+ * @param len number of bytes to map
+ * @param prot mmap-style protection flags for the memory region
+ * @return zero on success
+ */
+
+int
+elf_mmap (void *base, size_t len, int prot)
+{
+  void *ptr;
+  void *cptr;
+  int flags = PAGE_FLAG_USER;
+  if (prot & PROT_WRITE)
+    flags |= PAGE_FLAG_RW;
+
+  for (ptr = ALIGN_DOWN (base, PAGE_SIZE);
+       ptr < ALIGN_UP (base + len, PAGE_SIZE); ptr += PAGE_SIZE)
+    {
+      uintptr_t page = alloc_page ();
+      if (UNLIKELY (!page))
+	goto err0;
+      memset ((void *) PHYS_REL (page), 0, PAGE_SIZE);
+      if (vm_map_page (THIS_THREAD->args.pml4t, page, ptr, flags))
+	{
+	  free_page (page);
+	  goto err0;
+	}
+    }
+  return 0;
+
+ err0:
+  for (cptr = ALIGN_DOWN (base, PAGE_SIZE); cptr < ptr; cptr += PAGE_SIZE)
+    free_page (physical_addr (cptr));
+  return -1;
+}
+
+/*!
  * Loads the program headers of an ELF file into memory.
  *
+ * @param exec the execution context
  * @param ehdr the ELF file header
  * @param vp the vnode of the ELF file
  * @return zero on success
@@ -54,7 +96,7 @@ elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
 	    flags |= PROT_EXEC;
 	  if (phdr.p_vaddr + phdr.p_memsz > USER_MEMORY_LIMIT)
 	    RETV_ERROR (EFAULT, -1);
-	  if (add_mmap ((void *) phdr.p_vaddr, phdr.p_memsz, flags))
+	  if (elf_mmap ((void *) phdr.p_vaddr, phdr.p_memsz, flags))
 	    return -1;
 	  if (phdr.p_filesz
 	      && vfs_read (vp, (void *) phdr.p_vaddr, phdr.p_filesz,
@@ -107,14 +149,43 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   struct vnode *vp = vnode_namei (path, 1);
   struct elf_exec exec;
   int ret;
+  int i;
   if (!vp)
     return -1;
+
   /* TODO Copy argv strings out of user-space memory so they don't get
      unmapped */
-  vm_unmap_user_mem ();
+  /* Create the new PML4T structure with only the kernel-space memory copied */
+  exec.pml4t_phys = alloc_page ();
+  if (UNLIKELY (!exec.pml4t_phys))
+    {
+      UNREF_OBJECT (vp);
+      RETV_ERROR (ENOMEM, -1);
+    }
+  exec.pml4t = (uintptr_t *) PHYS_REL (exec.pml4t_phys);
+  memset (exec.pml4t, 0, PAGE_STRUCT_SIZE / 2);
+  memcpy (exec.pml4t + PAGE_STRUCT_ENTRIES / 2,
+	  THIS_THREAD->args.pml4t + PAGE_STRUCT_ENTRIES / 2,
+	  PAGE_STRUCT_SIZE / 2);
+
+  /* Save the old PML4T and load the new one */
+  __asm__ volatile ("mov %%cr3, %0" : "=r" (exec.old_pml4t_phys));
+  exec.old_pml4t = (uintptr_t *) PHYS_REL (exec.old_pml4t_phys);
+  THIS_THREAD->args.pml4t = exec.pml4t;
+  __asm__ volatile ("mov %0, %%cr3" :: "r" (exec.pml4t_phys));
+
+  /* Load the ELF file into memory */
   ret = elf_load_file (&exec, vp);
   UNREF_OBJECT (vp);
   if (ret)
-    return -1;
+    {
+      /* Restore the old PML4T before returning */
+      THIS_THREAD->args.pml4t = exec.old_pml4t;
+      __asm__ volatile ("mov %0, %%cr3" :: "r" (exec.old_pml4t_phys));
+      free_page (exec.pml4t_phys);
+      return -1;
+    }
+  vm_unmap_user_mem (exec.old_pml4t);
   sched_exec (exec.entry, argv, envp);
+  __builtin_unreachable ();
 }

@@ -83,6 +83,12 @@
 #define PAGE_FLAG_SWAP          (1 << 1)  /*!< Fetch page from swap space */
 #define PAGE_FLAG_COW           (1 << 9)  /*!< Copy page on write */
 
+#define PAGE_ERR_PRESENT        (1 << 0)  /*!< Page-protection violation */
+#define PAGE_ERR_WRITE          (1 << 1)  /*!< Write access */
+#define PAGE_ERR_USER           (1 << 2)  /*!< User mode access */
+#define PAGE_ERR_RESERVED       (1 << 3)  /*!< Reserved write */
+#define PAGE_ERR_INST           (1 << 4)  /*!< Instruction fetch */
+
 /*! Standard page size (4 kilobytes) */
 #define PAGE_SIZE               0x1000
 /*! Large page size (2 megabytes), used when PDT.S is set */
@@ -256,7 +262,7 @@ int vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
 		 unsigned int flags);
 int vm_unmap_page (uintptr_t *pml4t, void *addr);
 void vm_next_page (void);
-void vm_unmap_user_mem (void);
+void vm_unmap_user_mem (uintptr_t *pml4t);
 void vm_init (void);
 void mark_resv_mem_alloc (void);
 

@@ -58,7 +58,7 @@ process_free (struct process *process)
 {
   size_t i;
   if (process->threads.len)
-    thread_free_user_mem (process->threads.queue[0]);
+    thread_unmap_user_mem (process->threads.queue[0]);
   for (i = 0; i < process->threads.len; i++)
     thread_free (process->threads.queue[i]);
   free (process->threads.queue);
@@ -79,7 +79,7 @@ process_free (struct process *process)
 }
 
 /*!
- * Free's a terminated process's data.
+ * Frees a terminated process's data.
  *
  * @param index index into the process queue of the freed process
  * @param status exit status of the process

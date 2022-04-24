@@ -330,24 +330,15 @@ thread_clone (struct thread *thread, int copy)
 }
 
 /*!
- * Frees the user-space memory allocated to a process. All threads share the
- * same user-mode address space, so this function can be called on any thread
- * belonging to a process.
+ * Unmaps the user-space memory for a thread. This function can be called
+ * for any thread in a process since all user-space memory is shared
+ * between threads.
  *
- * @param thread a thread belonging to the process
+ * @param thread the thread to free
  */
 
 void
-thread_free_user_mem (struct thread *thread)
+thread_unmap_user_mem (struct thread *thread)
 {
-  size_t i;
-  for (i = 0; i < PAGE_STRUCT_ENTRIES / 2; i++)
-    {
-      if (thread->args.pml4t[i] & PAGE_FLAG_PRESENT)
-	{
-	  uintptr_t pdpt = ALIGN_DOWN (thread->args.pml4t[i], PAGE_SIZE);
-	  free_page (pdpt);
-	  free_pdpt ((uintptr_t *) PHYS_REL (pdpt));
-	}
-    }
+  vm_unmap_user_mem (thread->args.pml4t);
 }

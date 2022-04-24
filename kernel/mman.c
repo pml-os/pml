@@ -19,6 +19,7 @@
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <pml/process.h>
+#include <string.h>
 
 /*!
  * Adds a new mapped memory region to the current process's table. Pages are
@@ -57,6 +58,7 @@ add_mmap (void *base, size_t len, int prot)
       uintptr_t page = alloc_page ();
       if (UNLIKELY (!page))
 	goto err1;
+      memset ((void *) PHYS_REL (page), 0, PAGE_SIZE);
       if (vm_map_page (THIS_THREAD->args.pml4t, page, ptr, flags))
 	{
 	  free_page (page);

@@ -102,7 +102,7 @@ struct thread *thread_create (struct thread_args *args);
 void thread_free (struct thread *thread);
 int thread_attach_process (struct process *process, struct thread *thread);
 struct thread *thread_clone (struct thread *thread, int copy);
-void thread_free_user_mem (struct thread *thread);
+void thread_unmap_user_mem (struct thread *thread);
 
 __END_DECLS
 
