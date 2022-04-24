@@ -36,6 +36,7 @@ void
 int_page_fault (unsigned long err, uintptr_t inst_addr)
 {
   uintptr_t addr;
+  uintptr_t cr3;
   unsigned int pml4e;
   unsigned int pdpe;
   unsigned int pde;
@@ -46,6 +47,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
   uintptr_t *pt;
   size_t i;
   __asm__ volatile ("mov %%cr2, %0" : "=r" (addr));
+  __asm__ volatile ("mov %%cr3, %0" : "=r" (cr3));
 
   /* Assume page faults on the kernel thread are fatal */
   if (!THIS_PROCESS->pid)
@@ -158,6 +160,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
     }
 
  fatal:
-  panic ("CPU exception: page fault\nVirtual address: %p\nInstruction: %p",
-	 addr, inst_addr);
+  panic ("CPU exception: page fault\nVirtual address: %p\nInstruction: %p\n"
+	 "CR3: %p\nPID: %d\nTID: %d\n",
+	 addr, inst_addr, cr3, THIS_PROCESS->pid, THIS_THREAD->tid);
 }

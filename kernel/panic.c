@@ -34,6 +34,10 @@ panic (const char *__restrict__ fmt, ...)
   vprintf (fmt, args);
   va_end (args);
   printf ("\n\n\n");
-  __asm__ volatile ("1: hlt; jmp 1b");
+#if ARCH == x86_64
+  __asm__ volatile ("cli; 1: hlt; jmp 1b");
+#else
+#error "no panic function defined for current architecture"
+#endif
   __builtin_unreachable ();
 }

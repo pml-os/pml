@@ -141,6 +141,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
   if (!(pdpt[pdpe] & PAGE_FLAG_PRESENT))
     {
       pdpt[pdpe] = alloc_page ();
+      memset ((void *) PHYS_REL (pdpt[pdpe]), 0, PAGE_STRUCT_SIZE);
       if (UNLIKELY (!pdpt[pdpe]))
 	return -1;
       pdpt[pdpe] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;
@@ -153,6 +154,7 @@ vm_map_page (uintptr_t *pml4t, uintptr_t phys_addr, void *addr,
   if (!(pdt[pde] & PAGE_FLAG_PRESENT))
     {
       pdt[pde] = alloc_page ();
+      memset ((void *) PHYS_REL (pdt[pde]), 0, PAGE_STRUCT_SIZE);
       if (UNLIKELY (!pdt[pde]))
 	return -1;
       pdt[pde] |= PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER | flags;

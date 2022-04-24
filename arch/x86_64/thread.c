@@ -242,6 +242,7 @@ thread_clone (struct thread *thread, int copy)
   tlp = alloc_virtual_page ();
   if (UNLIKELY (!tlp))
     goto err2;
+  memset (tlp, 0, PAGE_STRUCT_SIZE);
 
   if (copy)
     {
