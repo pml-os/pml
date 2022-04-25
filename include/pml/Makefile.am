@@ -46,6 +46,7 @@ pmlinclude_HEADERS =	\
 	pci.h		\
 	pit.h		\
 	process.h	\
+	signal.h	\
 	stat.h		\
 	time.h		\
 	tty.h		\

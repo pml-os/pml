@@ -150,6 +150,14 @@ process_fork (struct thread **t, int copy)
     goto err1;
   process->pid = thread->tid;
   process->ppid = THIS_PROCESS->pid;
+  process->pgid = THIS_PROCESS->pgid;
+  process->sid = THIS_PROCESS->sid;
+  process->uid = THIS_PROCESS->uid;
+  process->euid = THIS_PROCESS->euid;
+  process->suid = THIS_PROCESS->suid;
+  process->gid = THIS_PROCESS->gid;
+  process->egid = THIS_PROCESS->egid;
+  process->sgid = THIS_PROCESS->sgid;
   REF_ASSIGN (process->cwd, THIS_PROCESS->cwd);
   process->cwd_path = strdup (THIS_PROCESS->cwd_path);
   *t = thread;
@@ -157,13 +165,21 @@ process_fork (struct thread **t, int copy)
   /* Copy program break data */
   memcpy (&process->brk, &THIS_PROCESS->brk, sizeof (struct brk));
 
+  /* Copy memory mapping data */
+  process->mmaps.len = THIS_PROCESS->mmaps.len;
+  process->mmaps.table = malloc (sizeof (struct mmap) * process->mmaps.len);
+  if (UNLIKELY (!process->mmaps.table))
+    goto err2;
+  memcpy (process->mmaps.table, THIS_PROCESS->mmaps.table,
+	  sizeof (struct mmap) * process->mmaps.len);
+
   /* Copy file descriptor table */
   process->fds.curr = THIS_PROCESS->fds.curr;
   process->fds.size = THIS_PROCESS->fds.size;
   process->fds.max_size = THIS_PROCESS->fds.max_size;
   process->fds.table = malloc (sizeof (struct fd *) * process->fds.size);
   if (UNLIKELY (!process->fds.table))
-    goto err2;
+    goto err3;
   for (i = 0; i < process->fds.size; i++)
     {
       process->fds.table[i] = THIS_PROCESS->fds.table[i];
@@ -178,6 +194,8 @@ process_fork (struct thread **t, int copy)
   THIS_PROCESS->cpids.pids[THIS_PROCESS->cpids.len - 1] = process->pid;
   return process;
 
+ err3:
+  free (process->mmaps.table);
  err2:
   free (process->cwd_path);
   UNREF_OBJECT (process->cwd);

@@ -186,6 +186,11 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
       return -1;
     }
   vm_unmap_user_mem (exec.old_pml4t);
+
+  free (THIS_PROCESS->mmaps.table);
+  THIS_PROCESS->mmaps.table = NULL;
+  THIS_PROCESS->mmaps.len = 0;
+
   sched_exec (exec.entry, argv, envp);
   __builtin_unreachable ();
 }

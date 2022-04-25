@@ -22,39 +22,26 @@
  * @brief Memory mapping routines
  */
 
-#include <pml/cdefs.h>
-
 #define PROT_NONE               0           /*!< Memory is not accessible */
 #define PROT_READ               (1 << 0)    /*!< Memory may be read */
 #define PROT_WRITE              (1 << 1)    /*!< Memory may be written */
 #define PROT_EXEC               (1 << 2)    /*!< Memory may be executed */
 
-/*!
- * Stores info about an allocated region in the user-space half of an
- * address space.
- */
+#define MAP_SHARED              (1 << 0)
+#define MAP_PRIVATE             (1 << 1)
+#define MAP_ANONYMOUS           (1 << 2)
+#define MAP_ANON                MAP_ANONYMOUS
+#define MAP_DENYWRITE           (1 << 3)
+#define MAP_EXECUTABLE          (1 << 4)
+#define MAP_FILE                (1 << 5)
+#define MAP_FIXED               (1 << 6)
+#define MAP_STACK               (1 << 7)
 
-struct mmap
-{
-  void *base;                   /*!< Virtual address of memory region base */
-  size_t len;                   /*!< Length of memory region */
-  int prot;                     /*!< Memory protection of region */
-};
+#define MS_ASYNC                (1 << 0)
+#define MS_SYNC                 (1 << 1)
+#define MS_INVALIDATE           (1 << 2)
 
-/*!
- * Represents a table of memory regions allocated to a process.
- */
-
-struct mmap_table
-{
-  struct mmap *table;           /*!< Array of memory region structures */
-  size_t len;                   /*!< Number of memory regions */
-};
-
-__BEGIN_DECLS
-
-int add_mmap (void *base, size_t len, int prot);
-
-__END_DECLS
+/*! Value returned by @ref sys_mmap on failure */
+#define MAP_FAILED              ((void *) -1)
 
 #endif

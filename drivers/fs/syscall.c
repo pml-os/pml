@@ -22,24 +22,6 @@
 #include <string.h>
 
 /*!
- * Obtains the file structure from a file descriptor in the current process.
- * If an error occurs, @ref errno will be set to @ref EBADF.
- *
- * @param fd the file descriptor
- * @return the file structure, or NULL if the file descriptor does not
- * reference an open file
- */
-
-static struct fd *
-file_fd (int fd)
-{
-  struct fd_table *fds = &THIS_PROCESS->fds;
-  if (fd < 0 || (size_t) fd >= fds->size || !fds->table[fd])
-    RETV_ERROR (EBADF, NULL);
-  return fds->table[fd];
-}
-
-/*!
  * Allocates a file descriptor in the current process's file descriptor table.
  * The file is not considered as allocated until a vnode is written to it.
  *

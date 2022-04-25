@@ -30,7 +30,7 @@
  * <td>User-space memory mappings</td></tr>
  * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffd7fffffffff</td>
  * <td>~125T</td><td>Reserved kernel memory</td></tr>
- * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffdffbfffffff</td><td>511G</td>
+ * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffdffbfffffff</td><td>511G</td>
  * <td>Thread-local storage</td></tr>
  * <tr><td>@c 0xfffffdffc0000000</td><td>@c 0xfffffdffffffffff</td><td>1G</td>
  * <td>Thread stack space</td></tr>
@@ -43,6 +43,8 @@
 
 /*! Base virtual address of user-space memory mappings */
 #define USER_MMAP_BASE_VMA      0x0000400000000000
+/*! Virtual address of the top of user-space memory */
+#define USER_MEM_TOP_VMA        0x0000800000000000
 /*! Base virtual address of thread-local storage */
 #define THREAD_LOCAL_BASE_VMA   0xfffffd8000000000
 /*! Base virtual address of process stack */

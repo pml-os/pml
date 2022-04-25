@@ -72,4 +72,14 @@ params = const char *path
 [dup]
 params = int fd
 
+[mmap]
+return_type = void *
+params = void *addr, size_t len, int prot, int flags, int fd, off_t offset
+
+[munmap]
+params = void *addr, size_t len
+
+[msync]
+params = void *addr, size_t len, int flags
+
 # End of system calls list

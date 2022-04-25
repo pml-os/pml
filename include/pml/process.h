@@ -73,6 +73,10 @@ struct fd_table
   size_t max_size;              /*!< Soft limit on number of file descriptors */
 };
 
+/*!
+ * Stores information about the program data segment.
+ */
+
 struct brk
 {
   void *base;                   /*!< Original end of program data segment */
@@ -80,10 +84,39 @@ struct brk
   size_t max;                   /*!< Maximum size of program data segment */
 };
 
+/*!
+ * Contains a list of the IDs of all processes that are children of a process.
+ */
+
 struct cpid_table
 {
   size_t len;                   /*!< Number of child PIDs */
   pid_t *pids;                  /*!< Array of process IDs */
+};
+
+/*!
+ * Stores info about an allocated region in the user-space half of an
+ * address space.
+ */
+
+struct mmap
+{
+  uintptr_t base;               /*!< Virtual address of memory region base */
+  size_t len;                   /*!< Length of memory region */
+  int prot;                     /*!< Memory protection of region */
+  struct fd *file;              /*!< Vnode of mapped file */
+  off_t offset;                 /*!< File offset corresponding to start */
+  int flags;                    /*!< Mapping flags */
+};
+
+/*!
+ * Represents a table of memory regions allocated to a process.
+ */
+
+struct mmap_table
+{
+  struct mmap *table;           /*!< Array of memory region structures */
+  size_t len;                   /*!< Number of memory regions */
 };
 
 /*!
@@ -100,8 +133,10 @@ struct process
   pid_t sid;                    /*!< Session ID */
   uid_t uid;                    /*!< Real user ID */
   uid_t euid;                   /*!< Effective user ID */
+  uid_t suid;                   /*!< Saved user ID */
   gid_t gid;                    /*!< Real group ID */
   gid_t egid;                   /*!< Effective group ID */
+  gid_t sgid;                   /*!< Saved group ID */
   mode_t umask;                 /*!< File creation mode mask */
   struct vnode *cwd;            /*!< Current working directory */
   char *cwd_path;               /*!< Absolute path to CWD */
@@ -139,6 +174,7 @@ struct process *lookup_pid (pid_t pid);
 
 int alloc_fd (void);
 void free_fd (int fd);
+struct fd *file_fd (int fd);
 
 struct process *process_alloc (int priority);
 void process_free (struct process *process);
