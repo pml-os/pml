@@ -66,7 +66,7 @@ process_free (struct process *process)
   for (i = 0; i < process->fds.size; i++)
     {
       if (process->fds.table[i])
-	process->fds.table[i]->count--;
+	free_fd (i);
     }
   for (i = 0; i < process->cpids.len; i++)
     {

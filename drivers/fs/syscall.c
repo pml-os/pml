@@ -135,7 +135,7 @@ sys_close (int fd)
   struct fd_table *fds = &THIS_PROCESS->fds;
   if (!fds->table[fd])
     RETV_ERROR (EBADF, -1);
-  free_fd (fds->table[fd] - system_fd_table);
+  free_fd (fd);
   fds->table[fd] = NULL;
   return 0;
 }

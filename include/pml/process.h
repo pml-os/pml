@@ -105,6 +105,7 @@ struct mmap
   size_t len;                   /*!< Length of memory region */
   int prot;                     /*!< Memory protection of region */
   struct fd *file;              /*!< Vnode of mapped file */
+  int fd;                       /*!< File descriptor number of mapped file */
   off_t offset;                 /*!< File offset corresponding to start */
   int flags;                    /*!< Mapping flags */
 };

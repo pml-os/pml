@@ -49,12 +49,14 @@ alloc_fd (void)
 /*!
  * Removes a reference from a file descriptor.
  *
- * @param fd an index into the system file descriptor table
+ * @param fd a file descriptor from the current process
  */
 
 void
 free_fd (int fd)
 {
+  struct fd_table *fds = &THIS_PROCESS->fds;
+  fd = fds->table[fd] - system_fd_table;
   if (!--system_fd_table[fd].count)
     {
       UNREF_OBJECT (system_fd_table[fd].vnode);

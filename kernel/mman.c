@@ -23,51 +23,107 @@
 #include <string.h>
 
 /*!
- * Locates a memory region with a base address before a requested address.
+ * Locates a memory region with a base address less than a requested address.
  *
  * @param base the address to search with
- * @return the index in the mmap table of the region
+ * @return the index in the mmap table of the region, or -1 if there is no 
+ * mapping satisfying the condition
+ * @todo use binary search for performance
  */
 
-static size_t
+static ssize_t
 find_region_before (uintptr_t base)
 {
   struct mmap_table *mmaps = &THIS_PROCESS->mmaps;
-  size_t first = 0;
-  size_t last = mmaps->len - 1;
-  while (first < last)
+  ssize_t i;
+  for (i = 0; (size_t) i < mmaps->len; i++)
     {
-      size_t mid = (first + last) / 2;
-      if (mmaps->table[mid].base > base)
-	last = mid - 1;
-      else
-	first = mid;
+      if (mmaps->table[i].base >= base)
+	return i - 1;
     }
-  return first;
+  return mmaps->len - 1;
 }
 
 /*!
- * Locates a memory region with a base address after a requested address.
+ * Locates a memory region with a base address less than or equal to a 
+ * requested address.
  *
  * @param base the address to search with
- * @return the index in the mmap table of the region
+ * @return the index in the mmap table of the region, or -1 if there is no 
+ * mapping satisfying the condition
+ * @todo use binary search for performance
  */
 
-static size_t
-find_region_after (uintptr_t base)
+static ssize_t
+find_region_before_equal (uintptr_t base)
 {
   struct mmap_table *mmaps = &THIS_PROCESS->mmaps;
-  size_t first = 0;
-  size_t last = mmaps->len - 1;
-  while (first <= last)
+  ssize_t i;
+  for (i = 0; (size_t) i < mmaps->len; i++)
     {
-      size_t mid = (first + last) / 2;
-      if (mmaps->table[mid].base > base)
-	last = mid - 1;
-      else
-	first = mid + 1;
+      if (mmaps->table[i].base > base)
+	return i - 1;
     }
-  return last;
+  return mmaps->len - 1;
+}
+
+/*!
+ * Writes all data in mappings or parts of mappings contained in an area in
+ * virtual memory to disk.
+ *
+ * @param addr the base address of the region to sync
+ * @param len number of bytes to sync
+ * @return zero on success
+ */
+
+static int
+sync_mappings (void *addr, size_t len)
+{
+  struct mmap_table *mmaps = &THIS_PROCESS->mmaps;
+  struct mmap *region;
+  uintptr_t ptr = (uintptr_t) addr;
+  uintptr_t i;
+  ssize_t ri;
+
+  /* Find the last mapping under the requested address */
+  ri = find_region_before (ptr);
+  if (ri >= 0)
+    {
+      region = mmaps->table + ri;
+      if (region->base + region->len > ptr)
+	{
+	  /* Write the data at the end of the base */
+	  if (region->file
+	      && vfs_write (region->file->vnode, (void *) ptr,
+			    region->base + region->len - ptr,
+			    region->offset + ptr - region->base) < 0)
+	    return -1;
+	}
+    }
+
+  for (i = ri + 1; i < mmaps->len; i++)
+    {
+      region = mmaps->table + i;
+      if (ptr + len >= region->base + region->len)
+	{
+	  /* The region is entirely overlapped */
+	  if (region->file
+	      && vfs_write (region->file->vnode, (void *) region->base,
+			    region->len, region->offset) < 0)
+	    return -1;
+	}
+      else if (ptr + len > region->base)
+	{
+	  /* The region's start overlaps */
+	  if (region->file
+	      && vfs_write (region->file->vnode, (void *) region->base,
+			    ptr + len - region->base, region->offset) < 0)
+	    return -1;
+	}
+      else
+	break;
+    }
+  return 0;
 }
 
 /*!
@@ -87,20 +143,31 @@ clear_mappings (void *addr, size_t len, int sync)
   struct mmap *region;
   uintptr_t ptr = (uintptr_t) addr;
   uintptr_t i;
-  size_t ri;
+  ssize_t ri;
 
-  if ((ptr & (PAGE_SIZE - 1)) || (len & (PAGE_SIZE - 1)))
-    RETV_ERROR (EINVAL, -1);
+  if (sync)
+    {
+      if (sync_mappings (addr, len))
+	return -1;
+    }
 
   /* Find the last mapping under the requested address */
   ri = find_region_before (ptr);
-  region = mmaps->table + ri;
-  if (region->base + region->len > ptr)
+  if (ri >= 0)
     {
-      /* The end of the region overlaps, truncate it */
-      region->len = ptr - region->base;
-      for (i = region->base + region->len; i < ptr; i += PAGE_SIZE)
-	free_page (physical_addr ((void *) i));
+      region = mmaps->table + ri;
+      if (region->base + region->len > ptr)
+	{
+	  /* The end of the region overlaps, truncate it */
+	  region->len = ptr - region->base;
+	  for (i = region->base + region->len; i < ptr; i += PAGE_SIZE)
+	    {
+	      if (vm_unmap_page (THIS_THREAD->args.pml4t, (void *) i))
+		return -1;
+	      free_page (physical_addr ((void *) i));
+	      vm_clear_page ((void *) i);
+	    }
+	}
     }
 
   for (i = ri + 1; i < mmaps->len; i++)
@@ -110,25 +177,33 @@ clear_mappings (void *addr, size_t len, int sync)
 	{
 	  /* The region is entirely overlapped, remove it completely */
 	  uintptr_t j;
-	  if (sync && sys_msync ((void *) region->base, region->len, MS_SYNC))
-	    return -1;
-	  for (j = region->base; j < region->base + region->len;
-	       j += PAGE_SIZE)
-	    free_page (physical_addr ((void *) j));
+	  for (j = region->base; j < region->base + region->len; j += PAGE_SIZE)
+	    {
+	      if (vm_unmap_page (THIS_THREAD->args.pml4t, (void *) j))
+		return -1;
+	      free_page (physical_addr ((void *) j));
+	      vm_clear_page ((void *) j);
+	    }
+	  if (region->file)
+	    free_fd (region->fd);
 	  mmaps->len--;
 	  memmove (mmaps->table + i, mmaps->table + i + 1,
 		   sizeof (struct mmap) * (mmaps->len - i));
 	  i--;
 	}
-      else if (ptr + len >= region->base)
+      else if (ptr + len > region->base)
 	{
 	  /* The region's start overlaps, remove that portion */
 	  uintptr_t j;
-	  size_t diff = region->base - ptr - len;
-	  if (sync && sys_msync ((void *) region->base, diff, MS_SYNC))
-	    return -1;
+	  size_t diff = ptr + len - region->base;
 	  for (j = region->base; j < ptr + len; j += PAGE_SIZE)
-	    free_page (physical_addr ((void *) j));
+	    {
+	      if (vm_unmap_page (THIS_THREAD->args.pml4t, (void *) j))
+		return -1;
+	      free_page (physical_addr ((void *) j));
+	      vm_clear_page ((void *) j);
+	    }
+	  mmaps->table[i].len -= diff;
 	  mmaps->table[i].base = ptr + len;
 	  mmaps->table[i].offset += diff;
 	}
@@ -146,11 +221,9 @@ sys_mmap (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
   uintptr_t base;
   uintptr_t ptr;
   uintptr_t cptr;
-  struct mmap *region;
+  ssize_t ri;
   struct fd *file = NULL;
   struct vnode *vp = NULL;
-  size_t next;
-  size_t i;
   int pflags = prot != PROT_NONE ? PAGE_FLAG_USER : 0;
   size_t bytes = len;
 
@@ -194,34 +267,41 @@ sys_mmap (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
   else
     base = USER_MMAP_BASE_VMA;
 
-  if ((flags & MAP_FIXED) && mmaps->len)
+  if (flags & MAP_FIXED)
     {
+      /* Clear any existing mappings occupying the space that would be
+	 overwritten by the new mapping */
       if (clear_mappings (addr, len, 1))
 	return MAP_FAILED;
-      goto map;
-    }
-
-  /* Search for the first region with a higher base address */
-  if (!mmaps->len)
-    goto map;
-  next = find_region_after (base);
-  if (next < mmaps->len - 1)
-    {
-      struct mmap *before = mmaps->table + next;
-      ptr = before->base + before->len;
+      ri = find_region_before (base) + 1;
     }
   else
-    ptr = base;
-  for (i = next + 1; i < mmaps->len; ptr = region->base + region->len,
-	 i++, next++)
     {
-      region = mmaps->table + i;
-      if (region->base - ptr >= len)
-	break;
+      /* Find a suitable location for the mapping, starting with the region
+	 behind the requested address and moving forward until a gap in mappings
+	 large enough is found */
+      ri = find_region_before_equal (base);
+      if (ri >= 0)
+	{
+	  struct mmap *region;
+	  struct mmap *next = mmaps->table + ri;
+	  for (; (size_t) ri < mmaps->len - 1; ri++)
+	    {
+	      region = mmaps->table + ri;
+	      next = mmaps->table + ri + 1;
+	      ptr = region->base + region->len;
+	      if (next->base - ptr >= len)
+		{
+		  base = ptr;
+		  goto found;
+		}
+	    }
+	  base = next->base + next->len;
+	}
+    found:
+      ri++;
     }
-  base = ptr;
 
- map:
   /* Map the region, first enabling write access so the file's contents
      can be copied over */
   if (base + len >= USER_MEM_TOP_VMA)
@@ -257,18 +337,22 @@ sys_mmap (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
       vm_clear_page ((void *) cptr);
     }
 
+  /* Add another entry to the mmap table */
   temp = realloc (mmaps->table, sizeof (struct mmap) * ++mmaps->len);
   if (!temp)
     goto err1;
   mmaps->table = temp;
-  memmove (mmaps->table + next + 1, mmaps->table + next,
-	   sizeof (struct mmap) * (mmaps->len - next - 2));
-  mmaps->table[next].base = base;
-  mmaps->table[next].len = len;
-  mmaps->table[next].file = file;
-  REF_OBJECT (vp);
-  mmaps->table[next].offset = offset;
-  mmaps->table[next].flags = flags;
+  memmove (mmaps->table + ri + 1, mmaps->table + ri,
+	   sizeof (struct mmap) * (mmaps->len - ri - 1));
+  mmaps->table[ri].base = base;
+  mmaps->table[ri].len = len;
+  mmaps->table[ri].prot = prot;
+  mmaps->table[ri].file = file;
+  if (file)
+    file->count++;
+  mmaps->table[ri].fd = fd;
+  mmaps->table[ri].offset = offset;
+  mmaps->table[ri].flags = flags;
   return (void *) base;
 
  err1:
@@ -300,17 +384,5 @@ sys_msync (void *addr, size_t len, int flags)
     RETV_ERROR (EINVAL, -1);
   if (flags & MS_ASYNC)
     RETV_ERROR (ENOTSUP, -1);
-
-  if (!mmaps->len)
-    RETV_ERROR (ENOMEM, -1);
-  region = mmaps->table + find_region_before (base);
-  if (base >= region->base + region->len)
-    RETV_ERROR (ENOMEM, -1);
-  if (region->file)
-    {
-      if (vfs_write (region->file->vnode, addr, len,
-		     region->offset + base - region->base) < 0)
-        RETV_ERROR (EIO, -1);
-    }
-  return 0;
+  return sync_mappings (addr, len);
 }
