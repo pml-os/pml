@@ -101,6 +101,23 @@
 /*! Address of system memory map */
 #define MMAP_ADDR               0xfffffe0000009000
 
+#ifdef __ASSEMBLER__
+
+#define KERNEL_VMA              __kernel_vma
+#define KERNEL_START            __kernel_start
+#define KERNEL_END              __kernel_end
+
+#else
+
+#include <pml/cdefs.h>
+
+/*! Offset in virtual memory of physical memory map */
+#define KERNEL_VMA              ((uintptr_t) &__kernel_vma)
+/*! Start of kernel text segment in virtual memory */
+#define KERNEL_START            ((uintptr_t) &__kernel_start)
+/*! End of kernel data segment in virtual memory */
+#define KERNEL_END              ((uintptr_t) &__kernel_end)
+
 /*!
  * Calculates the index in a PML4T corresponding to a virtual address.
  *
@@ -136,23 +153,6 @@
  */
 
 #define PT_INDEX(v)             (((uintptr_t) (v) >> 12) & 0x1ff)
-
-#ifdef __ASSEMBLER__
-
-#define KERNEL_VMA              __kernel_vma
-#define KERNEL_START            __kernel_start
-#define KERNEL_END              __kernel_end
-
-#else
-
-#include <pml/cdefs.h>
-
-/*! Offset in virtual memory of physical memory map */
-#define KERNEL_VMA              ((uintptr_t) &__kernel_vma)
-/*! Start of kernel text segment in virtual memory */
-#define KERNEL_START            ((uintptr_t) &__kernel_start)
-/*! End of kernel data segment in virtual memory */
-#define KERNEL_END              ((uintptr_t) &__kernel_end)
 
 /*!
  * Relocates a 64-bit physical address into a virtual address.

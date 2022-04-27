@@ -27,7 +27,6 @@
 
 static char *init_argv[] = {"init", NULL};
 static char *sh_argv[] = {"sh", NULL};
-static char *init_envp[] = {NULL};
 
 /*! Prints a welcome message on boot. */
 
@@ -66,10 +65,10 @@ fork_init (void)
 	}
 
       /* Run an init process */
-      sys_execve ("/sbin/init", init_argv, init_envp);
-      sys_execve ("/bin/init", init_argv, init_envp);
-      sys_execve ("/init", init_argv, init_envp);
-      sys_execve ("/bin/sh", sh_argv, init_envp);
+      sys_execve ("/sbin/init", init_argv, NULL);
+      sys_execve ("/bin/init", init_argv, NULL);
+      sys_execve ("/init", init_argv, NULL);
+      sys_execve ("/bin/sh", sh_argv, NULL);
       panic ("No init process found");
     }
 }

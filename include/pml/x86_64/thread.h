@@ -89,7 +89,7 @@ __BEGIN_DECLS
 extern unsigned int exit_process;
 
 void sched_init (void);
-void sched_exec (void *addr, void *stack, char **env, char **top) __noreturn;
+void sched_exec (void *addr, char *const *argv, char *const *envp) __noreturn;
 void sched_yield (void);
 void sched_yield_to (void *addr) __noreturn;
 void user_mode (void *addr) __noreturn;

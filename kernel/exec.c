@@ -236,9 +236,10 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
 {
   struct vnode *vp = vnode_namei (path, 1);
   struct elf_exec exec;
-  char **stack;
+  char **args;
   char **env;
-  char **top;
+  char **arrbuf;
+  size_t len = 0;
   int ret;
   int i;
   if (!vp)
@@ -267,35 +268,51 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   ret = elf_load_file (&exec, vp);
   UNREF_OBJECT (vp);
   if (ret)
-    {
-      /* Restore the old PML4T before returning */
-      THIS_THREAD->args.pml4t = exec.old_pml4t;
-      __asm__ volatile ("mov %0, %%cr3" :: "r" (exec.old_pml4t_phys));
-      free_page (exec.pml4t_phys);
-      return -1;
-    }
+    goto err0;
 
   /* Setup the stack with argv and envp */
   exec.arg_data = NULL;
   exec.arg_ptr = NULL;
   exec.arg_len = 0;
-  stack = (char **) PROCESS_STACK_TOP_VMA;
   /* TODO Check that argv/envp doesn't exceed ARG_MAX */
-  for (i = 0; argv[i]; i++)
-    stack--;
-  for (i = 0; envp[i]; i++)
-    stack--;
-  stack -= 2;
-  for (i = 0; argv[i]; i++)
-    *stack++ = copy_string (&exec, argv[i]);
-  *stack++ = NULL;
-  env = stack;
-  for (i = 0; envp[i]; i++)
-    *stack++ = copy_string (&exec, envp[i]);
-  *stack++ = NULL;
-  top = stack;
+  if (argv)
+    {
+      for (i = 0; argv[i]; i++)
+	len++;
+    }
+  if (envp)
+    {
+      for (i = 0; envp[i]; i++)
+	len++;
+    }
+  len += 2;
+  arrbuf = sys_mmap (NULL, len * sizeof (char *), PAGE_FLAG_USER | PAGE_FLAG_RW,
+		     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (UNLIKELY (arrbuf == MAP_FAILED))
+    goto err0;
+  args = arrbuf;
+  if (argv)
+    {
+      for (i = 0; argv[i]; i++)
+	*arrbuf++ = copy_string (&exec, argv[i]);
+    }
+  *arrbuf++ = NULL;
+  env = arrbuf;
+  if (envp)
+    {
+      for (i = 0; envp[i]; i++)
+	*arrbuf++ = copy_string (&exec, envp[i]);
+    }
+  *arrbuf++ = NULL;
 
   vm_unmap_user_mem (exec.old_pml4t);
-  sched_exec (exec.entry, stack, env, top);
+  sched_exec (exec.entry, args, env);
   __builtin_unreachable ();
+
+ err0:
+  /* Restore the old PML4T before returning */
+  THIS_THREAD->args.pml4t = exec.old_pml4t;
+  __asm__ volatile ("mov %0, %%cr3" :: "r" (exec.old_pml4t_phys));
+  free_page (exec.pml4t_phys);
+  return -1;
 }

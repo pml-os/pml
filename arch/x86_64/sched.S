@@ -17,6 +17,7 @@
 #include <pml/asm.h>
 #include <pml/cmos.h>
 #include <pml/interrupt.h>
+#include <pml/memory.h>
 
 	.section .text
 	.global int_rtc_tick
@@ -91,7 +92,8 @@ ASM_FUNC_BEGIN (sched_exec):
 
 	/* Do a fake interrupt into ring 3 */
 	pushq	$0x1b
-	push	%rsi
+	movabs	$PROCESS_STACK_TOP_VMA, %rbp
+	push	%rbp
 	pushf
 	pushq	$0x23
 	push	%rdi
