@@ -86,6 +86,7 @@ params = void *addr, size_t len, int flags
 params = int who, struct rusage *rusage
 
 [wait4]
+return_type = pid_t
 params = pid_t pid, int *status, int flags, struct rusage *rusage
 
 # End of system calls list

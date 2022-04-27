@@ -39,6 +39,12 @@
 /*! Expands to a pointer to the currently running thread */
 #define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
 
+#define PROCESS_WAIT_NONE       0       /*!< Not waiting */
+#define PROCESS_WAIT_WAITING    1       /*!< Waiting for process state */
+#define PROCESS_WAIT_EXITED     2       /*!< The process exited normally */
+#define PROCESS_WAIT_SIGNALED   3       /*!< The process was signaled */
+#define PROCESS_WAIT_STOPPED    4       /*!< The process was stopped */
+
 /*!
  * Represents an entry in the system file descriptor table. This structure
  * stores the underlying vnode corresponding to an open file as well as other
@@ -117,6 +123,20 @@ struct mmap_table
 };
 
 /*!
+ * Contains information about a process that is being waited.
+ */
+
+struct wait_state
+{
+  pid_t pid;                    /*!< Process ID */
+  pid_t pgid;                   /*!< Process group ID */
+  struct rusage rusage;         /*!< Resource usage information */
+  int status;                   /*!< Process execution status */
+  int code;                     /*!< Exit code or signal number */
+  int do_stopped;               /*!< Whether to report stopped processes */
+};
+
+/*!
  * Represents a process. Processes have a unique ID and also store their
  * parent process's ID. Each process is assigned a priority, but currently
  * process priorities are not implemented and are ignored.
@@ -145,6 +165,7 @@ struct process
   struct cpid_table cpids;      /*!< Child process ID list */
   struct rusage self_rusage;    /*!< Resource usage of process */
   struct rusage child_rusage;   /*!< Resource usage of terminated children */
+  struct wait_state wait;       /*!< Wait state */
 };
 
 /*!

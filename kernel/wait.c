@@ -19,9 +19,56 @@
 #include <pml/syscall.h>
 #include <pml/wait.h>
 #include <errno.h>
+#include <string.h>
 
-int
+static pid_t
+do_wait (pid_t pid, int *status, struct rusage *rusage, struct wait_state *ws)
+{
+  if (ws->status == PROCESS_WAIT_WAITING)
+    return 0;
+  if (!pid && THIS_PROCESS->pgid != ws->pgid)
+    return 0;
+
+  if (rusage)
+    memcpy (rusage, &ws->rusage, sizeof (struct rusage));
+  *status = (ws->code & 0xff) << 8;
+  switch (ws->status)
+    {
+    case PROCESS_WAIT_SIGNALED:
+      *status |= 0x01;
+      break;
+    case PROCESS_WAIT_STOPPED:
+      *status |= 0x7f;
+      break;
+    }
+
+  ws->status = PROCESS_WAIT_NONE;
+  return ws->pid;
+}
+
+pid_t
 sys_wait4 (pid_t pid, int *status, int flags, struct rusage *rusage)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct wait_state *ws = &THIS_PROCESS->wait;
+  if (pid < -1)
+    pid = -pid;
+  if (!THIS_PROCESS->cpids.len)
+    RETV_ERROR (ECHILD, -1);
+  if (pid > 0 && !lookup_pid (pid))
+    RETV_ERROR (ESRCH, -1);
+
+  /* Fill wait state */
+  ws->pid = pid;
+  ws->status = PROCESS_WAIT_WAITING;
+  ws->do_stopped = !!(flags & WUNTRACED);
+
+  if (flags & WNOHANG)
+    return do_wait (pid, status, rusage, ws);
+  while (1)
+    {
+      pid_t ret = do_wait (pid, status, rusage, ws);
+      if (ret)
+	return ret;
+      sched_yield ();
+    }
 }
