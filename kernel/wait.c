@@ -1,4 +1,4 @@
-/* syscall.h -- This file is part of PML.
+/* wait.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,30 +14,14 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/* DO NOT MODIFY THIS FILE */
+/*! @file */
 
-#ifndef __PML_SYSCALL_H
-#define __PML_SYSCALL_H
+#include <pml/syscall.h>
+#include <pml/wait.h>
+#include <errno.h>
 
-/* System call numbers */
-@MACROS@
-
-#ifndef __ASSEMBLER__
-
-#include <pml/cdefs.h>
-#include <pml/resource.h>
-#include <pml/stat.h>
-
-__BEGIN_DECLS
-
-/* System call functions */
-@PROTOS@
-
-void syscall_init (void);
-long syscall (long num, ...);
-
-__END_DECLS
-
-#endif /* !__ASSEMBLER__ */
-
-#endif
+int
+sys_wait4 (pid_t pid, int *status, int flags, struct rusage *rusage)
+{
+  RETV_ERROR (ENOSYS, -1);
+}

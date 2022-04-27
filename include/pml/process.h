@@ -24,6 +24,7 @@
 
 #include <pml/lock.h>
 #include <pml/mman.h>
+#include <pml/resource.h>
 #include <pml/thread.h>
 
 /*! Number of file descriptors in system file descriptor table */
@@ -32,11 +33,6 @@
 #define DATA_SEGMENT_MAX        0x10000000000
 /*! Size of per-process kernel-mode stack */
 #define KERNEL_STACK_SIZE       16384
-
-/*! Minimum process priority value */
-#define PRIO_MIN                19
-/*! Maximum process priority value */
-#define PRIO_MAX                -20
 
 /*! Expands to a pointer to the currently running process */
 #define THIS_PROCESS (process_queue.queue[process_queue.front])
@@ -147,6 +143,8 @@ struct process
   struct mmap_table mmaps;      /*!< Memory regions allocated to process */
   struct brk brk;               /*!< Program break */
   struct cpid_table cpids;      /*!< Child process ID list */
+  struct rusage self_rusage;    /*!< Resource usage of process */
+  struct rusage child_rusage;   /*!< Resource usage of terminated children */
 };
 
 /*!

@@ -237,13 +237,39 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   struct vnode *vp = vnode_namei (path, 1);
   struct elf_exec exec;
   char **args;
+  char **argsm = NULL;
+  size_t nargs = 0;
   char **env;
+  char **envm = NULL;
+  size_t nenv = 0;
   char **arrbuf;
-  size_t len = 0;
+  char **ptrs;
+  size_t i;
   int ret;
-  int i;
   if (!vp)
     return -1;
+
+  /* TODO Check that argv/envp doesn't exceed ARG_MAX */
+  if (argv)
+    {
+      for (i = 0; argv[i]; i++)
+	nargs++;
+      argsm = malloc (sizeof (char *) * nargs);
+      if (UNLIKELY (!argsm))
+	RETV_ERROR (ENOMEM, -1);
+      memcpy (argsm, argv, sizeof (char *) * nargs);
+      argv = argsm;
+    }
+  if (envp)
+    {
+      for (i = 0; envp[i]; i++)
+	nenv++;
+      envm = malloc (sizeof (char *) * nenv);
+      if (UNLIKELY (!envm))
+	goto err0;
+      memcpy (envm, envp, sizeof (char *) * nenv);
+      envp = envm;
+    }
 
   /* Create the new PML4T structure with only the kernel-space memory copied */
   exec.pml4t_phys = alloc_page ();
@@ -268,28 +294,17 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   ret = elf_load_file (&exec, vp);
   UNREF_OBJECT (vp);
   if (ret)
-    goto err0;
+    goto err1;
 
   /* Setup the stack with argv and envp */
   exec.arg_data = NULL;
   exec.arg_ptr = NULL;
   exec.arg_len = 0;
-  /* TODO Check that argv/envp doesn't exceed ARG_MAX */
-  if (argv)
-    {
-      for (i = 0; argv[i]; i++)
-	len++;
-    }
-  if (envp)
-    {
-      for (i = 0; envp[i]; i++)
-	len++;
-    }
-  len += 2;
-  arrbuf = sys_mmap (NULL, len * sizeof (char *), PAGE_FLAG_USER | PAGE_FLAG_RW,
+  arrbuf = sys_mmap (NULL, (nargs + nenv + 2) * sizeof (char *),
+		     PAGE_FLAG_USER | PAGE_FLAG_RW,
 		     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (UNLIKELY (arrbuf == MAP_FAILED))
-    goto err0;
+    goto err1;
   args = arrbuf;
   if (argv)
     {
@@ -304,15 +319,20 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
 	*arrbuf++ = copy_string (&exec, envp[i]);
     }
   *arrbuf++ = NULL;
+  free (argsm);
+  free (envm);
 
   vm_unmap_user_mem (exec.old_pml4t);
   sched_exec (exec.entry, args, env);
   __builtin_unreachable ();
 
- err0:
+ err1:
   /* Restore the old PML4T before returning */
   THIS_THREAD->args.pml4t = exec.old_pml4t;
   __asm__ volatile ("mov %0, %%cr3" :: "r" (exec.old_pml4t_phys));
   free_page (exec.pml4t_phys);
+ err0:
+  free (argsm);
+  free (envm);
   return -1;
 }

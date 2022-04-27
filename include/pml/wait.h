@@ -1,4 +1,4 @@
-/* syscall.h -- This file is part of PML.
+/* wait.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,30 +14,24 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/* DO NOT MODIFY THIS FILE */
+#ifndef __PML_WAIT_H
+#define __PML_WAIT_H
 
-#ifndef __PML_SYSCALL_H
-#define __PML_SYSCALL_H
+/*!
+ * @file
+ * @brief Process wait definitions
+ */
 
-/* System call numbers */
-@MACROS@
-
-#ifndef __ASSEMBLER__
-
-#include <pml/cdefs.h>
 #include <pml/resource.h>
-#include <pml/stat.h>
 
-__BEGIN_DECLS
+#define WNOHANG                 1
+#define WUNTRACED               2
 
-/* System call functions */
-@PROTOS@
-
-void syscall_init (void);
-long syscall (long num, ...);
-
-__END_DECLS
-
-#endif /* !__ASSEMBLER__ */
+#define WIFEXITED(x)            (!((x) & 0xff))
+#define WIFSIGNALED(x)          (((x) & 0x7f) > 0 && (((x) & 0x7f) < 0x7f))
+#define WIFSTOPPED(x)           (((x) & 0xff) == 0x7f)
+#define WEXITSTATUS(x)          (((x) >> 8) & 0xff)
+#define WTERMSIG(x)             ((x) & 0x7f)
+#define WSTOPSIG(x)             WEXITSTATUS (x)
 
 #endif

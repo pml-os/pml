@@ -22,7 +22,9 @@ kernel_SOURCES =	\
 	mman.c		\
 	panic.c		\
 	pid.c		\
-	process.c
+	process.c	\
+	resource.c	\
+	wait.c
 if GDB_SCRIPT
 nodist_kernel_SOURCES = gdb-script.c
 endif

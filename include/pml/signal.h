@@ -14,13 +14,13 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#ifndef __PML_SIGNAL_H
+#define __PML_SIGNAL_H
+
 /*! 
  * @file
  * @brief POSIX signal definitions
  */
-
-#ifndef __PML_SIGNAL_H
-#define __PML_SIGNAL_H
 
 #include <pml/types.h>
 

@@ -1,4 +1,4 @@
-/* syscall.h -- This file is part of PML.
+/* resource.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,30 +14,22 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/* DO NOT MODIFY THIS FILE */
+#include <pml/syscall.h>
+#include <errno.h>
+#include <string.h>
 
-#ifndef __PML_SYSCALL_H
-#define __PML_SYSCALL_H
-
-/* System call numbers */
-@MACROS@
-
-#ifndef __ASSEMBLER__
-
-#include <pml/cdefs.h>
-#include <pml/resource.h>
-#include <pml/stat.h>
-
-__BEGIN_DECLS
-
-/* System call functions */
-@PROTOS@
-
-void syscall_init (void);
-long syscall (long num, ...);
-
-__END_DECLS
-
-#endif /* !__ASSEMBLER__ */
-
-#endif
+int
+sys_getrusage (int who, struct rusage *rusage)
+{
+  switch (who)
+    {
+    case RUSAGE_SELF:
+      memcpy (rusage, &THIS_PROCESS->self_rusage, sizeof (struct rusage));
+      return 0;
+    case RUSAGE_CHILDREN:
+      memcpy (rusage, &THIS_PROCESS->child_rusage, sizeof (struct rusage));
+      return 0;
+    default:
+      RETV_ERROR (EINVAL, -1);
+    }
+}

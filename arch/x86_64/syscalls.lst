@@ -82,4 +82,10 @@ params = void *addr, size_t len
 [msync]
 params = void *addr, size_t len, int flags
 
+[getrusage]
+params = int who, struct rusage *rusage
+
+[wait4]
+params = pid_t pid, int *status, int flags, struct rusage *rusage
+
 # End of system calls list

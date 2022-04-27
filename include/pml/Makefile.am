@@ -46,13 +46,15 @@ pmlinclude_HEADERS =	\
 	pci.h		\
 	pit.h		\
 	process.h	\
+	resource.h	\
 	signal.h	\
 	stat.h		\
 	time.h		\
 	tty.h		\
 	types.h		\
 	vfs.h		\
-	vgatext.h
+	vgatext.h	\
+	wait.h
 	$(arch_headers)
 
 EXTRA_DIST = \
