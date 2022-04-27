@@ -23,6 +23,7 @@
  */
 
 #include <pml/cdefs.h>
+#include <pml/types.h>
 
 /* Kernel heap definitions */
 
@@ -73,6 +74,8 @@ void kh_init (uintptr_t base, size_t size);
 void *kh_alloc_aligned (size_t size, size_t align);
 void *kh_realloc (void *ptr, size_t size);
 void kh_free (void *ptr);
+
+int expand_mmap (uintptr_t *pml4t, void *addr, size_t len);
 
 __END_DECLS
 

@@ -36,11 +36,15 @@ struct elf_exec
   uintptr_t pml4t_phys;
   uintptr_t *old_pml4t;
   uintptr_t old_pml4t_phys;
+  char *arg_data;
+  char *arg_ptr;
+  size_t arg_len;
 };
 
 __BEGIN_DECLS
 
-int elf_mmap (void *base, size_t len, int prot);
+int elf_mmap (void *base, size_t len, int prot, struct vnode *vp, size_t filesz,
+	      off_t offset);
 int elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp);
 int elf_load_file (struct elf_exec *exec, struct vnode *vp);
 

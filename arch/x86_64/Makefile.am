@@ -33,13 +33,12 @@ libarch_a_SOURCES =	\
 	rtc.c		\
 	save-reg.S	\
 	serial.c	\
-	sched-tick.S	\
+	sched.S		\
 	smp.c		\
 	smp-init.S	\
 	syscall.S	\
 	syscall-init.c	\
-	thread.c	\
-	user.S
+	thread.c
 
 # Generate interrupt handler stubs and IDT fill function
 

@@ -25,6 +25,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static char *init_argv[] = {"init", NULL};
+static char *sh_argv[] = {"sh", NULL};
+static char *init_envp[] = {NULL};
+
 /*! Prints a welcome message on boot. */
 
 void
@@ -62,10 +66,10 @@ fork_init (void)
 	}
 
       /* Run an init process */
-      sys_execve ("/sbin/init", NULL, NULL);
-      sys_execve ("/bin/init", NULL, NULL);
-      sys_execve ("/init", NULL, NULL);
-      sys_execve ("/bin/sh", NULL, NULL);
+      sys_execve ("/sbin/init", init_argv, init_envp);
+      sys_execve ("/bin/init", init_argv, init_envp);
+      sys_execve ("/init", init_argv, init_envp);
+      sys_execve ("/bin/sh", sh_argv, init_envp);
       panic ("No init process found");
     }
 }

@@ -25,18 +25,98 @@
 #include <stdio.h>
 #include <string.h>
 
+static char *
+copy_string (struct elf_exec *exec, char *str)
+{
+  size_t len;
+  size_t base_len;
+  uintptr_t ptr;
+  char *temp;
+  char *s = str;
+  const char *cptr;
+
+  /* Determine length of string */
+  ptr = vm_phys_addr (exec->old_pml4t, s);
+  cptr = (char *) PHYS_REL (ptr);
+  len = strnlen (cptr, PAGE_SIZE - (ptr & (PAGE_SIZE - 1)));
+  base_len = len;
+  if (len == PAGE_SIZE - (ptr & (PAGE_SIZE - 1)))
+    {
+      s = ALIGN_UP (s, PAGE_SIZE);
+      while (1)
+	{
+	  size_t slen;
+	  ptr = vm_phys_addr (exec->old_pml4t, s);
+	  cptr = (char *) PHYS_REL (ptr);
+	  slen = strnlen (cptr, PAGE_SIZE);
+	  len += slen;
+	  if (slen < PAGE_SIZE)
+	    break;
+	  s += PAGE_SIZE;
+	}
+    }
+
+  /* Allocate space for argument list */
+  if (!exec->arg_data)
+    {
+      size_t bytes = ALIGN_UP (len, PAGE_SIZE);
+      exec->arg_data = sys_mmap (NULL, bytes, PROT_READ | PROT_WRITE,
+				 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+      if (UNLIKELY (exec->arg_data == MAP_FAILED))
+	{
+	  exec->arg_data = NULL;
+	  return NULL;
+	}
+      exec->arg_ptr = exec->arg_data;
+      exec->arg_len = bytes;
+    }
+  if ((size_t) (exec->arg_ptr + len - exec->arg_data) >= exec->arg_len)
+    {
+      if (expand_mmap (exec->pml4t, exec->arg_data,
+		       exec->arg_ptr + len + 1 - exec->arg_data))
+	return NULL;
+    }
+
+  /* Copy string to allocated area */
+  temp = exec->arg_ptr;
+  s = str;
+  ptr = vm_phys_addr (exec->old_pml4t, s);
+  cptr = (char *) PHYS_REL (ptr);
+  exec->arg_ptr = mempcpy (exec->arg_ptr, cptr, base_len);
+  s = ALIGN_UP (s, PAGE_SIZE);
+  if (len >= PAGE_SIZE)
+    {
+      for (; base_len <= len - PAGE_SIZE; base_len += PAGE_SIZE)
+	{
+	  ptr = vm_phys_addr (exec->old_pml4t, s);
+	  cptr = (char *) PHYS_REL (ptr);
+	  exec->arg_ptr = mempcpy (exec->arg_ptr, cptr, PAGE_SIZE);
+	  s += PAGE_SIZE;
+	}
+    }
+  ptr = vm_phys_addr (exec->old_pml4t, s);
+  cptr = (char *) PHYS_REL (ptr);
+  exec->arg_ptr = mempcpy (exec->arg_ptr, cptr, len - base_len);
+  *exec->arg_ptr++ = '\0';
+  return temp;
+}
+
 /*!
  * Maps a continuous region of virtual memory. This function is used to
- * map memory in preparation for loading an ELF file's code or data.
+ * map memory to load an ELF file's code or data.
  *
  * @param base starting virtual address to map
  * @param len number of bytes to map
  * @param prot mmap-style protection flags for the memory region
+ * @param vp the file to read
+ * @param filesz number of bytes to read
+ * @param offset offset in the file to read
  * @return zero on success
  */
 
 int
-elf_mmap (void *base, size_t len, int prot)
+elf_mmap (void *base, size_t len, int prot, struct vnode *vp, size_t filesz,
+	  off_t offset)
 {
   void *ptr;
   void *cptr;
@@ -51,11 +131,22 @@ elf_mmap (void *base, size_t len, int prot)
       if (UNLIKELY (!page))
 	goto err0;
       memset ((void *) PHYS_REL (page), 0, PAGE_SIZE);
-      if (vm_map_page (THIS_THREAD->args.pml4t, page, ptr, flags))
+      if (vm_map_page (THIS_THREAD->args.pml4t, page, ptr, PAGE_FLAG_RW))
 	{
 	  free_page (page);
 	  goto err0;
 	}
+    }
+
+  if (filesz && vfs_read (vp, base, filesz, offset) != (ssize_t) filesz)
+    goto err0;
+
+  for (ptr = ALIGN_DOWN (base, PAGE_SIZE);
+       ptr < ALIGN_UP (base + len, PAGE_SIZE); ptr += PAGE_SIZE)
+    {
+      if (vm_map_page (THIS_THREAD->args.pml4t, physical_addr ((void *) ptr),
+		       ptr, flags))
+	goto err0;
     }
   return 0;
 
@@ -96,12 +187,9 @@ elf_load_phdrs (Elf64_Ehdr *ehdr, struct vnode *vp)
 	    flags |= PROT_EXEC;
 	  if (phdr.p_vaddr + phdr.p_memsz > USER_MEMORY_LIMIT)
 	    RETV_ERROR (EFAULT, -1);
-	  if (elf_mmap ((void *) phdr.p_vaddr, phdr.p_memsz, flags))
+	  if (elf_mmap ((void *) phdr.p_vaddr, phdr.p_memsz, flags,
+			vp, phdr.p_filesz, phdr.p_offset))
 	    return -1;
-	  if (phdr.p_filesz
-	      && vfs_read (vp, (void *) phdr.p_vaddr, phdr.p_filesz,
-			   phdr.p_offset) != (ssize_t) phdr.p_filesz)
-	    RETV_ERROR (EIO, -1);
 
 	  brk = (void *) ALIGN_UP (phdr.p_vaddr + phdr.p_memsz, PAGE_SIZE);
 	  if (brk > THIS_PROCESS->brk.base)
@@ -148,13 +236,14 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
 {
   struct vnode *vp = vnode_namei (path, 1);
   struct elf_exec exec;
+  char **stack;
+  char **env;
+  char **top;
   int ret;
   int i;
   if (!vp)
     return -1;
 
-  /* TODO Copy argv strings out of user-space memory so they don't get
-     unmapped */
   /* Create the new PML4T structure with only the kernel-space memory copied */
   exec.pml4t_phys = alloc_page ();
   if (UNLIKELY (!exec.pml4t_phys))
@@ -185,12 +274,28 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
       free_page (exec.pml4t_phys);
       return -1;
     }
+
+  /* Setup the stack with argv and envp */
+  exec.arg_data = NULL;
+  exec.arg_ptr = NULL;
+  exec.arg_len = 0;
+  stack = (char **) PROCESS_STACK_TOP_VMA;
+  /* TODO Check that argv/envp doesn't exceed ARG_MAX */
+  for (i = 0; argv[i]; i++)
+    stack--;
+  for (i = 0; envp[i]; i++)
+    stack--;
+  stack -= 2;
+  for (i = 0; argv[i]; i++)
+    *stack++ = copy_string (&exec, argv[i]);
+  *stack++ = NULL;
+  env = stack;
+  for (i = 0; envp[i]; i++)
+    *stack++ = copy_string (&exec, envp[i]);
+  *stack++ = NULL;
+  top = stack;
+
   vm_unmap_user_mem (exec.old_pml4t);
-
-  free (THIS_PROCESS->mmaps.table);
-  THIS_PROCESS->mmaps.table = NULL;
-  THIS_PROCESS->mmaps.len = 0;
-
-  sched_exec (exec.entry, argv, envp);
+  sched_exec (exec.entry, stack, env, top);
   __builtin_unreachable ();
 }

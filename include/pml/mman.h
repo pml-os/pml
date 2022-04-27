@@ -41,6 +41,9 @@
 #define MS_SYNC                 (1 << 1)
 #define MS_INVALIDATE           (1 << 2)
 
+#define MREMAP_MAYMOVE          (1 << 0)
+#define MREMAP_FIXED            (1 << 1)
+
 /*! Value returned by @ref sys_mmap on failure */
 #define MAP_FAILED              ((void *) -1)
 

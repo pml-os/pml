@@ -1,4 +1,4 @@
-/* sched-tick.S -- This file is part of PML.
+/* sched.S -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -82,7 +82,21 @@ ASM_FUNC_END (sched_tick)
 
 	.global sched_exec
 ASM_FUNC_BEGIN (sched_exec):
-	jmp	user_mode
+	/* Set segment selectors with ring 3 segments */
+	mov	$0x1b, %ax
+	mov	%ax, %ds
+	mov	%ax, %es
+	mov	%ax, %fs
+	mov	%ax, %gs
+
+	/* Do a fake interrupt into ring 3 */
+	pushq	$0x1b
+	push	%rsi
+	pushf
+	pushq	$0x23
+	push	%rdi
+	xor	%ebp, %ebp
+	iretq
 ASM_FUNC_END (sched_exec)
 
 	.global sched_yield

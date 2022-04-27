@@ -213,6 +213,56 @@ clear_mappings (void *addr, size_t len, int sync)
   return 0;
 }
 
+/*!
+ * Expands a memory mapping. This function does not check whether the
+ * expanded space overlaps with mappings located afterward. The new length
+ * must be greater than the current length. This function is intended to
+ * be used when passing data from kernel to user space on process start.
+ *
+ * @param pml4t the PML4T to add the mapping to
+ * @param addr an address located in the mapping to expand
+ * @param len the new length of the mapping
+ * @return zero on success
+ */
+
+int
+expand_mmap (uintptr_t *pml4t, void *addr, size_t len)
+{
+  struct mmap_table *mmaps = &THIS_PROCESS->mmaps;
+  ssize_t ri = find_region_before_equal ((uintptr_t) addr);
+  uintptr_t ptr;
+  uintptr_t cptr;
+  struct mmap *region;
+  if (ri < 0)
+    RETV_ERROR (ENOMEM, -1);
+  region = mmaps->table + ri;
+  len = ALIGN_UP (len, PAGE_SIZE);
+  for (ptr = region->base + region->len; ptr < region->base + len;
+       ptr += PAGE_SIZE)
+    {
+      uintptr_t page = alloc_page ();
+      if (UNLIKELY (!page))
+	goto err0;
+      if (vm_map_page (pml4t, page, (void *) ptr,
+		       PAGE_FLAG_USER | PAGE_FLAG_RW))
+	{
+	  free_page (page);
+	  goto err0;
+	}
+    }
+  region->len = len;
+  return 0;
+
+ err0:
+  for (cptr = region->base; cptr < ptr; cptr += PAGE_SIZE)
+    {
+      free_page (physical_addr ((void *) cptr));
+      vm_unmap_page (THIS_THREAD->args.pml4t, (void *) cptr);
+      vm_clear_page ((void *) cptr);
+    }
+  RETV_ERROR (ENOMEM, -1);
+}
+
 void *
 sys_mmap (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 {
@@ -257,7 +307,7 @@ sys_mmap (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
     RETV_ERROR (EINVAL, MAP_FAILED);
 
   /* Determine the address to place the mapping */
-  len = ((len - 1) | (PAGE_SIZE - 1)) + 1;
+  len = ALIGN_UP (len, PAGE_SIZE);
   if (addr)
     {
       base = (uintptr_t) addr;
@@ -359,7 +409,11 @@ sys_mmap (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
   mmaps->len--;
  err0:
   for (cptr = ALIGN_DOWN (base, PAGE_SIZE); cptr < ptr; cptr += PAGE_SIZE)
-    free_page (physical_addr ((void *) cptr));
+    {
+      free_page (physical_addr ((void *) cptr));
+      vm_unmap_page (THIS_THREAD->args.pml4t, (void *) cptr);
+      vm_clear_page ((void *) cptr);
+    }
   return MAP_FAILED;
 }
 
