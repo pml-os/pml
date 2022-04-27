@@ -28,6 +28,7 @@
 #ifndef __ASSEMBLER__
 
 #include <pml/vfs.h>
+#include <pml/signal.h>
 
 enum
 {
@@ -59,6 +60,8 @@ struct thread
   struct thread_args args;      /*!< Properties of thread */
   int state;                    /*!< Thread state */
   int error;                    /*!< Thread-local error number (errno) */
+  sigset_t sigblocked;          /*!< Mask of blocked signals */
+  sigset_t sigpending;          /*!< Mask of pending signals */
 };
 
 /*!

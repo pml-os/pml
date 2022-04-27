@@ -220,3 +220,43 @@ process_get_pid (struct process *process)
 {
   return process->pid;
 }
+
+/*!
+ * Fills wait structures of any parent processes on process exit. 
+ * A parent waiting for a specific PID will be updated if the process with 
+ * that PID is a descendent of the parent process, otherwise the child must 
+ * be a direct descendent of the parent for the parent's wait status to be 
+ * updated.
+ *
+ * @param process the exiting process
+ * @param status exit code of the process
+ */
+
+void
+process_fill_wait (struct process *process, int mode, int status)
+{
+  pid_t target = process->pid;
+  pid_t pid = process->ppid;
+  int direct = 1;
+  while (pid)
+    {
+      struct wait_state *ws;
+      process = lookup_pid (pid);
+      if (!process)
+	break;
+      ws = &process->wait;
+      if (ws->status == PROCESS_WAIT_WAITING
+	  && (ws->pid == target || (direct && (ws->pid == -1 || ws->pid == 0)))
+	  && (!ws->do_stopped || mode != PROCESS_WAIT_STOPPED))
+	{
+	  ws->pid = target;
+	  ws->pgid = process->pgid;
+	  ws->status = mode;
+	  ws->code = status;
+	  memcpy (&ws->rusage, &THIS_PROCESS->self_rusage,
+		  sizeof (struct rusage));
+	}
+      pid = process->ppid;
+      direct = 0;
+    }
+}

@@ -26,6 +26,7 @@
 
 #include <pml/cdefs.h>
 #include <pml/resource.h>
+#include <pml/signal.h>
 #include <pml/stat.h>
 
 __BEGIN_DECLS

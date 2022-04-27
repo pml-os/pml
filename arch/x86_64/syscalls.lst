@@ -89,4 +89,11 @@ params = int who, struct rusage *rusage
 return_type = pid_t
 params = pid_t pid, int *status, int flags, struct rusage *rusage
 
+[signal]
+return_type = sighandler_t
+params = int sig, sighandler_t handler
+
+[sigaction]
+params = int sig, const struct sigaction *act, struct sigaction *old_act
+
 # End of system calls list

@@ -133,6 +133,14 @@
 #define SIG_UNBLOCK             1
 #define SIG_SETMASK             2
 
+/* Signal handler special values */
+
+#define SIG_DFL                 ((sighandler_t) 0)  /*!< Default action */
+#define SIG_IGN                 ((sighandler_t) 1)  /*!< Ignore the signal */
+
+/*! Returned by @ref sys_signal when an error occurs */
+#define SIG_ERR                 ((sighandler_t) -1)
+
 /*! Type of signal handler functions for signal(2) */
 typedef void (*sighandler_t) (int);
 /*! Alias of @ref sighandler_t */

@@ -1,4 +1,4 @@
-/* exit.c -- This file is part of PML.
+/* signal.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -16,32 +16,18 @@
 
 /*! @file */
 
-#include <pml/process.h>
 #include <pml/syscall.h>
+#include <errno.h>
 #include <string.h>
 
-/*!
- * Index into the process queue of a process that recently terminated. The
- * scheduler will free a process listed in this variable on the next tick.
- */
-
-unsigned int exit_process;
-
-/*!
- * Status of a recently-terminated process. Processes terminated with a signal
- * will have a status equal to the signal number plus 128.
- */
-
-int exit_status;
-
-void
-sys_exit (int status)
+sighandler_t
+sys_signal (int sig, sighandler_t handler)
 {
-  thread_switch_lock = 1;
-  process_fill_wait (THIS_PROCESS, PROCESS_WAIT_EXITED, status);
-  exit_process = process_queue.front;
-  exit_status = status;
-  thread_switch_lock = 0;
-  sched_yield ();
-  __builtin_unreachable ();
+  RETV_ERROR (ENOSYS, SIG_ERR);
+}
+
+int
+sys_sigaction (int sig, const struct sigaction *act, struct sigaction *old_act)
+{
+  RETV_ERROR (ENOSYS, -1);
 }
