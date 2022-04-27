@@ -62,6 +62,7 @@ struct thread
   int error;                    /*!< Thread-local error number (errno) */
   sigset_t sigblocked;          /*!< Mask of blocked signals */
   sigset_t sigpending;          /*!< Mask of pending signals */
+  siginfo_t siginfo[NSIG];      /*!< Signal information */
 };
 
 /*!

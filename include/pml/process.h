@@ -137,17 +137,6 @@ struct wait_state
 };
 
 /*!
- * Contains a process's signal handlers and other information.
- */
-
-struct signals
-{
-  int sig;                          /*!< Next signal to handle */
-  siginfo_t siginfo;                /*!< Signal information structure */
-  struct sigaction handlers[NSIG];  /*!< Signal handler array */
-};
-
-/*!
  * Represents a process. Processes have a unique ID and also store their
  * parent process's ID. Each process is assigned a priority, but currently
  * process priorities are not implemented and are ignored.
@@ -177,7 +166,7 @@ struct process
   struct rusage self_rusage;    /*!< Resource usage of process */
   struct rusage child_rusage;   /*!< Resource usage of terminated children */
   struct wait_state wait;       /*!< Wait state */
-  struct signals signals;       /*!< Signal handlers */
+  struct sigaction sighandlers[NSIG];   /*!< Signal handler array */
 };
 
 /*!

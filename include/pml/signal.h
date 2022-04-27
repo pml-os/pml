@@ -160,16 +160,55 @@ struct __siginfo_t
 {
   int si_signo;
   int si_code;
-  union sigval si_value;
   int si_errno;
-  pid_t si_pid;
-  uid_t si_uid;
-  void *si_addr;
-  int si_status;
-  int si_band;
+  union
+  {
+    struct
+    {
+      pid_t si_pid;
+      uid_t si_uid;
+    } __kill;
+    struct
+    {
+      int si_timerid;
+      int si_overrun;
+      union sigval si_value;
+    } __timer;
+    struct
+    {
+      pid_t si_pid;
+      uid_t si_uid;
+      union sigval si_value;
+    } __rt;
+    struct
+    {
+      pid_t si_pid;
+      uid_t si_uid;
+      int si_status;
+      clock_t si_utime;
+      clock_t si_stime;
+    } __child;
+    void *si_addr;
+    struct
+    {
+      long si_band;
+      int si_fd;
+    } __poll;
+  } __data;
 };
 
 typedef struct __siginfo_t siginfo_t;
+
+#define si_pid                  __data.__kill.si_pid
+#define si_uid                  __data.__kill.si_uid
+#define si_timerid              __data.__timer.si_timerid
+#define si_overrun              __data.__timer.si_overrun
+#define si_status               __data.__child.si_status
+#define si_utime                __data.__child.si_utime
+#define si_stime                __data.__child.si_stime
+#define si_value                __data.__rt.si_value
+#define si_band                 __data.__poll.si_band
+#define si_fd                   __data.__poll.si_fd
 
 struct sigaction
 {
