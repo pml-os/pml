@@ -66,7 +66,7 @@ process_free (struct process *process)
   for (i = 0; i < process->fds.size; i++)
     {
       if (process->fds.table[i])
-	free_fd (i);
+	free_fd (process, i);
     }
   for (i = 0; i < process->cpids.len; i++)
     {
@@ -238,7 +238,7 @@ process_fill_wait (struct process *process, int mode, int status)
   pid_t target = process->pid;
   pid_t pid = process->ppid;
   int direct = 1;
-  while (pid)
+  while (pid != process->pid)
     {
       struct wait_state *ws;
       process = lookup_pid (pid);

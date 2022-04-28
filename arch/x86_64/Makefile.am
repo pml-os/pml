@@ -31,14 +31,14 @@ libarch_a_SOURCES =	\
 	page-fault.c	\
 	pic8259.c	\
 	rtc.c		\
-	save-reg.S	\
 	serial.c	\
 	sched.S		\
 	smp.c		\
 	smp-init.S	\
 	syscall.S	\
 	syscall-init.c	\
-	thread.c
+	thread.c	\
+	trampoline.S
 
 # Generate interrupt handler stubs and IDT fill function
 

@@ -1,4 +1,4 @@
-/* save-reg.S -- This file is part of PML.
+/* trampoline.S -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,7 +14,19 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+/* Routines included in a page mapped with user execution privileges */
+
 #include <pml/asm.h>
+#include <pml/memory.h>
+
+	.align PAGE_SIZE
+	.global signal_trampoline
+ASM_FUNC_BEGIN (signal_trampoline):
+	xor	%ebp, %ebp
+	call	*%r12
+	call	int_restore_registers
+	ret
+ASM_FUNC_END (signal_trampoline)
 
 	.global int_save_registers
 ASM_FUNC_BEGIN (int_save_registers):
@@ -157,3 +169,14 @@ ASM_FUNC_BEGIN (int_restore_registers):
 	xchg	%rax, (%rsp)
 	ret
 ASM_FUNC_END (int_restore_registers)
+
+	.global reg_save_size
+ASM_FUNC_BEGIN (reg_save_size):
+#if defined AVX512_SUPPORT || defined AVX_SUPPORT
+#error "AVX-512 and AVX are not supported"
+#else
+	mov	$384, %eax
+#endif
+	ret
+ASM_FUNC_END (reg_save_size)
+	.align PAGE_SIZE

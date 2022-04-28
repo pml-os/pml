@@ -21,8 +21,11 @@
 void
 int_div_zero (uintptr_t addr)
 {
-  panic ("CPU exception: division by zero\nInstruction: %p\nPID: %d\nTID: %d",
-	 addr, THIS_PROCESS->pid, THIS_THREAD->tid);
+  siginfo_t info;
+  info.si_signo = SIGFPE;
+  info.si_code = FPE_INTDIV;
+  info.si_errno = 0;
+  send_signal_thread (THIS_THREAD, SIGFPE, &info);
 }
 
 void
@@ -38,13 +41,22 @@ int_nmi (uintptr_t addr)
 void
 int_breakpoint (uintptr_t addr)
 {
+  siginfo_t info;
+  info.si_signo = SIGTRAP;
+  info.si_code = TRAP_BRKPT;
+  info.si_errno = 0;
+  info.si_addr = (void *) addr;
+  send_signal_thread (THIS_THREAD, SIGTRAP, &info);
 }
 
 void
 int_overflow (uintptr_t addr)
 {
-  panic ("CPU exception: overflow\nInstruction: %p\nPID: %d\nTID: %d",
-	 addr, THIS_PROCESS->pid, THIS_THREAD->tid);
+  siginfo_t info;
+  info.si_signo = SIGFPE;
+  info.si_code = FPE_INTOVF;
+  info.si_errno = 0;
+  send_signal_thread (THIS_THREAD, SIGFPE, &info);
 }
 
 void
@@ -57,8 +69,12 @@ int_bound_range (uintptr_t addr)
 void
 int_bad_opcode (uintptr_t addr)
 {
-  panic ("CPU exception: invalid opcode\nInstruction: %p\nPID: %d\nTID: %d",
-	 addr, THIS_PROCESS->pid, THIS_THREAD->tid);
+  siginfo_t info;
+  info.si_signo = SIGILL;
+  info.si_code = ILL_ILLOPC;
+  info.si_errno = 0;
+  info.si_addr = (void *) addr;
+  send_signal_thread (THIS_THREAD, SIGILL, &info);
 }
 
 void
@@ -100,9 +116,16 @@ int_stack_segment (unsigned long err, uintptr_t addr)
 void
 int_gpf (unsigned long err, uintptr_t addr)
 {
-  panic ("CPU exception: general protection fault (segment 0x%02lx)\n"
-	 "Instruction: %p\nPID: %d\nTID: %d\n", err, addr, THIS_PROCESS->pid,
-	 THIS_THREAD->tid);
+  siginfo_t info;
+  if (err)
+    panic ("CPU exception: general protection fault (segment 0x%02lx)\n"
+	   "Instruction: %p\nPID: %d\nTID: %d\n", err, addr, THIS_PROCESS->pid,
+	   THIS_THREAD->tid);
+  info.si_signo = SIGILL;
+  info.si_code = ILL_PRVOPC;
+  info.si_errno = 0;
+  info.si_addr = (void *) addr;
+  send_signal_thread (THIS_THREAD, SIGILL, &info);
 }
 
 void

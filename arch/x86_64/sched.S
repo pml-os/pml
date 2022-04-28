@@ -61,7 +61,7 @@ ASM_FUNC_BEGIN (sched_tick):
 	movabs	$exit_process, %rax
 	mov	(%rax), %edi
 	test	%edi, %edi
-	jz	.done
+	jz	.signal
 
 	movl	$0, (%rax)
 	movabs	$exit_status, %rax
@@ -69,7 +69,7 @@ ASM_FUNC_BEGIN (sched_tick):
 	movl	$0, (%rax)
 	call	process_exit
 
-.done:
+.signal:
 	call	cmos_rtc_finish_irq
 #ifdef USE_APIC
 	call	local_apic_eoi
@@ -77,6 +77,57 @@ ASM_FUNC_BEGIN (sched_tick):
 	mov	$8, %edi
 	call	pic_8259_eoi
 #endif
+
+	/* If a signal is already waiting, don't check for another */
+	call	signal_handler
+	test	%rax, %rax
+	jnz	.done
+
+	/* Check if a signal needs to be handled */
+	call	poll_signal
+	test	%eax, %eax
+	jz	.done
+	mov	%eax, %edi
+	call	handle_signal
+
+	/* TODO Interrupt a slow system call, if any */
+	/* Leave if the interrupt wasn't done from user mode */
+	movabs	$INTERRUPT_STACK_TOP_VMA, %rax
+	cmp	%rsp, %rax
+	ja	.done
+	movabs	$SYSCALL_STACK_TOP_VMA, %rax
+	cmp	%rsp, %rax
+	jbe	.done
+
+	/* Get the original stack pointer and return address */
+	movabs	$INTERRUPT_STACK_TOP_VMA, %rax
+	mov	-16(%rax), %rbx
+	mov	-40(%rax), %rax
+	mov	%rax, -8(%rbx)
+
+	/* TODO Support loading custom signal stacks */
+	/* Load the signal return context on the thread's stack */
+	call	reg_save_size
+	mov	%eax, %edx
+	neg	%rax
+	lea	-8(%rbx,%rax), %rdi
+	mov	%rdi, %rbx
+	movabs	$INTERRUPT_STACK_TOP_VMA, %rsi
+	lea	-40(%rsi,%rax), %rsi
+	call	memcpy
+
+	/* Jump to signal handler */
+	call	signal_handler
+	mov	%rax, %r12
+	pushq	$0x1b
+	push	%rbx
+	pushf
+	pushq	$0x23
+	movabs	$signal_trampoline, %rax
+	push	%rax
+	iretq
+
+.done:
 	call	int_restore_registers
 	iretq
 ASM_FUNC_END (sched_tick)

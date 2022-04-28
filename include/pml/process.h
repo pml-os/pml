@@ -194,7 +194,7 @@ void unmap_pid (pid_t pid);
 struct process *lookup_pid (pid_t pid);
 
 int alloc_fd (void);
-void free_fd (int fd);
+void free_fd (struct process *process, int fd);
 struct fd *file_fd (int fd);
 
 struct process *process_alloc (int priority);
@@ -204,6 +204,14 @@ int process_enqueue (struct process *process);
 struct process *process_fork (struct thread **t, int copy);
 pid_t process_get_pid (struct process *process);
 void process_fill_wait (struct process *process, int mode, int status);
+void process_kill (int mode, int status) __noreturn;
+
+void signal_trampoline (void) __noreturn;
+void handle_signal (int sig);
+int poll_signal (void);
+void *signal_handler (void);
+void send_signal_thread (struct thread *thread, int sig, const siginfo_t *info);
+void send_signal (struct process *process, int sig, const siginfo_t *info);
 
 pid_t __fork (int copy);
 

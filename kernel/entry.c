@@ -22,6 +22,7 @@
 #include <pml/syscall.h>
 #include <pml/tty.h>
 #include <pml/vfs.h>
+#include <pml/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -70,6 +71,17 @@ fork_init (void)
       sys_execve ("/init", init_argv, NULL);
       sys_execve ("/bin/sh", sh_argv, NULL);
       panic ("No init process found");
+    }
+  else
+    {
+      int status;
+      sys_wait4 (pid, &status, 0, NULL);
+      if (WIFEXITED (status))
+	panic ("Init process terminated with status %d", WEXITSTATUS (status));
+      else if (WIFSIGNALED (status))
+	panic ("Init process received signal %d", WTERMSIG (status));
+      else
+	panic ("Init process killed");
     }
 }
 

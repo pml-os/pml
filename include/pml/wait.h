@@ -31,7 +31,8 @@
 #define WIFSIGNALED(x)          (((x) & 0x7f) > 0 && (((x) & 0x7f) < 0x7f))
 #define WIFSTOPPED(x)           (((x) & 0xff) == 0x7f)
 #define WEXITSTATUS(x)          (((x) >> 8) & 0xff)
-#define WTERMSIG(x)             ((x) & 0x7f)
+#define WTERMSIG(x)             (((x) >> 8) & 0x7f)
 #define WSTOPSIG(x)             WEXITSTATUS (x)
+#define WCOREDUMP(x)            ((x) & 0x80)
 
 #endif

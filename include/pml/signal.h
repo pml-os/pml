@@ -61,8 +61,16 @@
 #define SIGUNUSED               SIGSYS      /*!< Synonym for @ref SIGSYS */
 
 #define NSIG                    64          /*!< Number of signals */
-#define SIGRTMIN                32          /*!< First real-time signal */
-#define SIGRTMAX                NSIG        /*!< Last real-time signal */
+
+/*!
+ * Signal number of the first real-time signal exposed by the kernel.
+ * User-space threading libraries may internally use a few real-time signals,
+ * so the real definition of SIGRTMIN is not guaranteed to be this value.
+ */
+#define __pml_SIGRTMIN          32
+#ifdef PML_KERNEL
+#define SIGRTMIN                __pml_SIGRTMIN
+#endif
 
 /* Signal handler flags */
 
@@ -207,6 +215,7 @@ typedef struct __siginfo_t siginfo_t;
 #define si_utime                __data.__child.si_utime
 #define si_stime                __data.__child.si_stime
 #define si_value                __data.__rt.si_value
+#define si_addr                 __data.si_addr
 #define si_band                 __data.__poll.si_band
 #define si_fd                   __data.__poll.si_fd
 

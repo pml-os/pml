@@ -185,7 +185,7 @@ clear_mappings (void *addr, size_t len, int sync)
 	      vm_clear_page ((void *) j);
 	    }
 	  if (region->file)
-	    free_fd (region->fd);
+	    free_fd (THIS_PROCESS, region->fd);
 	  mmaps->len--;
 	  memmove (mmaps->table + i, mmaps->table + i + 1,
 		   sizeof (struct mmap) * (mmaps->len - i));

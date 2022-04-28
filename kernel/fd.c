@@ -47,15 +47,17 @@ alloc_fd (void)
 }
 
 /*!
- * Removes a reference from a file descriptor.
+ * Removes a reference from a file descriptor, removing it entirely from
+ * a process's file descriptor table if necessary.
  *
- * @param fd a file descriptor from the current process
+ * @param process the process owning the file descriptor
+ * @param fd a file descriptor
  */
 
 void
-free_fd (int fd)
+free_fd (struct process *process, int fd)
 {
-  struct fd_table *fds = &THIS_PROCESS->fds;
+  struct fd_table *fds = &process->fds;
   fd = fds->table[fd] - system_fd_table;
   if (!--system_fd_table[fd].count)
     {

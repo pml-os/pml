@@ -34,14 +34,30 @@ unsigned int exit_process;
 
 int exit_status;
 
+/*!
+ * Terminates the current process with the given method and status code.
+ * This method should not be used to stop the process.
+ *
+ * @param mode the termination mode (exited or signaled)
+ * @param status exit code or signal number
+ */
+
 void
-sys_exit (int status)
+process_kill (int mode, int status)
 {
   thread_switch_lock = 1;
-  process_fill_wait (THIS_PROCESS, PROCESS_WAIT_EXITED, status);
+  process_fill_wait (THIS_PROCESS, mode, status);
   exit_process = process_queue.front;
   exit_status = status;
+  if (mode != PROCESS_WAIT_EXITED)
+    exit_status |= 0x80;
   thread_switch_lock = 0;
   sched_yield ();
   __builtin_unreachable ();
+}
+
+void
+sys_exit (int status)
+{
+  process_kill (PROCESS_WAIT_EXITED, status);
 }

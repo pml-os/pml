@@ -18,6 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/memory.h>
+#include <pml/panic.h>
 #include <errno.h>
 #include <string.h>
 
@@ -26,6 +27,8 @@ static struct process kernel_process;
 
 /*!
  * Initializes the scheduler and sets up the kernel process and main thread.
+ * Thread-local kernel data structures for the kernel thread are also
+ * allocated.
  */
 
 void
@@ -44,6 +47,8 @@ sched_init (void)
   process_queue.queue = malloc (sizeof (struct process *));
   process_queue.queue[0] = &kernel_process;
   process_queue.len = 1;
+  if (thread_alloc_tl_kernel_data (&kernel_thread))
+    panic ("Failed to allocate kernel thread data structures");
 }
 
 /*!
@@ -145,6 +150,29 @@ thread_create (struct thread_args *args)
  err0:
   free (thread);
   return NULL;
+}
+
+/*!
+ * Allocates thread-local kernel data structures.
+ *
+ * @param thread the thread to allocate on
+ * @return zero on success
+ */
+
+int
+thread_alloc_tl_kernel_data (struct thread *thread)
+{
+  uintptr_t siginfo_page = alloc_page ();
+  uintptr_t st_page = physical_addr (signal_trampoline);
+  if (UNLIKELY (!siginfo_page))
+    RETV_ERROR (ENOMEM, -1);
+  if (vm_map_page (thread->args.pml4t, siginfo_page, (void *) SIGINFO_VMA,
+		   PAGE_FLAG_USER | PAGE_FLAG_RW))
+    return -1;
+  vm_map_page (thread->args.pml4t, st_page, (void *) SIGNAL_TRAMPOLINE_VMA,
+	       PAGE_FLAG_USER);
+  ref_page (st_page);
+  return 0;
 }
 
 /*!
@@ -316,6 +344,9 @@ thread_clone (struct thread *thread, int copy)
 	  goto err3;
 	}
     }
+
+  if (thread_alloc_tl_kernel_data (t))
+    goto err3;
   return t;
 
  err3:

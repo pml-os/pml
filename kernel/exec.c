@@ -236,6 +236,7 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
 {
   struct vnode *vp = vnode_namei (path, 1);
   struct elf_exec exec;
+  struct thread *thread;
   char **args;
   char **argsm = NULL;
   size_t nargs = 0;
@@ -322,7 +323,16 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   free (argsm);
   free (envm);
 
+  /* Clear other threads, old user memory, and signal handlers */
+  thread_switch_lock = 1;
   vm_unmap_user_mem (exec.old_pml4t);
+  memset (THIS_PROCESS->sighandlers, 0, sizeof (struct sigaction) * NSIG);
+  thread = THIS_THREAD;
+  THIS_PROCESS->threads.front = 0;
+  THIS_PROCESS->threads.len = 1;
+  THIS_PROCESS->threads.queue[0] = thread;
+  thread_switch_lock = 0;
+
   sched_exec (exec.entry, args, env);
   __builtin_unreachable ();
 

@@ -48,6 +48,16 @@ struct thread_args
 };
 
 /*!
+ * Represents a queue of siginfo information for real-time signals.
+ */
+
+struct rtsig_queue
+{
+  siginfo_t *queue;             /*!< Signal information array */
+  size_t len;                   /*!< Number of queued signals */
+};
+
+/*!
  * Represents a thread. Processes can have multiple threads, which share
  * the same process ID but have unique thread IDs. Threads have individual
  * page structures and stacks.
@@ -60,9 +70,13 @@ struct thread
   struct thread_args args;      /*!< Properties of thread */
   int state;                    /*!< Thread state */
   int error;                    /*!< Thread-local error number (errno) */
+  int sig;                      /*!< Number of queued signals */
   sigset_t sigblocked;          /*!< Mask of blocked signals */
-  sigset_t sigpending;          /*!< Mask of pending signals */
-  siginfo_t siginfo[NSIG];      /*!< Signal information */
+  sigset_t sigpending;          /*!< Mask of pending blocked signals */
+  sigset_t sigready;            /*!< Mask of signals ready to be handled */
+  siginfo_t siginfo[SIGRTMIN];  /*!< Signal information array */
+  struct rtsig_queue rtqueue[NSIG - SIGRTMIN]; /*!< Real-time signal queues */
+  void *handler;                /*!< Signal handler ready to be executed */
 };
 
 /*!
@@ -103,6 +117,7 @@ void thread_get_args (struct thread *thread, uintptr_t *pml4t, void **stack);
 void thread_save_stack (struct thread *thread, void *stack);
 void thread_switch (void **stack, uintptr_t *pml4t_phys);
 struct thread *thread_create (struct thread_args *args);
+int thread_alloc_tl_kernel_data (struct thread *thread);
 void thread_free (struct thread *thread);
 int thread_attach_process (struct process *process, struct thread *thread);
 struct thread *thread_clone (struct thread *thread, int copy);

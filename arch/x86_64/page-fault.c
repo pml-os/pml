@@ -51,6 +51,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
   uintptr_t *pdpt;
   uintptr_t *pdt;
   uintptr_t *pt;
+  siginfo_t info;
   size_t i;
   __asm__ volatile ("mov %%cr2, %0" : "=r" (addr));
   __asm__ volatile ("mov %%cr3, %0" : "=r" (cr3));
@@ -163,6 +164,12 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	  return;
 	}
     }
+
+  info.si_signo = SIGSEGV;
+  info.si_code = err & PAGE_ERR_PRESENT ? SEGV_ACCERR : SEGV_MAPERR;
+  info.si_errno = 0;
+  info.si_addr = (void *) addr;
+  send_signal_thread (THIS_THREAD, SIGSEGV, &info);
 
  fatal:
   panic ("CPU exception: page fault\nVirtual address: %p\nInstruction: %p\n"
