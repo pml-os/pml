@@ -287,7 +287,7 @@ sys_signal (int sig, sighandler_t handler)
 {
   struct sigaction old;
   struct sigaction act;
-  if (sig <= 0 || sig >= NSIG || sig == SIGKILL || sig == SIGSTOP)
+  if (sig <= 0 || sig > NSIG || sig == SIGKILL || sig == SIGSTOP)
     RETV_ERROR (EINVAL, SIG_ERR);
   act.sa_handler = handler;
   act.sa_sigaction = NULL;
@@ -302,12 +302,51 @@ int
 sys_sigaction (int sig, const struct sigaction *act, struct sigaction *old_act)
 {
   struct sigaction *handler;
-  if (sig <= 0 || sig >= NSIG || sig == SIGKILL || sig == SIGSTOP)
+  if (sig <= 0 || sig > NSIG || sig == SIGKILL || sig == SIGSTOP)
     RETV_ERROR (EINVAL, -1);
   handler = THIS_PROCESS->sighandlers + sig - 1;
   if (old_act)
     memcpy (old_act, handler, sizeof (struct sigaction));
   if (act)
     memcpy (handler, act, sizeof (struct sigaction));
+  return 0;
+}
+
+int
+sys_kill (pid_t pid, int sig)
+{
+  struct process *process;
+  siginfo_t info;
+  if (sig <= 0 || sig > NSIG)
+    RETV_ERROR (EINVAL, -1);
+  if (pid == -1)
+    RETV_ERROR (ENOSYS, -1); /* TODO Send signal to all non-system processes */
+  else if (pid <= 0)
+    {
+      /* Send signal to all processes with the same process group number */
+      size_t i;
+      for (i = 1; i < process_queue.len; i++)
+	{
+	  if (process_queue.queue[i]->pgid == -pid)
+	    {
+	      int ret = sys_kill (process_queue.queue[i]->pid, sig);
+	      if (ret == -1)
+		return ret;
+	    }
+	}
+    }
+
+  process = lookup_pid (pid);
+  if (!process)
+    RETV_ERROR (ESRCH, -1);
+  if (THIS_PROCESS->euid && THIS_PROCESS->euid != process->euid)
+    RETV_ERROR (EPERM, -1);
+
+  info.si_signo = sig;
+  info.si_code = SI_USER;
+  info.si_errno = 0;
+  info.si_pid = THIS_PROCESS->pid;
+  info.si_uid = THIS_PROCESS->uid;
+  send_signal (process, sig, &info);
   return 0;
 }

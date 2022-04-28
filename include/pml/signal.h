@@ -84,7 +84,7 @@
 #define SA_NOMASK               SA_NODEFER
 #define SA_ONESHOT              SA_RESETHAND
 
-/* Reason for signal generation */
+/* Signal codes */
 
 #define SI_USER                 0x100
 #define SI_KERNEL               0x101
@@ -92,6 +92,8 @@
 #define SI_TIMER                0x103
 #define SI_ASYNCIO              0x104
 #define SI_TKILL                0x105
+
+/* Reason for signal generation */
 
 #define ILL_ILLOPC              0x200
 #define ILL_ILLOPN              0x201
@@ -140,6 +142,11 @@
 #define SIG_BLOCK               0
 #define SIG_UNBLOCK             1
 #define SIG_SETMASK             2
+
+/* sigaltstack(2) flags */
+
+#define SS_ONSTACK              (1 << 0)
+#define SS_DISABLE              (1 << 1)
 
 /* Signal handler special values */
 
@@ -226,5 +233,14 @@ struct sigaction
   unsigned long sa_flags;
   sigset_t sa_mask;
 };
+
+struct __stack_t
+{
+  void *ss_sp;
+  int ss_flags;
+  size_t ss_size;
+};
+
+typedef struct __stack_t stack_t;
 
 #endif

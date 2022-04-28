@@ -105,7 +105,8 @@ ASM_FUNC_BEGIN (sched_tick):
 	mov	-40(%rax), %rax
 	mov	%rax, -8(%rbx)
 
-	/* TODO Support loading custom signal stacks */
+	/* TODO Support loading custom signal stacks,
+	   save the signal mask before switching to trampoline */
 	/* Load the signal return context on the thread's stack */
 	call	reg_save_size
 	mov	%eax, %edx

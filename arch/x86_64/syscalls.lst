@@ -96,4 +96,7 @@ params = int sig, sighandler_t handler
 [sigaction]
 params = int sig, const struct sigaction *act, struct sigaction *old_act
 
+[kill]
+params = pid_t pid, int sig
+
 # End of system calls list
