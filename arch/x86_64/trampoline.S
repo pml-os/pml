@@ -53,29 +53,24 @@ ASM_FUNC_BEGIN (int_save_registers):
 #if defined AVX512F_SUPPORT
 #error "saving AVX-512 registers is not supported"
 #elif defined AVX_SUPPORT
-	/* Align the stack pointer to 32 bytes */
-	mov	%rsp, %rbp
-	and	$-32, %rsp
-	mov	%rbp, (%rsp)
-
 	/* Save AVX registers */
 	lea	-512(%rsp), %rsp
-	vmovdqa	%ymm0, (%rsp)
-	vmovdqa	%ymm1, 32(%rsp)
-	vmovdqa	%ymm2, 64(%rsp)
-	vmovdqa	%ymm3, 96(%rsp)
-	vmovdqa	%ymm4, 128(%rsp)
-	vmovdqa	%ymm5, 160(%rsp)
-	vmovdqa	%ymm6, 192(%rsp)
-	vmovdqa	%ymm7, 224(%rsp)
-	vmovdqa	%ymm8, 256(%rsp)
-	vmovdqa	%ymm9, 288(%rsp)
-	vmovdqa	%ymm10, 320(%rsp)
-	vmovdqa	%ymm11, 352(%rsp)
-	vmovdqa	%ymm12, 384(%rsp)
-	vmovdqa	%ymm13, 416(%rsp)
-	vmovdqa	%ymm14, 448(%rsp)
-	vmovdqa	%ymm15, 480(%rsp)
+	vmovdqu	%ymm0, (%rsp)
+	vmovdqu	%ymm1, 32(%rsp)
+	vmovdqu	%ymm2, 64(%rsp)
+	vmovdqu	%ymm3, 96(%rsp)
+	vmovdqu	%ymm4, 128(%rsp)
+	vmovdqu	%ymm5, 160(%rsp)
+	vmovdqu	%ymm6, 192(%rsp)
+	vmovdqu	%ymm7, 224(%rsp)
+	vmovdqu	%ymm8, 256(%rsp)
+	vmovdqu	%ymm9, 288(%rsp)
+	vmovdqu	%ymm10, 320(%rsp)
+	vmovdqu	%ymm11, 352(%rsp)
+	vmovdqu	%ymm12, 384(%rsp)
+	vmovdqu	%ymm13, 416(%rsp)
+	vmovdqu	%ymm14, 448(%rsp)
+	vmovdqu	%ymm15, 480(%rsp)
 #else
 	/* Save SSE registers */
 	lea	-256(%rsp), %rsp
@@ -110,23 +105,23 @@ ASM_FUNC_BEGIN (int_restore_registers):
 #error "restoring AVX-512 registers is not supported"
 #elif defined AVX_SUPPORT
 	/* Restore AVX registers */
-	vmovdqa	(%rsp), %ymm0
-	vmovdqa	32(%rsp), %ymm1
-	vmovdqa	64(%rsp), %ymm2
-	vmovdqa	96(%rsp), %ymm3
-	vmovdqa	128(%rsp), %ymm4
-	vmovdqa	160(%rsp), %ymm5
-	vmovdqa	192(%rsp), %ymm6
-	vmovdqa	224(%rsp), %ymm7
-	vmovdqa	256(%rsp), %ymm8
-	vmovdqa	288(%rsp), %ymm9
-	vmovdqa	320(%rsp), %ymm10
-	vmovdqa	352(%rsp), %ymm11
-	vmovdqa	384(%rsp), %ymm12
-	vmovdqa	416(%rsp), %ymm13
-	vmovdqa	448(%rsp), %ymm14
-	vmovdqa	480(%rsp), %ymm15
-	mov	512(%rsp), %rsp
+	vmovdqu	(%rsp), %ymm0
+	vmovdqu	32(%rsp), %ymm1
+	vmovdqu	64(%rsp), %ymm2
+	vmovdqu	96(%rsp), %ymm3
+	vmovdqu	128(%rsp), %ymm4
+	vmovdqu	160(%rsp), %ymm5
+	vmovdqu	192(%rsp), %ymm6
+	vmovdqu	224(%rsp), %ymm7
+	vmovdqu	256(%rsp), %ymm8
+	vmovdqu	288(%rsp), %ymm9
+	vmovdqu	320(%rsp), %ymm10
+	vmovdqu	352(%rsp), %ymm11
+	vmovdqu	384(%rsp), %ymm12
+	vmovdqu	416(%rsp), %ymm13
+	vmovdqu	448(%rsp), %ymm14
+	vmovdqu	480(%rsp), %ymm15
+	lea	512(%rsp), %rsp
 #else
 	/* Restore SSE registers */
 	movdqa	(%rsp), %xmm0

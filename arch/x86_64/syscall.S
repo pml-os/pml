@@ -66,18 +66,17 @@ ASM_FUNC_BEGIN (syscall):
 	call	get_errno
 	mov	(%rax), %ecx
 	test	%ecx, %ecx
+	clc
 	jz	1f
 	mov	%ecx, %ebx
-	mov	(%rsp), %rsp
-	pop	%r11
-	or	$0x0001, %r11
-	jmp	2f
-
+	stc
 1:
 	mov	(%rsp), %rsp
-	pop	%r11
-2:
 	mov	%rbx, %rax
+	pop	%r11
+	jnc	2f
+	or	$0x0001, %r11
+2:
 	pop	%r10
 	pop	%r9
 	pop	%r8
