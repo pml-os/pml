@@ -50,6 +50,7 @@ while IFS= read -r line; do
 	fi
 	echo '	call	int_save_registers' >> $stubs_file
 	echo "	call	int_$name" >> $stubs_file
+	echo '  call	run_signal' >> $stubs_file
 	echo '	call	int_restore_registers' >> $stubs_file
 	echo '	pop	%rdi' >> $stubs_file
 	if $error; then
