@@ -9,6 +9,7 @@ libdrivers_a_SOURCES =	\
 	ata.c		\
 	hpet.c		\
 	pci.c		\
+	pcspk.c		\
 	pit.c		\
 	ps2kbd.c	\
 	tty.c		\

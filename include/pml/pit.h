@@ -35,6 +35,9 @@
 
 #define PIT_PORT_CHANNEL(x)     ((x) + 0x40)
 #define PIT_PORT_COMMAND        0x43
+#define PIT_PORT_PCSPK          0x61
+
+#define PCSPK_BEEP_DURATION     50
 
 static inline unsigned char
 pit_command_byte (unsigned char channel, unsigned char acc, unsigned char mode)
@@ -46,6 +49,10 @@ __BEGIN_DECLS
 
 void pit_set_freq (unsigned char channel, unsigned int freq);
 void pit_sleep (unsigned long ms);
+
+void pcspk_on (unsigned int freq);
+void pcspk_off (void);
+void pcspk_beep (unsigned int freq);
 
 __END_DECLS
 
