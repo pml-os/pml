@@ -125,8 +125,8 @@ ASM_FUNC_BEGIN (sched_yield_to):
 	jmp	sched_tick
 ASM_FUNC_END (sched_yield_to)
 
-	.global run_signal
-ASM_FUNC_BEGIN (run_signal):
+	.global load_signal
+ASM_FUNC_BEGIN (load_signal):
 	push	%rbp
 	mov	%rsp, %rbp
 
@@ -151,6 +151,28 @@ ASM_FUNC_BEGIN (run_signal):
 	cmp	%rax, %rsp
 	jbe	.cancel
 
+	xor	%eax, %eax
+	leave
+	ret
+
+.cancel:
+	mov	$1, %eax
+	leave
+	ret
+ASM_FUNC_END (load_signal)
+
+	.global run_signal
+ASM_FUNC_BEGIN (run_signal):
+	push	%rbp
+	mov	%rsp, %rbp
+
+	call	load_signal
+	test	%eax, %eax
+	jz	.handle
+	leave
+	ret
+
+.handle:
 	/* Get the original stack pointer and return address */
 	movabs	$INTERRUPT_STACK_TOP_VMA, %rax
 	mov	-16(%rax), %rbx
@@ -179,8 +201,4 @@ ASM_FUNC_BEGIN (run_signal):
 	movabs	$signal_trampoline, %rax
 	push	%rax
 	iretq
-
-.cancel:
-	leave
-	ret
 ASM_FUNC_END (run_signal)
