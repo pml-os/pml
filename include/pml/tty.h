@@ -23,6 +23,7 @@
  */
 
 #include <pml/cdefs.h>
+#include <pml/termios.h>
 
 #define TTY_INPUT_BUFFER_SIZE   1024
 
@@ -67,6 +68,7 @@ struct tty
   void *screen;                     /*!< Buffer containing contents of screen */
   struct tty_input input;           /*!< Terminal input buffer */
   const struct tty_output *output;  /*!< Output function vector */
+  struct termios termios;           /*!< Termios structure */
 };
 
 __BEGIN_DECLS

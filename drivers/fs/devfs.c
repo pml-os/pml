@@ -118,6 +118,10 @@ devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 	    case 1:
 	      *ptr++ = c;
 	      break;
+	    case 2:
+	      *ptr++ = c;
+	      spinlock_release (&lock);
+	      return ++i;
 	    case 0:
 	      spinlock_release (&lock);
 	      if (!i)

@@ -49,6 +49,7 @@ pmlinclude_HEADERS =	\
 	resource.h	\
 	signal.h	\
 	stat.h		\
+	termios.h	\
 	time.h		\
 	tty.h		\
 	types.h		\

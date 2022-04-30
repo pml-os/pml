@@ -37,7 +37,7 @@ tty_device_read (struct char_device *dev, unsigned char *c, int block)
       tty->input.size--;
       if (++tty->input.start == TTY_INPUT_BUFFER_SIZE)
 	tty->input.start = 0;
-      return 1;
+      return *c == '\n' ? 2 : 1;
     }
   else
     return 0;

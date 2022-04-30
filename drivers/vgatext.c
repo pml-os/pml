@@ -84,4 +84,24 @@ vga_text_init (void)
   current_tty->screen = kernel_tty_screen;
   current_tty->output = &vga_text_output;
   current_tty->output->clear (current_tty);
+  current_tty->termios.c_iflag = VGA_TEXT_DEFAULT_IFLAG;
+  current_tty->termios.c_oflag = VGA_TEXT_DEFAULT_OFLAG;
+  current_tty->termios.c_cflag = VGA_TEXT_DEFAULT_CFLAG;
+  current_tty->termios.c_lflag = VGA_TEXT_DEFAULT_LFLAG;
+  current_tty->termios.c_cc[VINTR] = '\3';
+  current_tty->termios.c_cc[VQUIT] = '\34';
+  current_tty->termios.c_cc[VERASE] = '\37';
+  current_tty->termios.c_cc[VKILL] = '\25';
+  current_tty->termios.c_cc[VEOF] = '\4';
+  current_tty->termios.c_cc[VTIME] = 0;
+  current_tty->termios.c_cc[VMIN] = 1;
+  current_tty->termios.c_cc[VSTART] = '\21';
+  current_tty->termios.c_cc[VSTOP] = '\23';
+  current_tty->termios.c_cc[VSUSP] = '\32';
+  current_tty->termios.c_cc[VEOL] = 0xff;
+  current_tty->termios.c_cc[VREPRINT] = '\22';
+  current_tty->termios.c_cc[VDISCARD] = '\17';
+  current_tty->termios.c_cc[VWERASE] = '\27';
+  current_tty->termios.c_cc[VLNEXT] = '\26';
+  current_tty->termios.c_cc[VEOL2] = 0xff;
 }

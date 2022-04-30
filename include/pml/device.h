@@ -138,6 +138,7 @@ struct char_device
    * @return <table>
    * <tr><th>Value</th><th>Description</th></tr>
    * <tr><td>1</td><td>Byte was successfully read</td></tr>
+   * <tr><td>2</td><td>Input was flushed</td></tr>
    * <tr><td>0</td><td>Couldn't read at this time and not blocking</td></tr>
    * <tr><td>-1</td><td>Read error</td></tr>
    * </table>

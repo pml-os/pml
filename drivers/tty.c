@@ -72,7 +72,8 @@ tty_putchar (struct tty *tty, int c)
 }
 
 /*!
- * Appends a byte to a terminal input buffer.
+ * Appends a byte to a terminal input buffer. This function also handles
+ * input in canonical mode.
  *
  * @param tty the terminal
  * @param c the byte

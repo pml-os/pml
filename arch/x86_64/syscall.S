@@ -60,7 +60,7 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rax,%rbx,8), %rax
 	call	*%rax
 
-	/* Check if an error occurred */
+	/* Save return value and errno */
 	mov	%rax, %rbx
 	call	get_errno
 	mov	(%rax), %r12d
@@ -70,14 +70,16 @@ ASM_FUNC_BEGIN (syscall):
 	test	%eax, %eax
 	jnz	2f
 
-	/* Disable task switching, switch stacks, and save registers */
+	/* Disable task switching and switch stacks */
 	movabs	$thread_switch_lock, %rax
 	movl	$1, (%rax)
 	mov	(%rsp), %rsp
 	mov	%rbx, %rax
 	pop	%r11
-	test	%r12d, %r12d
-	jz	1f
+
+	/* Check if an error occurred */
+	cmp	$-1, %rax
+	jne	1f
 	or	$0x0001, %r11
 	mov	%r12d, %eax
 1:
@@ -110,8 +112,8 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rsp), %rsp
 	mov	%rbx, %rax
 	pop	%r11
-	test	%r12d, %r12d
-	jz	3f
+	cmp	$-1, %rax
+	jne	3f
 	or	$0x0001, %r11
 	mov	%r12d, %eax
 3:
