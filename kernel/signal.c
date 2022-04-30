@@ -193,6 +193,22 @@ signal_handler (void)
 }
 
 /*!
+ * Fetches and resets the signal handler for the current thread. 
+ * This function is called once the handler is already loaded and ready to 
+ * be executed so future interrupts do not reload the signal handler.
+ *
+ * @return the address of the loaded signal handler
+ */
+
+void *
+poll_signal_handler (void)
+{
+  void *addr = THIS_THREAD->handler;
+  THIS_THREAD->handler = NULL;
+  return addr;
+}
+
+/*!
  * Sends a signal to a thread.
  *
  * @param thread the thread to signal
@@ -225,10 +241,6 @@ send_signal_thread (struct thread *thread, int sig, const siginfo_t *info)
       memcpy (queue->queue + queue->len - 1, info, sizeof (siginfo_t));
     }
   thread->sig++;
-
-  /* Force the signal to be handled on the current thread */
-  if (thread == THIS_THREAD)
-    sched_yield ();
 }
 
 /*!

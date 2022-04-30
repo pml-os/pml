@@ -33,6 +33,7 @@ libarch_a_SOURCES =	\
 	rtc.c		\
 	serial.c	\
 	sched.S		\
+	signal.S	\
 	smp.c		\
 	smp-init.S	\
 	syscall.S	\

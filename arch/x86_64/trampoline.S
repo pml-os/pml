@@ -23,7 +23,10 @@
 	.global signal_trampoline
 ASM_FUNC_BEGIN (signal_trampoline):
 	xor	%ebp, %ebp
-	call	*%r12
+	push	%rbp
+	mov	%rsp, %rbp
+	call	*%rdi
+	leave
 	call	int_restore_registers
 	ret
 ASM_FUNC_END (signal_trampoline)

@@ -210,6 +210,7 @@ void signal_trampoline (void) __noreturn;
 void handle_signal (int sig);
 int poll_signal (void);
 void *signal_handler (void);
+void *poll_signal_handler (void);
 void send_signal_thread (struct thread *thread, int sig, const siginfo_t *info);
 void send_signal (struct process *process, int sig, const siginfo_t *info);
 

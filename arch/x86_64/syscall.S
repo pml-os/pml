@@ -29,6 +29,7 @@ ASM_FUNC_BEGIN (syscall):
 	push	%r8
 	push	%r9
 	push	%r10
+	push	%r12
 	push	%r11
 
 	/* Switch stacks */
@@ -36,18 +37,16 @@ ASM_FUNC_BEGIN (syscall):
 	movabs	$SYSCALL_STACK_TOP_VMA, %rsp
 	push	%rbp
 
+	/* Clear error value */
 	push	%rdi
 	push	%rsi
 	push	%rdx
 	push	%r10
 	push	%r8
 	push	%r9
-
-	/* Clear error value */
 	mov	%eax, %ebx
 	call	get_errno
 	movl	$0, (%rax)
-
 	pop	%r9
 	pop	%r8
 	pop	%r10
@@ -61,22 +60,62 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rax,%rbx,8), %rax
 	call	*%rax
 
-	/* If an error occurred, return errno value and set carry flag */
+	/* Check if an error occurred */
 	mov	%rax, %rbx
 	call	get_errno
-	mov	(%rax), %ecx
-	test	%ecx, %ecx
-	clc
-	jz	1f
-	mov	%ecx, %ebx
-	stc
-1:
+	mov	(%rax), %r12d
+
+	/* Check if a signal can be handled */
+	call	load_signal
+	test	%eax, %eax
+	jnz	2f
+
+	/* Disable task switching, switch stacks, and save registers */
+	movabs	$thread_switch_lock, %rax
+	movl	$1, (%rax)
 	mov	(%rsp), %rsp
 	mov	%rbx, %rax
 	pop	%r11
-	jnc	2f
+	test	%r12d, %r12d
+	jz	1f
 	or	$0x0001, %r11
+	mov	%r12d, %eax
+1:
+	pop	%r12
+	pop	%r10
+	pop	%r9
+	pop	%r8
+	pop	%rdi
+	pop	%rsi
+	pop	%rbp
+	pop	%rdx
+	pop	%rcx
+	pop	%rbx
+
+	/* Prepare to execute signal handler */
+	push	%rcx
+	call	int_save_registers
+	mov	%r11, %r12
+	mov	$1, %edi
+	call	poll_signal_handler
+	mov	%rax, %rdi
+	movabs	$SIGNAL_TRAMPOLINE_VMA, %rcx
+	mov	%r12, %r11
+	movabs	$thread_switch_lock, %rax
+	movl	$0, (%rax)
+	sysretq
+
 2:
+	/* Switch stacks and return to user mode */
+	mov	(%rsp), %rsp
+	mov	%rbx, %rax
+	pop	%r11
+	test	%r12d, %r12d
+	jz	3f
+	or	$0x0001, %r11
+	mov	%r12d, %eax
+3:
+	pop	%r12
 	pop	%r10
 	pop	%r9
 	pop	%r8
