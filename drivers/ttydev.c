@@ -17,6 +17,7 @@
 /*! @file */
 
 #include <pml/device.h>
+#include <pml/pit.h>
 #include <pml/tty.h>
 #include <errno.h>
 #include <stdio.h>
@@ -26,28 +27,77 @@ ssize_t
 tty_device_read (struct char_device *dev, unsigned char *c, int block)
 {
   struct tty *tty = dev->device.data;
-  if (block)
+  if (tty->termios.c_lflag & ICANON)
     {
-      while (!tty->input.size)
-	;
-    }
-  if (tty->input.size)
-    {
+      tty_wait_input_ready (tty);
+    ready:
       *c = tty->input.buffer[tty->input.start];
-      tty->input.size--;
-      if (++tty->input.start == TTY_INPUT_BUFFER_SIZE)
-	tty->input.start = 0;
-      return *c == '\n' ? 2 : 1;
+      if (++tty->input.start == tty->input.end)
+	{
+	  tty->input.start = 0;
+	  tty->input.end = 0;
+	  tty->flags &= ~TTY_FLAG_FLUSH;
+	  return 2;
+	}
+      return 1;
     }
   else
-    return 0;
+    {
+      cc_t min = tty->termios.c_cc[VMIN];
+      cc_t time = tty->termios.c_cc[VTIME];
+      if (!min && !time)
+	{
+	  if (tty->input.end > tty->input.start)
+	    goto ready;
+	  else
+	    return 0;
+	}
+      else if (min && !time)
+	{
+	  while (tty->input.end  - tty->input.start < min)
+	    ;
+	  goto ready;
+	}
+      else if (!min && time)
+	{
+	  unsigned long tick = pit_ticks;
+	  while (tty->input.start == tty->input.end
+		 && tick + time * 100 < pit_ticks)
+	    ;
+	  if (tty->input.start == tty->input.end)
+	    return 0;
+	  else
+	    goto ready;
+	}
+      else
+	{
+	  size_t bytes = tty->input.end - tty->input.start;
+	  unsigned long tick = pit_ticks;
+	  while (bytes < min && tick + time * 100 < pit_ticks)
+	    {
+	      if (tty->input.end - tty->input.start > bytes)
+		bytes = tty->input.end - tty->input.start;
+	    }
+	  goto ready;
+	}
+    }
 }
 
 ssize_t
 tty_device_write (struct char_device *dev, unsigned char c, int block)
 {
   struct tty *tty = dev->device.data;
-  return tty_putchar (tty, c) == EOF ? -1 : 1;
+  if ((tty->termios.c_lflag & TOSTOP) && THIS_PROCESS->pgid != tty->pgid)
+    {
+      siginfo_t info;
+      info.si_signo = SIGTTOU;
+      info.si_code = 0;
+      info.si_errno = 0;
+      send_signal (THIS_PROCESS, SIGTTOU, &info);
+      return -1;
+    }
+  tty_output_byte (tty, c, 0);
+  return 1;
 }
 
 /*!

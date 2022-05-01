@@ -20,7 +20,7 @@
 #include <pml/io.h>
 #include <pml/pit.h>
 
-static volatile unsigned long pit_ticks;
+volatile unsigned long pit_ticks;
 
 /*!
  * Sets the frequency of a PIT timer channel.

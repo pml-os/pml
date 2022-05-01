@@ -24,8 +24,13 @@
 
 #include <pml/cdefs.h>
 #include <pml/termios.h>
+#include <pml/types.h>
 
+/*! Size of the terminal input buffer */
 #define TTY_INPUT_BUFFER_SIZE   1024
+
+#define TTY_FLAG_LITERAL_INPUT  (1 << 0)    /*!< Next char is literal */
+#define TTY_FLAG_FLUSH          (1 << 1)    /*!< Flush input buffer */
 
 struct tty;
 
@@ -41,6 +46,10 @@ struct tty_output
   int (*update_cursor) (struct tty *);
   /*! Scrolls down one line */
   int (*scroll_down) (struct tty *);
+  /*! Erases the character behind the cursor */
+  int (*erase_char) (struct tty *);
+  /*! Erases the current line up to a certain number of characters */
+  int (*erase_line) (struct tty *, size_t);
 };
 
 /*! Buffer structure used to store data sent as input to a terminal. */
@@ -50,7 +59,6 @@ struct tty_input
   unsigned char buffer[TTY_INPUT_BUFFER_SIZE]; /*!< Buffer of bytes */
   size_t start;                 /*!< Index of start of unread data */
   size_t end;                   /*!< Index of last byte written */
-  size_t size;                  /*!< Number of unread bytes */
 };
 
 /*!
@@ -66,6 +74,8 @@ struct tty
   size_t x;                         /*!< Current column number */
   size_t y;                         /*!< Current row number */
   void *screen;                     /*!< Buffer containing contents of screen */
+  int flags;                        /*!< Terminal flags */
+  pid_t pgid;                       /*!< Process group ID of foreground */
   struct tty_input input;           /*!< Terminal input buffer */
   const struct tty_output *output;  /*!< Output function vector */
   struct termios termios;           /*!< Termios structure */
@@ -78,7 +88,15 @@ extern struct tty *current_tty;
 
 void tty_device_init (void);
 int tty_putchar (struct tty *tty, int c);
+void tty_wait_input_ready (struct tty *tty);
+void tty_flush_input_line (struct tty *tty, unsigned char delim);
+size_t tty_erase_input (struct tty *tty);
+size_t tty_erase_input_word (struct tty *tty);
+size_t tty_kill_input (struct tty *tty);
+void tty_reprint_input (struct tty *tty);
 void tty_recv (struct tty *tty, unsigned char c);
+void tty_input_byte (struct tty *tty, unsigned char c);
+void tty_output_byte (struct tty *tty, unsigned char c, size_t len);
 
 __END_DECLS
 

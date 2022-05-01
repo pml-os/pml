@@ -7,6 +7,7 @@ libutil_a_SOURCES =	\
 	lock.c		\
 	malloc.c	\
 	map.c		\
+	memchr.c	\
 	memcmp.c	\
 	memmove.c	\
 	printf.c	\

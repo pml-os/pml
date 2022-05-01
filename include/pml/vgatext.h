@@ -97,6 +97,8 @@ int vga_text_write_char (struct tty *tty, size_t x, size_t y, unsigned char c);
 int vga_text_clear (struct tty *tty);
 int vga_text_update_cursor (struct tty *tty);
 int vga_text_scroll_down (struct tty *tty);
+int vga_text_erase_char (struct tty *tty);
+int vga_text_erase_line (struct tty *tty, size_t len);
 
 __END_DECLS
 

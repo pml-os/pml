@@ -25,7 +25,9 @@ const struct tty_output vga_text_output = {
   .write_char = vga_text_write_char,
   .clear = vga_text_clear,
   .update_cursor = vga_text_update_cursor,
-  .scroll_down = vga_text_scroll_down
+  .scroll_down = vga_text_scroll_down,
+  .erase_char = vga_text_erase_char,
+  .erase_line = vga_text_erase_line
 };
 
 int
@@ -72,6 +74,30 @@ vga_text_scroll_down (struct tty *tty)
     tty->output->write_char (tty, i, VGA_TEXT_SCREEN_HEIGHT - 1, ' ');
   if (tty == current_tty)
     memcpy (vga_text_buffer, tty->screen, VGA_TEXT_SCREEN_SIZE * 2);
+  return 0;
+}
+
+int
+vga_text_erase_char (struct tty *tty)
+{
+  if (tty->x)
+    {
+      tty->x--;
+      vga_text_write_char (tty, ' ', tty->x, tty->y);
+      vga_text_update_cursor (tty);
+    }
+  return 0;
+}
+
+int
+vga_text_erase_line (struct tty *tty, size_t len)
+{
+  size_t i;
+  if (len > tty->x)
+    len = tty->x;
+  for (i = 0; i < len; i++)
+    vga_text_write_char (tty, ' ', --tty->x, tty->y);
+  vga_text_update_cursor (tty);
   return 0;
 }
 

@@ -33,9 +33,9 @@ pcspk_off (void)
 }
 
 void
-pcspk_beep (unsigned int freq)
+pcspk_beep (void)
 {
-  pcspk_on (freq);
+  pcspk_on (PCSPK_BEEP_FREQ);
   pit_sleep (PCSPK_BEEP_DURATION);
   pcspk_off ();
 }

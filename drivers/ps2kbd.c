@@ -80,7 +80,6 @@ kbd_recv_key (int scancode)
 	c = kbd_shiftmap[c];
       if (CTRL_DOWN && kbd_ctrl_kmap[c])
 	c = kbd_ctrl_kmap[c];
-      tty_recv (&kernel_tty, c);
-      putchar (c);
+      tty_input_byte (&kernel_tty, c);
     }
 }

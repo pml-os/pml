@@ -97,6 +97,33 @@
 #define ALIAS(old, new)         extern __typeof__ (old) new __alias (old)
 
 /*!
+ * Convenience macro that executes a statement, then jumps to a label.
+ *
+ * @param x statement to execute
+ * @param l label to jump to
+ */
+
+#define DO_GOTO(x, l) do { (x); goto l; } while (0)
+
+/*!
+ * Convenience macro that executes a statement, then returns from the function.
+ *
+ * @param x statement to execute
+ */
+
+#define DO_RET(x) do { (x); return; } while (0)
+
+/*!
+ * Convenience macro that executes a statement, then returns from the function
+ * with a given return value.
+ *
+ * @param x statement to execute
+ * @param v return value
+ */
+
+#define DO_RETV(x, v) do { (x); return (v); } while (0)
+
+/*!
  * Sets a bit in a bitmap.
  *
  * @param bitmap the bitmap
