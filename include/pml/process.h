@@ -206,11 +206,17 @@ pid_t process_get_pid (struct process *process);
 void process_fill_wait (struct process *process, int mode, int status);
 void process_kill (int mode, int status) __noreturn;
 
+
+int sigemptyset (sigset_t *set);
+int sigfillset (sigset_t *set);
+int sigaddset (sigset_t *set, int sig);
+int sigdelset (sigset_t *set, int sig);
+int sigismember (const sigset_t *set, int sig);
 void signal_trampoline (void) __noreturn;
 void handle_signal (int sig);
 int poll_signal (void);
 void *signal_handler (void);
-void *poll_signal_handler (void);
+void *poll_signal_handler (sigset_t *mask);
 void send_signal_thread (struct thread *thread, int sig, const siginfo_t *info);
 void send_signal (struct process *process, int sig, const siginfo_t *info);
 

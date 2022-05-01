@@ -21,44 +21,44 @@
 #include <errno.h>
 #include <string.h>
 
-static int
+static clock_t
+convert_time (struct timeval *t)
+{
+  return t->tv_sec * 1000000 + t->tv_usec;
+}
+
+int
 sigemptyset (sigset_t *set)
 {
-  memset (set, 0, sizeof (sigset_t));
+  *set = 0;
   return 0;
 }
 
-static int
+int
 sigfillset (sigset_t *set)
 {
-  memset (set, 0xff, sizeof (sigset_t));
+  *set = 0xffffffffffffffffUL;
   return 0;
 }
 
-static int
+int
 sigaddset (sigset_t *set, int sig)
 {
   *set |= 1UL << (NSIG - sig);
   return 0;
 }
 
-static int
+int
 sigdelset (sigset_t *set, int sig)
 {
   *set &= ~(1UL << (NSIG - sig));
   return 0;
 }
 
-static int
+int
 sigismember (const sigset_t *set, int sig)
 {
   return !!(*set & (1UL << (NSIG - sig)));
-}
-
-static clock_t
-convert_time (struct timeval *t)
-{
-  return t->tv_sec * 1000000 + t->tv_usec;
 }
 
 void
@@ -138,6 +138,9 @@ handle_signal (int sig)
 
   THIS_THREAD->handler = handler->sa_flags & SA_SIGINFO ?
     (void *) handler->sa_sigaction : (void *) handler->sa_handler;
+  THIS_THREAD->hflags = handler->sa_flags;
+  THIS_THREAD->hsig = sig;
+  THIS_THREAD->hmask = handler->sa_mask;
 }
 
 /*!
@@ -195,16 +198,26 @@ signal_handler (void)
 /*!
  * Fetches and resets the signal handler for the current thread. 
  * This function is called once the handler is already loaded and ready to 
- * be executed so future interrupts do not reload the signal handler.
+ * be executed so future interrupts do not reload the signal handler. The
+ * signal mask is also changed to the requested mask of the signal handler.
  *
+ * @param mask signal mask to restore after handling
  * @return the address of the loaded signal handler
  */
 
 void *
-poll_signal_handler (void)
+poll_signal_handler (sigset_t *mask)
 {
   void *addr = THIS_THREAD->handler;
+  *mask = THIS_THREAD->sigblocked;
+  THIS_THREAD->sigblocked |= THIS_THREAD->hmask;
+  if (!(THIS_THREAD->hflags & SA_NODEFER))
+    sigaddset (&THIS_THREAD->sigblocked, THIS_THREAD->hsig);
+
   THIS_THREAD->handler = NULL;
+  THIS_THREAD->hflags = 0;
+  THIS_THREAD->hsig = 0;
+  sigemptyset (&THIS_THREAD->hmask);
   return addr;
 }
 
@@ -321,6 +334,31 @@ sys_sigaction (int sig, const struct sigaction *act, struct sigaction *old_act)
     memcpy (old_act, handler, sizeof (struct sigaction));
   if (act)
     memcpy (handler, act, sizeof (struct sigaction));
+  return 0;
+}
+
+int
+sys_sigprocmask (int how, const sigset_t *set, sigset_t *old_set)
+{
+  if (old_set)
+    *old_set = THIS_THREAD->sigblocked;
+  if (set)
+    {
+      switch (how)
+	{
+	case SIG_BLOCK:
+	  THIS_THREAD->sigblocked |= *set;
+	  break;
+	case SIG_UNBLOCK:
+	  THIS_THREAD->sigblocked &= ~*set;
+	  break;
+	case SIG_SETMASK:
+	  THIS_THREAD->sigblocked = *set;
+	  break;
+	default:
+	  RETV_ERROR (EINVAL, -1);
+	}
+    }
   return 0;
 }
 

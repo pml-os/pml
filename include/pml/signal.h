@@ -22,8 +22,6 @@
  * @brief POSIX signal definitions
  */
 
-#include <pml/types.h>
-
 #define SIGHUP                  1           /*!< Hangup */
 #define SIGINT                  2           /*!< Interrupt */
 #define SIGQUIT                 3           /*!< Quit */
@@ -156,6 +154,10 @@
 /*! Returned by @ref sys_signal when an error occurs */
 #define SIG_ERR                 ((sighandler_t) -1)
 
+#ifndef __ASSEMBLER__
+
+#include <pml/types.h>
+
 /*! Type of signal handler functions for signal(2) */
 typedef void (*sighandler_t) (int);
 /*! Alias of @ref sighandler_t */
@@ -242,5 +244,7 @@ struct __stack_t
 };
 
 typedef struct __stack_t stack_t;
+
+#endif /* !__ASSEMBLER__ */
 
 #endif

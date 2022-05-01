@@ -96,6 +96,9 @@ params = int sig, sighandler_t handler
 [sigaction]
 params = int sig, const struct sigaction *act, struct sigaction *old_act
 
+[sigprocmask]
+params = int how, const sigset_t *set, sigset_t *old_set
+
 [kill]
 params = pid_t pid, int sig
 

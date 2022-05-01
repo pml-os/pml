@@ -18,15 +18,20 @@
 
 #include <pml/asm.h>
 #include <pml/memory.h>
+#include <pml/signal.h>
+#include <pml/syscall.h>
 
 	.align PAGE_SIZE
 	.global signal_trampoline
 ASM_FUNC_BEGIN (signal_trampoline):
 	xor	%ebp, %ebp
-	push	%rbp
-	mov	%rsp, %rbp
+	push	%rsi
 	call	*%rdi
-	leave
+	mov	$SIG_SETMASK, %edi
+	pop	%rsi
+	xor	%edx, %edx
+	mov	$SYS_sigprocmask, %eax
+	syscall
 	call	int_restore_registers
 	ret
 ASM_FUNC_END (signal_trampoline)

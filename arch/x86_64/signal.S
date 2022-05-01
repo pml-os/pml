@@ -103,8 +103,11 @@ ASM_FUNC_BEGIN (run_signal):
 	call	memcpy
 
 	/* Jump to signal handler */
+	sub	$16, %rsp
+	mov	%rsp, %rdi
 	call	poll_signal_handler
 	mov	%rax, %rdi
+	mov	(%rsp), %rsi
 	pushq	$0x1b
 	push	%rbx
 	pushf

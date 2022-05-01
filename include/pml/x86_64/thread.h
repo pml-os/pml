@@ -77,6 +77,9 @@ struct thread
   siginfo_t siginfo[SIGRTMIN];  /*!< Signal information array */
   struct rtsig_queue rtqueue[NSIG - SIGRTMIN]; /*!< Real-time signal queues */
   void *handler;                /*!< Signal handler ready to be executed */
+  int hflags;                   /*!< Signal handler flags */
+  int hsig;                     /*!< Signal number being handled */
+  sigset_t hmask;               /*!< Signal mask requested by the handler */
 };
 
 /*!

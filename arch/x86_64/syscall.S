@@ -98,8 +98,11 @@ ASM_FUNC_BEGIN (syscall):
 	push	%rcx
 	call	int_save_registers
 	mov	%r11, %r12
-	mov	$1, %edi
+	sub	$16, %rsp
+	mov	%rsp, %rdi
 	call	poll_signal_handler
+	mov	(%rsp), %rsi
+	add	$16, %rsp
 	mov	%rax, %rdi
 	movabs	$SIGNAL_TRAMPOLINE_VMA, %rcx
 	mov	%r12, %r11
