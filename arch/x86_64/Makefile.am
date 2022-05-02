@@ -14,7 +14,6 @@ nodist_libarch_a_SOURCES = \
 
 libarch_a_SOURCES =	\
 	apic.c		\
-	clone.c		\
 	exceptions.c	\
 	exit.c		\
 	fork.S		\

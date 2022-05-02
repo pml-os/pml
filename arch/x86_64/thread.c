@@ -373,3 +373,9 @@ thread_unmap_user_mem (struct thread *thread)
 {
   vm_unmap_user_mem (thread->args.pml4t);
 }
+
+pid_t
+sys_clone (int (*func) (void *), void *arg)
+{
+  RETV_ERROR (ENOSYS, -1);
+}

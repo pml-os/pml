@@ -21,6 +21,63 @@ return_type = pid_t
 [getppid]
 return_type = pid_t
 
+[gettid]
+return_type = pid_t
+
+[getpgid]
+return_type = pid_t
+params = pid_t pid
+
+[setpgid]
+params = pid_t pid, pid_t pgid
+
+[getpgrp]
+return_type = pid_t
+
+[setpgrp]
+
+[getuid]
+return_type = uid_t
+
+[setuid]
+params = uid_t uid
+
+[geteuid]
+return_type = uid_t
+
+[seteuid]
+params = uid_t uid
+
+[setreuid]
+params = uid_t ruid, uid_t euid
+
+[getresuid]
+params = uid_t *ruid, uid_t *euid, uid_t *suid
+
+[setresuid]
+params = uid_t ruid, uid_t euid, uid_t suid
+
+[getgid]
+return_type = gid_t
+
+[setgid]
+params = gid_t gid
+
+[getegid]
+return_type = gid_t
+
+[setegid]
+params = gid_t gid
+
+[setregid]
+params = gid_t rgid, gid_t egid
+
+[getresgid]
+params = gid_t *rgid, gid_t *egid, gid_t *sgid
+
+[setresgid]
+params = gid_t rgid, gid_t egid, gid_t sgid
+
 [execve]
 params = const char *path, char *const *argv, char *const *envp
 
