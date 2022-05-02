@@ -46,7 +46,7 @@ params = uid_t uid
 return_type = uid_t
 
 [seteuid]
-params = uid_t uid
+params = uid_t euid
 
 [setreuid]
 params = uid_t ruid, uid_t euid
@@ -67,7 +67,7 @@ params = gid_t gid
 return_type = gid_t
 
 [setegid]
-params = gid_t gid
+params = gid_t egid
 
 [setregid]
 params = gid_t rgid, gid_t egid
