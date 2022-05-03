@@ -349,7 +349,22 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
 ssize_t
 ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 {
-  RETV_ERROR (ENOSYS, -1);
+  size_t size = vp->size;
+  struct ext2_inode *inode = vp->data;
+  size_t i;
+  if (size <= 60)
+    {
+      /* Link target is stored directly in block pointers */
+      for (i = 0; i < len && i < size; i++)
+	buffer[i] = ((char *) inode->i_block)[i];
+      return 0;
+    }
+  else
+    {
+      if (size < len)
+	len = size;
+      return ext2_read (vp, buffer, len, 0);
+    }
 }
 
 int

@@ -92,6 +92,7 @@ vnode_namei (const char *path, int follow_links)
     }
   else
     REF_ASSIGN (vp, THIS_PROCESS->cwd);
+
   while (1)
     {
       end = strchr (ptr, '/');
