@@ -34,7 +34,6 @@ vnode_add_child (struct vnode *vp, struct vnode *child, const char *name)
   if (strmap_insert (vp->children, name, child))
     return -1;
   REF_ASSIGN (child->parent, vp);
-  REF_OBJECT (child);
   return 0;
 }
 
@@ -109,7 +108,6 @@ vnode_namei (const char *path, int follow_links)
 	      if (!nvp)
 		goto err0;
 	    }
-	  UNREF_OBJECT (vp);
 	  vp = nvp;
 	}
       if (!end)
