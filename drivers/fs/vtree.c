@@ -16,7 +16,8 @@
 
 /*! @file */
 
-#include <pml/process.h>
+#include <pml/syslimits.h>
+#include <errno.h>
 #include <string.h>
 
 /*!
@@ -53,15 +54,10 @@ vnode_lookup_child (struct vnode *dir, const char *name)
 {
   struct vnode *vp = strmap_lookup (dir->children, name);
   if (vp)
-    {
-      REF_OBJECT (vp);
-      return vp;
-    }
+    return vp;
   if (vfs_lookup (&vp, dir, name))
     return NULL;
-  REF_OBJECT (vp);
-  if (vnode_add_child (dir, vp, name))
-    UNREF_OBJECT (vp);
+  vnode_add_child (dir, vp, name);
   return vp;
 }
 
@@ -71,12 +67,13 @@ vnode_lookup_child (struct vnode *dir, const char *name)
  *
  * @todo follow symbolic links
  * @param path the path to resolve
- * @param follow_links whether to follow symbolic links
+ * @param link_count number of symbolic links encountered, or -1 if symbolic
+ * links should not be followed
  * @return the vnode corresponding to the path, or NULL on failure
  */
 
 struct vnode *
-vnode_namei (const char *path, int follow_links)
+vnode_namei (const char *path, int link_count)
 {
   struct vnode *vp;
   char *p = strdup (path);
@@ -84,6 +81,8 @@ vnode_namei (const char *path, int follow_links)
   char *end;
   if (UNLIKELY (!p))
     return NULL;
+  if (link_count >= LINK_MAX)
+    RETV_ERROR (ELOOP, NULL);
   if (*ptr == '/')
     {
       REF_ASSIGN (vp, root_vnode);
@@ -107,6 +106,28 @@ vnode_namei (const char *path, int follow_links)
 	      nvp = vnode_lookup_child (vp, ptr);
 	      if (!nvp)
 		goto err0;
+	      if (link_count >= 0 && S_ISLNK (nvp->mode))
+		{
+		  /* Change working directory for relative symlinks */
+		  struct vnode *cwd = THIS_PROCESS->cwd;
+		  char *buffer = malloc (PATH_MAX);
+		  ssize_t ret;
+		  if (UNLIKELY (!buffer))
+		    goto err0;
+		  THIS_PROCESS->cwd = vp;
+		  ret = vfs_readlink (nvp, buffer, PATH_MAX);
+		  if (ret == -1)
+		    {
+		      free (buffer);
+		      THIS_PROCESS->cwd = cwd;
+		      goto err0;
+		    }
+		  nvp = vnode_namei (buffer, link_count + 1);
+		  free (buffer);
+		  THIS_PROCESS->cwd = cwd;
+		  if (!nvp)
+		    goto err0;
+		}
 	    }
 	  vp = nvp;
 	}
@@ -153,7 +174,7 @@ vnode_dir_name (const char *path, struct vnode **dir, const char **name)
       goto end;
     }
   *end = '\0';
-  vp = vnode_namei (ptr, 1);
+  vp = vnode_namei (ptr, 0);
   if (!vp)
     goto err0;
 

@@ -70,7 +70,7 @@ alloc_procfd (void)
 static int
 xstat (const char *path, struct stat *st, int follow_links)
 {
-  struct vnode *vp = vnode_namei (path, follow_links);
+  struct vnode *vp = vnode_namei (path, follow_links ? 0 : -1);
   int ret;
   if (!vp)
     return -1;
@@ -91,7 +91,7 @@ sys_open (const char *path, int flags, ...)
   fd = alloc_procfd ();
   if (fd == -1)
     return -1;
-  vp = vnode_namei (path, !(flags & O_NOFOLLOW));
+  vp = vnode_namei (path, flags & O_NOFOLLOW ? -1 : 0);
   if (!vp)
     {
       if (errno == ENOENT && (flags & O_CREAT))
@@ -221,7 +221,7 @@ sys_lstat (const char *path, struct stat *st)
 int
 sys_link (const char *old_path, const char *new_path)
 {
-  struct vnode *vp = vnode_namei (old_path, 1);
+  struct vnode *vp = vnode_namei (old_path, 0);
   struct vnode *dir;
   const char *name;
   if (!vp)

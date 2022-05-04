@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/syslimits.h>
 #include <pml/vfs.h>
 #include <errno.h>
 

@@ -32,6 +32,7 @@ const struct vnode_ops ext2_vnode_ops = {
   .link = ext2_link,
   .unlink = ext2_unlink,
   .symlink = ext2_symlink,
+  .readlink = ext2_readlink,
   .readdir = ext2_readdir,
   .bmap = ext2_bmap,
   .fill = ext2_fill,

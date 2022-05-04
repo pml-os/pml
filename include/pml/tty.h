@@ -23,11 +23,12 @@
  */
 
 #include <pml/cdefs.h>
+#include <pml/syslimits.h>
 #include <pml/termios.h>
 #include <pml/types.h>
 
 /*! Size of the terminal input buffer */
-#define TTY_INPUT_BUFFER_SIZE   1024
+#define TTY_INPUT_BUFFER_SIZE   LINE_MAX
 
 #define TTY_FLAG_LITERAL_INPUT  (1 << 0)    /*!< Next char is literal */
 #define TTY_FLAG_FLUSH          (1 << 1)    /*!< Flush input buffer */

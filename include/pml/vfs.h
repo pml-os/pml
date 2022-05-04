@@ -373,7 +373,7 @@ struct mount *mount_filesystem (const char *type, dev_t device,
 const char *guess_filesystem_type (struct vnode *vp);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
-struct vnode *vnode_namei (const char *path, int follow_links);
+struct vnode *vnode_namei (const char *path, int link_count);
 int vnode_dir_name (const char *path, struct vnode **dir, const char **name);
 
 __END_DECLS

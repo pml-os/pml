@@ -234,7 +234,7 @@ elf_load_file (struct elf_exec *exec, struct vnode *vp)
 int
 sys_execve (const char *path, char *const *argv, char *const *envp)
 {
-  struct vnode *vp = vnode_namei (path, 1);
+  struct vnode *vp = vnode_namei (path, 0);
   struct elf_exec exec;
   struct thread *thread;
   char **args;
