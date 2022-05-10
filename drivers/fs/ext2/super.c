@@ -221,8 +221,11 @@ ext2_openfs (struct block_device *device, unsigned int flags)
 void
 ext2_closefs (struct ext2_fs *fs)
 {
+  flush_bitmap (fs, &fs->block_bitmap);
   free_virtual_page (fs->block_bitmap.buffer);
+  flush_bitmap (fs, &fs->inode_bitmap);
   free_virtual_page (fs->inode_bitmap.buffer);
+  flush_bitmap (fs, &fs->inode_table);
   free_virtual_page (fs->inode_table.buffer);
   free (fs->group_descs);
   free (fs);

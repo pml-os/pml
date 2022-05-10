@@ -148,6 +148,7 @@ int
 ext2_add_link (struct vnode *dir, const char *name, ino_t ino)
 {
   struct ext2_iter_data iter;
+  block_t block;
   iter.dir = dir;
   iter.name = name;
   iter.name_len = strlen (name);
@@ -161,6 +162,9 @@ ext2_add_link (struct vnode *dir, const char *name, ino_t ino)
     return 0;
 
   /* TODO Create a new block and add the link to it */
+  block = ext2_alloc_block (dir->mount->data);
+  if (!block)
+    return -1;
   RETV_ERROR (ENOTSUP, -1);
 }
 

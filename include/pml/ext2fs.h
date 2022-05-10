@@ -574,22 +574,30 @@ __BEGIN_DECLS
 extern const struct mount_ops ext2_mount_ops;
 extern const struct vnode_ops ext2_vnode_ops;
 
-/* Ext2 helper functions */
+/* I/O functions */
 
 int ext2_read_blocks (void *buffer, struct ext2_fs *fs, block_t block,
 		      size_t num);
 int ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
 		       size_t num);
-struct ext2_fs *ext2_openfs (struct block_device *device, unsigned int flags);
-void ext2_closefs (struct ext2_fs *fs);
-block_t ext2_alloc_block (struct ext2_fs *fs);
 int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
+int ext2_write_inode (const struct ext2_inode *inode, ino_t ino,
+		      struct ext2_fs *fs);
 int ext2_alloc_io_buffer (struct ext2_file *file);
 int ext2_read_io_buffer_block (struct vnode *vp, block_t block);
 int ext2_flush_io_buffer_block (struct vnode *vp);
 int ext2_read_ind_bmap (struct vnode *vp, block_t block);
 int ext2_read_dind_bmap (struct vnode *vp, block_t block);
 int ext2_read_tind_bmap (struct vnode *vp, block_t block);
+int ext2_write_ind_bmap (struct vnode *vp);
+int ext2_write_dind_bmap (struct vnode *vp);
+int ext2_write_tind_bmap (struct vnode *vp);
+
+/* Filesystem operations */
+
+struct ext2_fs *ext2_openfs (struct block_device *device, unsigned int flags);
+void ext2_closefs (struct ext2_fs *fs);
+block_t ext2_alloc_block (struct ext2_fs *fs);
 int ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
 		      int include_empty, void *data);
 int ext2_add_link (struct vnode *dir, const char *name, ino_t ino);
@@ -615,7 +623,10 @@ int ext2_unlink (struct vnode *dir, const char *name);
 int ext2_symlink (struct vnode *dir, const char *name, const char *target);
 off_t ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t ext2_readlink (struct vnode *vp, char *buffer, size_t len);
-int ext2_bmap (struct vnode *vp, block_t *result, block_t block, size_t num);
+int ext2_read_bmap (struct vnode *vp, block_t *blocks, block_t block,
+		    size_t num);
+int ext2_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
+		     size_t num);
 int ext2_fill (struct vnode *vp);
 void ext2_dealloc (struct vnode *vp);
 

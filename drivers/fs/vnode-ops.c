@@ -375,7 +375,7 @@ vfs_readlink (struct vnode *vp, char *buffer, size_t len)
  * blocks for a vnode.
  *
  * @param vp the vnode
- * @param result where to store physical block numbers. This must point to
+ * @param blocks where to store physical block numbers. This must point to
  * a buffer capable of storing at least @p num @ref block_t values.
  * @param block first logical block number
  * @param num number of logical blocks past the first block to map
@@ -383,10 +383,32 @@ vfs_readlink (struct vnode *vp, char *buffer, size_t len)
  */
 
 int
-vfs_bmap (struct vnode *vp, block_t *result, block_t block, size_t num)
+vfs_read_bmap (struct vnode *vp, block_t *blocks, block_t block, size_t num)
 {
-  if (vp->ops->bmap)
-    return vp->ops->bmap (vp, result, block, num);
+  if (vp->ops->read_bmap)
+    return vp->ops->read_bmap (vp, blocks, block, num);
+  else
+    RETV_ERROR (ENOTSUP, -1);
+}
+
+/*!
+ * Sets the physical block numbers of one or more consecutive logical
+ * blocks for a vnode. The vnode is expanded to include more blocks
+ * if necessary.
+ *
+ * @param vp the vnode
+ * @param blocks array of physical block numbers
+ * @param block first logical block number
+ * @param num number of logical blocks past the first block to map
+ * @return zero on success
+ */
+
+int
+vfs_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
+		size_t num)
+{
+  if (vp->ops->write_bmap)
+    return vp->ops->write_bmap (vp, blocks, block, num);
   else
     RETV_ERROR (ENOTSUP, -1);
 }
