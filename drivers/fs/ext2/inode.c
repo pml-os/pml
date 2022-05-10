@@ -53,8 +53,8 @@ ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs)
 {
   ext2_bgrp_t group = ext2_inode_group_desc (ino, &fs->super);
   size_t index = (ino - 1) % fs->super.s_inodes_per_group;
-  block_t block = fs->group_descs[group].bg_inode_table +
-    index * fs->inode_size / fs->block_size;
+  size_t curr = index * fs->inode_size / fs->block_size;
+  block_t block = fs->group_descs[group].bg_inode_table + curr;
   index %= fs->block_size / fs->inode_size;
   if (block != fs->inode_table.block)
     {
@@ -64,6 +64,9 @@ ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs)
     }
   memcpy (inode, fs->inode_table.buffer + index * fs->inode_size,
 	  sizeof (struct ext2_inode));
+  fs->inode_table.group = group;
+  fs->inode_table.block = block;
+  fs->inode_table.curr = curr;
   return 0;
 }
 

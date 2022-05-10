@@ -27,6 +27,88 @@ const struct mount_ops ext2_mount_ops = {
   .check = ext2_check
 };
 
+static block_t
+mark_alloc_bitmap (struct ext2_fs *fs, struct ext2_bitmap *bitmap, int offset)
+{
+  size_t i;
+  for (i = 0; i < 8; i++)
+    {
+      if (!(bitmap->buffer[offset] & (1 << i)))
+	{
+	  bitmap->buffer[offset] |= 1 << i;
+	  return bitmap->group * fs->super.s_inodes_per_group +
+	    bitmap->curr * fs->block_size + offset * 8 + i;
+	}
+    }
+  return 0;
+}
+
+static int
+flush_bitmap (struct ext2_fs *fs, struct ext2_bitmap *bitmap)
+{
+  if (ext2_write_blocks (bitmap->buffer, fs, bitmap->block, 1))
+    RETV_ERROR (EIO, -1);
+  return 0;
+}
+
+static int
+alloc_block_bitmap (struct ext2_fs *fs)
+{
+  fs->block_bitmap.buffer = alloc_virtual_page ();
+  if (UNLIKELY (!fs->block_bitmap.buffer))
+    return -1;
+  fs->block_bitmap.block = fs->group_descs[0].bg_block_bitmap;
+  fs->block_bitmap.group = 0;
+  fs->block_bitmap.curr = 0;
+  fs->block_bitmap.len =
+    ALIGN_UP (fs->super.s_blocks_per_group, fs->block_size) / fs->block_size;
+  if (ext2_read_blocks (fs->block_bitmap.buffer, fs, fs->block_bitmap.block, 1))
+    {
+      free (fs->block_bitmap.buffer);
+      RETV_ERROR (EIO, -1);
+    }
+  return 0;
+}
+
+static int
+alloc_inode_bitmap (struct ext2_fs *fs)
+{
+  fs->inode_bitmap.buffer = alloc_virtual_page ();
+  if (UNLIKELY (!fs->inode_bitmap.buffer))
+    return -1;
+  fs->inode_bitmap.block = fs->group_descs[0].bg_inode_bitmap;
+  fs->inode_bitmap.group = 0;
+  fs->inode_bitmap.curr = 0;
+  fs->inode_bitmap.len =
+    ALIGN_UP (fs->super.s_inodes_per_group, fs->block_size) / fs->block_size;
+  if (ext2_read_blocks (fs->inode_bitmap.buffer, fs, fs->inode_bitmap.block, 1))
+    {
+      free (fs->inode_bitmap.buffer);
+      RETV_ERROR (EIO, -1);
+    }
+  return 0;
+}
+
+static int
+alloc_inode_table (struct ext2_fs *fs)
+{
+  fs->inode_table.buffer = alloc_virtual_page ();
+  if (UNLIKELY (!fs->inode_table.buffer))
+    return -1;
+  fs->inode_table.block = fs->group_descs[0].bg_inode_table;
+  fs->inode_table.group = 0;
+  fs->inode_table.curr = 0;
+  fs->inode_table.len =
+    ALIGN_UP (fs->super.s_inodes_per_group *
+	      fs->inode_size, fs->block_size) / fs->block_size;
+  if (ext2_read_blocks (fs->inode_table.buffer, fs, fs->inode_table.block, 1))
+    {
+      free (fs->inode_table.buffer);
+      RETV_ERROR (EIO, -1);
+    }
+  return 0;
+}
+
 /*!
  * Reads one or more consecutive blocks from an ext2 filesystem.
  *
@@ -110,12 +192,19 @@ ext2_openfs (struct block_device *device, unsigned int flags)
       group_desc_size)
     goto err1;
 
-  /* Allocate inode table buffer */
-  fs->inode_table.buffer = alloc_virtual_page ();
-  if (UNLIKELY (!fs->inode_table.buffer))
+  /* Allocate bitmap buffers */
+  if (alloc_block_bitmap (fs))
     goto err1;
+  if (alloc_inode_bitmap (fs))
+    goto err2;
+  if (alloc_inode_table (fs))
+    goto err3;
   return fs;
 
+ err3:
+  free (fs->inode_bitmap.buffer);
+ err2:
+  free (fs->block_bitmap.buffer);
  err1:
   free (fs->group_descs);
  err0:
@@ -132,6 +221,8 @@ ext2_openfs (struct block_device *device, unsigned int flags)
 void
 ext2_closefs (struct ext2_fs *fs)
 {
+  free_virtual_page (fs->block_bitmap.buffer);
+  free_virtual_page (fs->inode_bitmap.buffer);
   free_virtual_page (fs->inode_table.buffer);
   free (fs->group_descs);
   free (fs);
@@ -190,4 +281,28 @@ ext2_check (struct vnode *vp)
 		offsetof (struct ext2_super, s_magic)) != 2)
     return 0;
   return magic == EXT2_MAGIC;
+}
+
+/*!
+ * Allocates a new block on the filesystem.
+ *
+ * @param fs the filesystem instance
+ * @return the block number of the allocated block, or 0 on failure
+ */
+
+block_t
+ext2_alloc_block (struct ext2_fs *fs)
+{
+  int i;
+  if (fs->block_bitmap.block)
+    {
+      for (i = 0; i < fs->block_size; i++)
+	{
+	  if (fs->block_bitmap.buffer[i] != 0xff)
+	    return mark_alloc_bitmap (fs, &fs->block_bitmap, i);
+	}
+      if (flush_bitmap (fs, &fs->block_bitmap))
+	return 0;
+    }
+  RETV_ERROR (ENOSPC, 0);
 }

@@ -412,19 +412,21 @@ struct ext2_dirent
   uint32_t d_inode;
   uint16_t d_rec_len;
   uint16_t d_name_len;
-  char d_name[EXT2_MAX_NAME];
+  char d_name[];
 };
 
 /*!
- * Preallocates a buffer for storing a section of a block group's inode table.
- * Requests to read inodes with close numbers will be faster since the data
- * is cached so it does not to be read from disk.
+ * Structure for storing a preallocated buffer for storing a section of a 
+ * block group's bitmaps or inode table.
  */
 
-struct ext2_inode_table
+struct ext2_bitmap
 {
   unsigned char *buffer;        /*!< Pointer to buffer */
   block_t block;                /*!< Block in filesystem matching buffer */
+  ext2_bgrp_t group;            /*!< Group number of current bitmap */
+  size_t curr;                  /*!< Number of blocks from start of bitmap */
+  size_t len;                   /*!< Number of blocks in current bitmap */
 };
 
 /*!
@@ -441,7 +443,9 @@ struct ext2_fs
   size_t bmap_entries;                  /*!< Entries in indirect blocks */
   struct ext2_group_desc *group_descs;  /*!< Array of block group descriptors */
   size_t group_desc_count;              /*!< Block group descriptor count */
-  struct ext2_inode_table inode_table;  /*!< Inode table */
+  struct ext2_bitmap block_bitmap;      /*!< Block bitmap */
+  struct ext2_bitmap inode_bitmap;      /*!< Inode bitmap */
+  struct ext2_bitmap inode_table;       /*!< Inode table */
   int dynamic;                          /*!< Dynamic revision support */
 };
 
@@ -480,12 +484,13 @@ enum ext2_iter_status
  * to the iterator function whether to continue iterating.
  *
  * @param dirent pointer to directory entry
+ * @param dirty pointer to store whether directory entries were modified
  * @param data private data from iterator function
  * @return iterator callback status
  */
 
 typedef enum ext2_iter_status (*ext2_dir_iter_t) (struct ext2_dirent *dirent,
-						  void *data);
+						  int *dirty, void *data);
 
 /*!
  * Determines the number of block group descriptors in an ext2 filesystem.
@@ -544,6 +549,26 @@ ext2_dirent_file_type (struct ext2_dirent *dirent)
   return dirent->d_name_len >> 8;
 }
 
+/*!
+ * Generates a value suitable for the name length parameter of a directory
+ * entry.
+ *
+ * @param super the superblock of the filesystem
+ * @param size number of bytes in the name, excluding a terminating null byte
+ * @param type the file type
+ * @return the value for @ref ext2_dirent.d_name_len
+ */
+
+static inline uint16_t
+ext2_make_dirent_name_len (struct ext2_super *super, size_t size,
+			   enum ext2_file_type type)
+{
+  if (super->s_feature_incompat & EXT2_FT_INCOMPAT_FILETYPE)
+    return (type << 8) | (size & 0xff);
+  else
+    return size & 0xff;
+}
+
 __BEGIN_DECLS
 
 extern const struct mount_ops ext2_mount_ops;
@@ -557,6 +582,7 @@ int ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
 		       size_t num);
 struct ext2_fs *ext2_openfs (struct block_device *device, unsigned int flags);
 void ext2_closefs (struct ext2_fs *fs);
+block_t ext2_alloc_block (struct ext2_fs *fs);
 int ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs);
 int ext2_alloc_io_buffer (struct ext2_file *file);
 int ext2_read_io_buffer_block (struct vnode *vp, block_t block);
@@ -565,7 +591,8 @@ int ext2_read_ind_bmap (struct vnode *vp, block_t block);
 int ext2_read_dind_bmap (struct vnode *vp, block_t block);
 int ext2_read_tind_bmap (struct vnode *vp, block_t block);
 int ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
-		      void *data);
+		      int include_empty, void *data);
+int ext2_add_link (struct vnode *dir, const char *name, ino_t ino);
 
 /* VFS layer functions */
 

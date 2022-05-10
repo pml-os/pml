@@ -22,20 +22,24 @@
 #include <string.h>
 
 /*!
- * Structure used as private data for directory iterations on lookup.
+ * Structure used as private data for directory iterations. Not all fields
+ * are used for all operations.
  */
 
-struct ext2_lookup_iter
+struct ext2_iter_data
 {
-  const char *name;             /*!< Name to look for */
+  struct vnode *dir;            /*!< Directory vnode */
+  const char *name;             /*!< Name of entry */
   size_t name_len;              /*!< Length of name */
   ino_t ino;                    /*!< Inode number of entry */
+  enum ext2_file_type type;     /*!< File type */
+  int done;                     /*!< Whether the operation was successful */
 };
 
 static enum ext2_iter_status
-ext2_lookup_iter (struct ext2_dirent *dirent, void *data)
+ext2_lookup_iter (struct ext2_dirent *dirent, int *dirty, void *data)
 {
-  struct ext2_lookup_iter *iter = data;
+  struct ext2_iter_data *iter = data;
   if (ext2_dirent_name_len (dirent) == iter->name_len
       && !strncmp (dirent->d_name, iter->name, iter->name_len))
     {
@@ -46,9 +50,39 @@ ext2_lookup_iter (struct ext2_dirent *dirent, void *data)
 }
 
 static enum ext2_iter_status
-ext2_readdir_iter (struct ext2_dirent *dirent, void *data)
+ext2_readdir_iter (struct ext2_dirent *dirent, int *dirty, void *data)
 {
   *((struct ext2_dirent **) data) = dirent;
+  return EXT2_ITER_END;
+}
+
+static enum ext2_iter_status
+ext2_link_iter (struct ext2_dirent *dirent, int *dirty, void *data)
+{
+  struct ext2_iter_data *iter = data;
+  struct ext2_fs *fs = iter->dir->mount->data;
+  size_t rec_len = ALIGN_UP (iter->name_len, 4) + sizeof (struct ext2_dirent);
+  if (dirent->d_inode
+      || dirent->d_rec_len - sizeof (struct ext2_dirent) >= iter->name_len)
+    return EXT2_ITER_OK;
+
+  dirent->d_inode = iter->ino;
+  dirent->d_name_len =
+    ext2_make_dirent_name_len (&fs->super, iter->name_len, iter->type);
+  strncpy (dirent->d_name, iter->name, iter->name_len);
+
+  if (dirent->d_rec_len > rec_len + sizeof (struct ext2_dirent))
+    {
+      struct ext2_dirent *next;
+      size_t old_len = dirent->d_rec_len;
+      dirent->d_rec_len = rec_len;
+      next = (struct ext2_dirent *) ((char *) dirent + rec_len);
+      next->d_inode = 0;
+      next->d_rec_len = old_len - rec_len;
+      next->d_name_len = 0;
+    }
+  iter->done = 1;
+  *dirty = 1;
   return EXT2_ITER_END;
 }
 
@@ -59,13 +93,14 @@ ext2_readdir_iter (struct ext2_dirent *dirent, void *data)
  * @param vp the vnode of the directory
  * @param offset offset in file to start iterating from
  * @param func callback function
+ * @param include_empty whether to also include empty entries
  * @param data data to pass to callback function
  * @return zero on success
  */
 
 int
 ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
-		  void *data)
+		  int include_empty, void *data)
 {
   struct ext2_file *file = vp->data;
   struct ext2_fs *fs = vp->mount->data;
@@ -74,15 +109,16 @@ ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
   for (b = offset / fs->block_size, offset %= fs->block_size;
        b < (block_t) vp->blocks; b++, offset = 0)
     {
+      int dirty = 0;
       if (ext2_read_io_buffer_block (vp, b))
 	return -1;
       for (dirent = (struct ext2_dirent *) (file->io_buffer + offset);
 	   offset < fs->block_size; offset += dirent->d_rec_len,
 	     dirent = (struct ext2_dirent *) (file->io_buffer + offset))
 	{
-	  if (dirent->d_inode)
+	  if (dirent->d_inode || include_empty)
 	    {
-	      switch (func (dirent, data))
+	      switch (func (dirent, &dirty, data))
 		{
 		case EXT2_ITER_END:
 		  return 0;
@@ -93,21 +129,52 @@ ext2_iterate_dir (struct vnode *vp, off_t offset, ext2_dir_iter_t func,
 		}
 	    }
 	}
+      if (dirty && ext2_flush_io_buffer_block (vp))
+	return -1;
     }
   return 0;
+}
+
+/*!
+ * Adds a new link under a directory to an inode.
+ *
+ * @param dir the directory
+ * @param name the name of the new link
+ * @param ino the inode number of the new link
+ * @return zero on success
+ */
+
+int
+ext2_add_link (struct vnode *dir, const char *name, ino_t ino)
+{
+  struct ext2_iter_data iter;
+  iter.dir = dir;
+  iter.name = name;
+  iter.name_len = strlen (name);
+  iter.ino = ino;
+  iter.done = 0;
+  if (UNLIKELY (iter.name_len > EXT2_MAX_NAME))
+    RETV_ERROR (ENAMETOOLONG, -1);
+  if (ext2_iterate_dir (dir, 0, ext2_link_iter, 1, &iter))
+    return -1;
+  if (iter.done)
+    return 0;
+
+  /* TODO Create a new block and add the link to it */
+  RETV_ERROR (ENOTSUP, -1);
 }
 
 int
 ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
 {
-  struct ext2_lookup_iter iter;
+  struct ext2_iter_data iter;
   struct vnode *vp;
   iter.name = name;
   iter.name_len = strlen (name);
   iter.ino = 0;
   if (UNLIKELY (iter.name_len > EXT2_MAX_NAME))
     RETV_ERROR (ENOENT, -1);
-  if (ext2_iterate_dir (dir, 0, ext2_lookup_iter, &iter))
+  if (ext2_iterate_dir (dir, 0, ext2_lookup_iter, 0, &iter))
     return -1;
   if (!iter.ino)
     RETV_ERROR (ENOENT, -1);
@@ -133,7 +200,7 @@ ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
   struct ext2_fs *fs = dir->mount->data;
   struct ext2_dirent *entry = NULL;
   size_t name_len;
-  if (ext2_iterate_dir (dir, offset, ext2_readdir_iter, &entry))
+  if (ext2_iterate_dir (dir, offset, ext2_readdir_iter, 0, &entry))
     return -1;
   if (!entry)
     return 0;
