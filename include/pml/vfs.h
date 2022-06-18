@@ -270,6 +270,15 @@ struct vnode_ops
   ssize_t (*readlink) (struct vnode *vp, char *buffer, size_t len);
 
   /*!
+   * Sets the size of a file, filling any added bytes with zero bytes.
+   *
+   * @param vp the vnode
+   * @param len the new length in bytes
+   * @return zero on success
+   */
+  int (*truncate) (struct vnode *vp, off_t len);
+
+  /*!
    * Fills the fields of the @ref vnode structure by reading information from
    * the on-disk file. A vnode object passed to this function should have
    * its @ref vnode.ino member set to the inode number of the on-disk file.
@@ -348,6 +357,7 @@ int vfs_unlink (struct vnode *dir, const char *name);
 int vfs_symlink (struct vnode *dir, const char *name, const char *target);
 off_t vfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t vfs_readlink (struct vnode *vp, char *buffer, size_t len);
+int vfs_truncate (struct vnode *vp, off_t len);
 int vfs_fill (struct vnode *vp);
 void vfs_dealloc (struct vnode *vp);
 

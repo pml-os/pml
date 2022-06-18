@@ -371,6 +371,27 @@ vfs_readlink (struct vnode *vp, char *buffer, size_t len)
 }
 
 /*!
+ * Sets the size of a file, filling any added bytes with zero bytes.
+ *
+ * @param vp the vnode
+ * @param len the new length in bytes
+ * @return zero on success
+ */
+
+int
+vfs_truncate (struct vnode *vp, off_t len)
+{
+  if (!vfs_can_write (vp, 0))
+    return -1;
+  if (!S_ISREG (vp->mode))
+    RETV_ERROR (EINVAL, -1);
+  if (vp->ops->truncate)
+    return vp->ops->truncate (vp, len);
+  else
+    RETV_ERROR (ENOTSUP, -1);
+}
+
+/*!
  * Fills the fields of the @ref vnode structure by reading information from
  * the on-disk file. A vnode object passed to this function should have
  * its @ref vnode.ino member set to the inode number of the on-disk file.

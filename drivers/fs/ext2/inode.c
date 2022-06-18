@@ -32,8 +32,9 @@ const struct vnode_ops ext2_vnode_ops = {
   .link = ext2_link,
   .unlink = ext2_unlink,
   .symlink = ext2_symlink,
-  .readlink = ext2_readlink,
   .readdir = ext2_readdir,
+  .readlink = ext2_readlink,
+  .truncate = ext2_truncate,
   .fill = ext2_fill,
   .dealloc = ext2_dealloc
 };
@@ -629,6 +630,12 @@ ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 	len = size;
       return ext2_read (vp, buffer, len, 0);
     }
+}
+
+int
+ext2_truncate (struct vnode *vp, off_t len)
+{
+  RETV_ERROR (ENOSYS, -1);
 }
 
 int

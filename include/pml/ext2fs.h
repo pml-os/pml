@@ -627,6 +627,7 @@ int ext2_unlink (struct vnode *dir, const char *name);
 int ext2_symlink (struct vnode *dir, const char *name, const char *target);
 off_t ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t ext2_readlink (struct vnode *vp, char *buffer, size_t len);
+int ext2_truncate (struct vnode *vp, off_t len);
 int ext2_fill (struct vnode *vp);
 void ext2_dealloc (struct vnode *vp);
 
