@@ -34,8 +34,6 @@ const struct vnode_ops ext2_vnode_ops = {
   .symlink = ext2_symlink,
   .readlink = ext2_readlink,
   .readdir = ext2_readdir,
-  .read_bmap = ext2_read_bmap,
-  .write_bmap = ext2_write_bmap,
   .fill = ext2_fill,
   .dealloc = ext2_dealloc
 };
@@ -140,7 +138,7 @@ ext2_read_io_buffer_block (struct vnode *vp, block_t block)
   block_t fs_block;
   if (ext2_alloc_io_buffer (file))
     RETV_ERROR (EIO, -1);
-  if (vfs_read_bmap (vp, &fs_block, block, 1))
+  if (ext2_read_bmap (vp, &fs_block, block, 1))
     RETV_ERROR (EIO, -1);
   if (fs_block != file->io_block)
     {
@@ -315,6 +313,165 @@ ext2_write_tind_bmap (struct vnode *vp)
   return 0;
 }
 
+/*!
+ * Determines the physical block numbers of one or more consecutive logical
+ * blocks for a vnode.
+ *
+ * @param vp the vnode
+ * @param blocks where to store physical block numbers. This must point to
+ * a buffer capable of storing at least @p num @ref block_t values.
+ * @param block first logical block number
+ * @param num number of logical blocks past the first block to map
+ * @return zero on success
+ */
+
+int
+ext2_read_bmap (struct vnode *vp, block_t *blocks, block_t block, size_t num)
+{
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  size_t i;
+
+  /* Read direct blocks */
+  for (i = 0; block + i < EXT2_NDIR_BLOCKS; i++)
+    {
+      if (i >= num)
+	return 0;
+      blocks[i] = file->inode.i_block[block + i];
+    }
+
+  /* Read indirect blocks */
+  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
+    return -1;
+  for (; block + i < EXT2_IND_LIMIT; i++)
+    {
+      if (i >= num)
+	return 0;
+      blocks[i] = file->ind_bmap[block + i - EXT2_NDIR_BLOCKS];
+    }
+
+  /* Read doubly indirect blocks */
+  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
+    return -1;
+  for (; block + i < EXT2_DIND_LIMIT; i++)
+    {
+      block_t dind_block;
+      ext2_block_t ind_block;
+      if (i >= num)
+	return 0;
+      dind_block = block + i - EXT2_IND_LIMIT;
+      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
+      if (ext2_read_ind_bmap (vp, ind_block))
+	return -1;
+      blocks[i] = file->ind_bmap[dind_block % fs->bmap_entries];
+    }
+
+  /* Read triply indirect blocks */
+  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
+    return -1;
+  for (; block + i < EXT2_TIND_LIMIT; i++)
+    {
+      block_t tind_block;
+      ext2_block_t dind_block;
+      ext2_block_t ind_block;
+      if (i >= num)
+	return 0;
+      tind_block = block + i - EXT2_DIND_LIMIT;
+      dind_block =
+	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
+      if (ext2_read_dind_bmap (vp, dind_block))
+	return -1;
+      ind_block =
+	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
+      if (ext2_read_ind_bmap (vp, ind_block))
+	return -1;
+      blocks[i] = file->ind_bmap[tind_block % fs->bmap_entries];
+    }
+
+  /* File is too large at this point */
+  RETV_ERROR (EFBIG, -1);
+}
+
+/*!
+ * Sets the physical block numbers of one or more consecutive logical
+ * blocks for a vnode. The vnode is expanded to include more blocks
+ * if necessary.
+ *
+ * @param vp the vnode
+ * @param blocks array of physical block numbers
+ * @param block first logical block number
+ * @param num number of logical blocks past the first block to map
+ * @return zero on success
+ */
+
+int
+ext2_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
+		 size_t num)
+{
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  size_t i;
+
+  /* Write direct blocks */
+  for (i = 0; block + i < EXT2_NDIR_BLOCKS; i++)
+    {
+      if (i >= num)
+	return 0;
+      file->inode.i_block[block + i] = blocks[i];
+    }
+
+  /* Write indirect blocks */
+  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
+    return -1;
+  for (; block + i < EXT2_IND_LIMIT; i++)
+    {
+      if (i >= num)
+	return 0;
+      file->ind_bmap[block + i - EXT2_NDIR_BLOCKS] = blocks[i];
+    }
+
+  /* Write doubly indirect blocks */
+  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
+    return -1;
+  for (; block + i < EXT2_DIND_LIMIT; i++)
+    {
+      block_t dind_block;
+      ext2_block_t ind_block;
+      if (i >= num)
+	return 0;
+      dind_block = block + i - EXT2_IND_LIMIT;
+      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
+      if (ext2_read_ind_bmap (vp, ind_block))
+	return -1;
+      file->ind_bmap[dind_block % fs->bmap_entries] = blocks[i];
+    }
+
+  /* Write triply indirect blocks */
+  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
+    return -1;
+  for (; block + i < EXT2_TIND_LIMIT; i++)
+    {
+      block_t tind_block;
+      ext2_block_t dind_block;
+      ext2_block_t ind_block;
+      if (i >= num)
+	return 0;
+      tind_block = block + i - EXT2_DIND_LIMIT;
+      dind_block =
+	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
+      if (ext2_read_dind_bmap (vp, dind_block))
+	return -1;
+      ind_block =
+	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
+      if (ext2_read_ind_bmap (vp, ind_block))
+	return -1;
+      file->ind_bmap[tind_block % fs->bmap_entries] = blocks[i];
+    }
+
+  /* File is too large at this point */
+  RETV_ERROR (EFBIG, -1);
+}
+
 ssize_t
 ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
@@ -357,7 +514,7 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
       size_t i;
       if (UNLIKELY (!bmap))
 	RETV_ERROR (EIO, -1);
-      if (vfs_read_bmap (vp, bmap, mid_block, blocks))
+      if (ext2_read_bmap (vp, bmap, mid_block, blocks))
 	{
 	  free (bmap);
 	  RETV_ERROR (EIO, -1);
@@ -472,141 +629,6 @@ ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 	len = size;
       return ext2_read (vp, buffer, len, 0);
     }
-}
-
-int
-ext2_read_bmap (struct vnode *vp, block_t *blocks, block_t block, size_t num)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  size_t i;
-
-  /* Read direct blocks */
-  for (i = 0; block + i < EXT2_NDIR_BLOCKS; i++)
-    {
-      if (i >= num)
-	return 0;
-      blocks[i] = file->inode.i_block[block + i];
-    }
-
-  /* Read indirect blocks */
-  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_IND_LIMIT; i++)
-    {
-      if (i >= num)
-	return 0;
-      blocks[i] = file->ind_bmap[block + i - EXT2_NDIR_BLOCKS];
-    }
-
-  /* Read doubly indirect blocks */
-  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_DIND_LIMIT; i++)
-    {
-      block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      dind_block = block + i - EXT2_IND_LIMIT;
-      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      blocks[i] = file->ind_bmap[dind_block % fs->bmap_entries];
-    }
-
-  /* Read triply indirect blocks */
-  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_TIND_LIMIT; i++)
-    {
-      block_t tind_block;
-      ext2_block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      tind_block = block + i - EXT2_DIND_LIMIT;
-      dind_block =
-	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
-      if (ext2_read_dind_bmap (vp, dind_block))
-	return -1;
-      ind_block =
-	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      blocks[i] = file->ind_bmap[tind_block % fs->bmap_entries];
-    }
-
-  /* File is too large at this point */
-  RETV_ERROR (EFBIG, -1);
-}
-
-int
-ext2_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
-		 size_t num)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  size_t i;
-
-  /* Write direct blocks */
-  for (i = 0; block + i < EXT2_NDIR_BLOCKS; i++)
-    {
-      if (i >= num)
-	return 0;
-      file->inode.i_block[block + i] = blocks[i];
-    }
-
-  /* Write indirect blocks */
-  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_IND_LIMIT; i++)
-    {
-      if (i >= num)
-	return 0;
-      file->ind_bmap[block + i - EXT2_NDIR_BLOCKS] = blocks[i];
-    }
-
-  /* Write doubly indirect blocks */
-  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_DIND_LIMIT; i++)
-    {
-      block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      dind_block = block + i - EXT2_IND_LIMIT;
-      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      file->ind_bmap[dind_block % fs->bmap_entries] = blocks[i];
-    }
-
-  /* Write triply indirect blocks */
-  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_TIND_LIMIT; i++)
-    {
-      block_t tind_block;
-      ext2_block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      tind_block = block + i - EXT2_DIND_LIMIT;
-      dind_block =
-	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
-      if (ext2_read_dind_bmap (vp, dind_block))
-	return -1;
-      ind_block =
-	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      file->ind_bmap[tind_block % fs->bmap_entries] = blocks[i];
-    }
-
-  /* File is too large at this point */
-  RETV_ERROR (EFBIG, -1);
 }
 
 int

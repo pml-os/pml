@@ -592,6 +592,10 @@ int ext2_read_tind_bmap (struct vnode *vp, block_t block);
 int ext2_write_ind_bmap (struct vnode *vp);
 int ext2_write_dind_bmap (struct vnode *vp);
 int ext2_write_tind_bmap (struct vnode *vp);
+int ext2_read_bmap (struct vnode *vp, block_t *blocks, block_t block,
+		    size_t num);
+int ext2_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
+		     size_t num);
 
 /* Filesystem operations */
 
@@ -623,10 +627,6 @@ int ext2_unlink (struct vnode *dir, const char *name);
 int ext2_symlink (struct vnode *dir, const char *name, const char *target);
 off_t ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t ext2_readlink (struct vnode *vp, char *buffer, size_t len);
-int ext2_read_bmap (struct vnode *vp, block_t *blocks, block_t block,
-		    size_t num);
-int ext2_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
-		     size_t num);
 int ext2_fill (struct vnode *vp);
 void ext2_dealloc (struct vnode *vp);
 
