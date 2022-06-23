@@ -133,7 +133,7 @@
 static inline void
 set_bit (void *bitmap, size_t index)
 {
-  ((unsigned char *) bitmap)[index / 8] |= 1 << (7 - index % 8);
+  ((unsigned char *) bitmap)[index >> 3] |= 1 << (index & 7);
 }
 
 /*!
@@ -146,7 +146,7 @@ set_bit (void *bitmap, size_t index)
 static inline void
 clear_bit (void *bitmap, size_t index)
 {
-  ((unsigned char *) bitmap)[index / 8] &= ~(1 << (7 - index % 8));
+  ((unsigned char *) bitmap)[index >> 3] &= ~(1 << (index & 7));
 }
 
 /*!
@@ -160,7 +160,7 @@ clear_bit (void *bitmap, size_t index)
 static inline int
 test_bit (const void *bitmap, size_t index)
 {
-  return ((unsigned char *) bitmap)[index / 8] & (1 << (7 - index % 8));
+  return ((unsigned char *) bitmap)[index >> 3] & (1 << (index & 7));
 }
 
 /*!
@@ -217,6 +217,38 @@ static inline unsigned long
 rorq (unsigned long x, int n)
 {
   return (x >> n) | (x << (64 - n));
+}
+
+/*!
+ * Divides a 32-bit unsigned integer by another integer, rounding up the result.
+ *
+ * @param a the dividend
+ * @param b the divisor
+ * @return the result rounded up
+ */
+
+static inline unsigned int
+div32_ceil (unsigned int a, unsigned int b)
+{
+  if (!a)
+    return 0;
+  return (a - 1) / b + 1;
+}
+
+/*!
+ * Divides a 64-bit unsigned integer by another integer, rounding up the result.
+ *
+ * @param a the dividend
+ * @param b the divisor
+ * @return the result rounded up
+ */
+
+static inline unsigned long
+div64_ceil (unsigned long a, unsigned long b)
+{
+  if (!a)
+    return 0;
+  return (a - 1) / b + 1;
 }
 
 __BEGIN_DECLS
