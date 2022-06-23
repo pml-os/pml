@@ -77,3 +77,226 @@ ext2_bitarray_mark_bmap (struct ext2_bitmap64 *bmap, uint64_t arg)
   struct ext2_bitarray_private *priv = bmap->private;
   set_bit (priv->bitarray, arg - bmap->start);
 }
+
+static void
+ext2_bitarray_unmark_bmap (struct ext2_bitmap64 *bmap, uint64_t arg)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  clear_bit (priv->bitarray, arg - bmap->start);
+}
+
+static int
+ext2_bitarray_test_bmap (struct ext2_bitmap64 *bmap, uint64_t arg)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  return test_bit (priv->bitarray, arg - bmap->start);
+}
+
+static void
+ext2_bitarray_mark_bmap_extent (struct ext2_bitmap64 *bmap, uint64_t arg,
+				unsigned int num)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  unsigned int i;
+  for (i = 0; i < num; i++)
+    set_bit (priv->bitarray, arg + i - bmap->start);
+}
+
+static void
+ext2_bitarray_unmark_bmap_extent (struct ext2_bitmap64 *bmap, uint64_t arg,
+				  unsigned int num)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  unsigned int i;
+  for (i = 0; i < num; i++)
+    clear_bit (priv->bitarray, arg + i - bmap->start);
+}
+
+static void
+ext2_bitarray_set_bmap_range (struct ext2_bitmap64 *bmap, uint64_t start,
+			      size_t num, void *data)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  memcpy (priv->bitarray + (start >> 3), data, (num + 7) >> 3);
+}
+
+static void
+ext2_bitarray_get_bmap_range (struct ext2_bitmap64 *bmap, uint64_t start,
+			      size_t num, void *data)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  memcpy (data, priv->bitarray + (start >> 3), (num + 7) >> 3);
+}
+
+static int
+ext2_bitarray_find_first_zero (struct ext2_bitmap64 *bmap, uint64_t start,
+			       uint64_t end, uint64_t *result)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  const unsigned char *pos;
+  unsigned long bitpos = start - bmap->start;
+  unsigned long count = end - start + 1;
+  unsigned long max_loop;
+  unsigned long i;
+  int found = 0;
+
+  while ((bitpos & 7) && count > 0)
+    {
+      if (!test_bit (priv->bitarray, bitpos))
+	{
+	  *result = bitpos + bmap->start;
+	  return 0;
+	}
+      bitpos++;
+      count--;
+    }
+  if (!count)
+    RETV_ERROR (ENOENT, -1);
+
+  pos = (unsigned char *) priv->bitarray + (bitpos >> 3);
+  while (count >= 8 && ((uintptr_t) pos & 7))
+    {
+      if (*pos != 0xff)
+	{
+	  found = 1;
+	  break;
+	}
+      pos++;
+      count -= 8;
+      bitpos += 8;
+    }
+  if (!found)
+    {
+      max_loop = count >> 6;
+      i = max_loop;
+      while (i)
+	{
+	  if (*((uint64_t *) pos) != (uint64_t) -1)
+	    break;
+	  pos += 8;
+	  i--;
+	}
+      count -= 64 * (max_loop - i);
+      bitpos += 64 * (max_loop - i);
+
+      max_loop = count >> 3;
+      i = max_loop;
+      while (i)
+	{
+	  if (*pos != 0xff)
+	    {
+	      found = 1;
+	      break;
+	    }
+	  pos++;
+	  i--;
+	}
+      count -= 8 * (max_loop - i);
+      bitpos += 8 * (max_loop - i);
+    }
+
+  while (count-- > 0)
+    {
+      if (!test_bit (priv->bitarray, bitpos))
+	{
+	  *result = bitpos + bmap->start;
+	  return 0;
+	}
+      bitpos++;
+    }
+  RETV_ERROR (ENOENT, -1);
+}
+
+static int
+ext2_bitarray_find_first_set (struct ext2_bitmap64 *bmap, uint64_t start,
+			      uint64_t end, uint64_t *result)
+{
+  struct ext2_bitarray_private *priv = bmap->private;
+  const unsigned char *pos;
+  unsigned long bitpos = start - bmap->start;
+  unsigned long count = end - start + 1;
+  unsigned long max_loop;
+  unsigned long i;
+  int found = 0;
+
+  while ((bitpos & 7) != 0 && count > 0)
+    {
+      if (test_bit (priv->bitarray, bitpos))
+	{
+	  *result = bitpos + bmap->start;
+	  return 0;
+	}
+      bitpos++;
+      count--;
+    }
+  if (!count)
+    RETV_ERROR (ENOENT, -1);
+
+  pos = (unsigned char *) priv->bitarray + (bitpos >> 3);
+  while (count >= 8 && ((uintptr_t) pos & 7))
+    {
+      if (*pos)
+	{
+	  found = 1;
+	  break;
+	}
+      pos++;
+      count -= 8;
+      bitpos += 8;
+    }
+  if (!found)
+    {
+      max_loop = count >> 6;
+      i = max_loop;
+      while (i)
+	{
+	  if (*((uint64_t *) pos))
+	    break;
+	  pos += 8;
+	  i--;
+	}
+      count -= 64 * (max_loop - i);
+      bitpos += 64 * (max_loop - i);
+
+      max_loop = count >> 3;
+      i = max_loop;
+      while (i != 0)
+	{
+	  if (*pos)
+	    {
+	      found = 1;
+	      break;
+	    }
+	  pos++;
+	  i--;
+	}
+      count -= 8 * (max_loop - i);
+      bitpos += 8 * (max_loop - i);
+    }
+
+  while (count-- > 0)
+    {
+      if (test_bit (priv->bitarray, bitpos))
+	{
+	  *result = bitpos + bmap->start;
+	  return 0;
+	}
+      bitpos++;
+    }
+  RETV_ERROR (ENOENT, -1);
+}
+
+struct ext2_bitmap_ops ext2_bitarray_ops = {
+  .type = EXT2_BMAP64_BITARRAY,
+  .new_bmap = ext2_bitarray_new_bmap,
+  .free_bmap = ext2_bitarray_free_bmap,
+  .mark_bmap = ext2_bitarray_mark_bmap,
+  .unmark_bmap = ext2_bitarray_unmark_bmap,
+  .test_bmap = ext2_bitarray_test_bmap,
+  .mark_bmap_extent = ext2_bitarray_mark_bmap_extent,
+  .unmark_bmap_extent = ext2_bitarray_unmark_bmap_extent,
+  .set_bmap_range = ext2_bitarray_set_bmap_range,
+  .get_bmap_range = ext2_bitarray_get_bmap_range,
+  .find_first_zero = ext2_bitarray_find_first_zero,
+  .find_first_set = ext2_bitarray_find_first_set
+};

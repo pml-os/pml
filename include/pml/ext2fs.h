@@ -1163,6 +1163,7 @@ __BEGIN_DECLS
 
 extern const struct mount_ops ext2_mount_ops;
 extern const struct vnode_ops ext2_vnode_ops;
+extern struct ext2_bitmap_ops ext2_bitarray_ops;
 
 /* Filesystem utility functions */
 
