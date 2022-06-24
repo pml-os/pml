@@ -37,6 +37,10 @@
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
 
+/* Mount flags */
+
+#define MS_RDONLY               (1 << 0)    /*!< Filesystem is read-only */
+
 /*! Represents a block number in a filesystem. */
 typedef unsigned long block_t;
 

@@ -694,7 +694,7 @@ struct ext2_dirent
   uint32_t d_inode;
   uint16_t d_rec_len;
   uint16_t d_name_len;
-  char d_name[EXT2_MAX_NAME_LEN];
+  char d_name[EXT2_MAX_NAME];
 };
 
 struct ext2_dirent_tail
@@ -784,6 +784,7 @@ struct ext2_bitmap32
 };
 
 struct ext2_bitmap64;
+struct ext2_fs;
 
 struct ext2_bitmap_ops
 {
@@ -828,8 +829,9 @@ struct ext2_bitmap64
 struct ext2_fs
 {
   struct ext2_super super;              /*!< Copy of superblock */
+  unsigned int mflags;                  /*!< Mount flags */
   int flags;                            /*!< Driver-specific flags */
-  int fragsize;                         /*!< Fragment size */
+  blksize_t blksize;                    /*!< Block size */
   unsigned int group_desc_count;        /*!< Number of block groups */
   unsigned long desc_blocks;
   unsigned int inode_blocks_per_group;
@@ -1051,7 +1053,7 @@ ext2_r_blocks_count (const struct ext2_super *s)
 static inline void
 ext2_r_blocks_count_set (struct ext2_super *s, blkcnt_t blocks)
 {
-  s->s_r_block_count = blocks;
+  s->s_r_blocks_count = blocks;
   if (s->s_feature_incompat & EXT4_FT_INCOMPAT_64BIT)
     s->s_r_blocks_count_hi = blocks >> 32;
 }
@@ -1068,15 +1070,15 @@ ext2_free_blocks_count (const struct ext2_super *s)
 {
   return (blkcnt_t) s->s_free_blocks_count |
     (s->s_feature_incompat & EXT4_FT_INCOMPAT_64BIT ?
-     (blkcnt_t) s->s_free_blocks_count_hi << 32 : 0);
+     (blkcnt_t) s->s_free_blocks_hi << 32 : 0);
 }
 
 static inline void
 ext2_free_blocks_count_set (struct ext2_super *s, blkcnt_t blocks)
 {
-  s->s_r_block_count = blocks;
+  s->s_r_blocks_count = blocks;
   if (s->s_feature_incompat & EXT4_FT_INCOMPAT_64BIT)
-    s->s_free_blocks_count_hi = blocks >> 32;
+    s->s_free_blocks_hi = blocks >> 32;
 }
 
 static inline void
@@ -1104,7 +1106,7 @@ static inline block_t
 ext2_group_last_block (const struct ext2_fs *fs, unsigned int group)
 {
   return group == fs->group_desc_count - 1 ?
-    ext2_blocks_count (&fs->super) - 1 :
+    (block_t) ext2_blocks_count (&fs->super) - 1 :
     ext2_group_first_block (fs, group) + fs->super.s_blocks_per_group - 1;
 }
 
@@ -1133,7 +1135,7 @@ ext2_group_of_block (const struct ext2_fs *fs, block_t block)
 static inline unsigned int
 ext2_group_of_inode (const struct ext2_fs *fs, ino_t inode)
 {
-  return (inode - 1) / fs->super.s_inodes_per_grouop;
+  return (inode - 1) / fs->super.s_inodes_per_group;
 }
 
 static inline int

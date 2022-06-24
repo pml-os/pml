@@ -23,7 +23,9 @@
  */
 
 #include <pml/ext2fs.h>
+#include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct ext2_bitarray_private
 {
@@ -53,7 +55,7 @@ ext2_bitarray_new_bmap (struct ext2_fs *fs, struct ext2_bitmap64 *bmap)
 {
   struct ext2_bitarray_private *priv;
   size_t size;
-  itn ret = ext2_bitarray_alloc_private (bmap);
+  int ret = ext2_bitarray_alloc_private (bmap);
   if (ret)
     return ret;
   priv = bmap->private;
