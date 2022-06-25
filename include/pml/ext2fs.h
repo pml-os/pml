@@ -850,7 +850,7 @@ struct ext2_fs
 struct ext3_extent_header
 {
   uint16_t eh_magic;
-  uint16_t eh_entres;
+  uint16_t eh_entries;
   uint16_t eh_max;
   uint16_t eh_depth;
   uint32_t eh_generation;
