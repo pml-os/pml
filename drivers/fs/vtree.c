@@ -110,8 +110,11 @@ vnode_namei (const char *path, int link_count)
 		{
 		  /* Change working directory for relative symlinks */
 		  struct vnode *cwd = THIS_PROCESS->cwd;
-		  char *buffer = malloc (PATH_MAX);
+		  char *buffer;
 		  ssize_t ret;
+		  if (link_count >= LINK_MAX)
+		    GOTO_ERROR (ELOOP, err0);
+		  buffer = malloc (PATH_MAX);
 		  if (UNLIKELY (!buffer))
 		    goto err0;
 		  THIS_PROCESS->cwd = vp;

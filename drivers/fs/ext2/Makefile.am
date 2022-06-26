@@ -7,6 +7,5 @@ libext2_a_SOURCES =	\
 	bitmap.c	\
 	bmap.c		\
 	extent.c	\
-	dir.c		\
 	inode.c		\
 	super.c

@@ -40,437 +40,55 @@ const struct vnode_ops ext2_vnode_ops = {
 };
 
 /*!
- * Reads the on-disk inode structure from an ext2 filesystem.
- *
- * @param inode pointer to store inode data in
- * @param ino the inode number to read
- * @param fs the filesystem instance
- * @return zero on success
- */
-
-int
-ext2_read_inode (struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs)
-{
-  ext2_bgrp_t group = ext2_inode_group_desc (ino, &fs->super);
-  size_t index = (ino - 1) % fs->super.s_inodes_per_group;
-  size_t curr = index * fs->inode_size / fs->block_size;
-  block_t block = fs->group_descs[group].bg_inode_table + curr;
-  index %= fs->block_size / fs->inode_size;
-  if (block != fs->inode_table.block)
-    {
-      if (ext2_read_blocks (fs->inode_table.buffer, fs, block, 1))
-	return -1;
-      fs->inode_table.block = block;
-    }
-  memcpy (inode, fs->inode_table.buffer + index * fs->inode_size,
-	  sizeof (struct ext2_inode));
-  fs->inode_table.group = group;
-  fs->inode_table.block = block;
-  fs->inode_table.curr = curr;
-  return 0;
-}
-
-/*!
- * Writes to an inode's on-disk inode structure.
- *
- * @param inode pointer containing inode data
- * @param ino the inode number to write
- * @param fs the filesystem instance
- * @return zero on success
- */
-
-int
-ext2_write_inode (const struct ext2_inode *inode, ino_t ino, struct ext2_fs *fs)
-{
-  ext2_bgrp_t group = ext2_inode_group_desc (ino, &fs->super);
-  size_t index = (ino - 1) % fs->super.s_inodes_per_group;
-  size_t curr = index * fs->inode_size / fs->block_size;
-  block_t block = fs->group_descs[group].bg_inode_table + curr;
-  index %= fs->block_size / fs->inode_size;
-  if (block != fs->inode_table.block)
-    {
-      if (ext2_read_blocks (fs->inode_table.buffer, fs, block, 1))
-	return -1;
-      fs->inode_table.block = block;
-    }
-  memcpy (fs->inode_table.buffer + index * fs->inode_size, inode,
-	  sizeof (struct ext2_inode));
-  fs->inode_table.group = group;
-  fs->inode_table.block = block;
-  fs->inode_table.curr = curr;
-  if (ext2_write_blocks (fs->inode_table.buffer, fs, fs->inode_table.block, 1))
-    return -1;
-  return 0;
-}
-
-/*!
- * Allocates a page-sized buffer for storing blocks of the filesystem while
- * performing I/O on unaligned offsets in inodes. If a buffer is already
- * allocated, no action is performed.
- *
- * @file the file instance
- * @return zero on success
- */
-
-int
-ext2_alloc_io_buffer (struct ext2_file *file)
-{
-  if (file->io_buffer)
-    return 0;
-  file->io_buffer = alloc_virtual_page ();
-  if (UNLIKELY (!file->io_buffer))
-    return -1;
-  return 0;
-}
-
-/*!
- * Reads a block of an inode into its I/O buffer.
+ * Copies information from the on-disk inode structure to the vnode structure.
  *
  * @param vp the vnode
- * @param block the block number
- * @return zero on success
  */
 
-int
-ext2_read_io_buffer_block (struct vnode *vp, block_t block)
+static void
+ext2_fill_vnode_data (struct vnode *vp)
 {
-  struct ext2_file *file = vp->data;
   struct ext2_fs *fs = vp->mount->data;
-  block_t fs_block;
-  if (ext2_alloc_io_buffer (file))
-    RETV_ERROR (EIO, -1);
-  if (ext2_read_bmap (vp, &fs_block, block, 1))
-    RETV_ERROR (EIO, -1);
-  if (fs_block != file->io_block)
+  struct ext2_file *file = vp->data;
+  vp->mode = file->inode.i_mode;
+  vp->nlink = file->inode.i_links_count;
+  vp->uid = file->inode.i_uid;
+  vp->gid = file->inode.i_gid;
+  vp->rdev = 0;
+  vp->atime.tv_sec = file->inode.i_atime;
+  vp->mtime.tv_sec = file->inode.i_mtime;
+  vp->ctime.tv_sec = file->inode.i_ctime;
+  vp->atime.tv_nsec = vp->mtime.tv_nsec = vp->ctime.tv_nsec = 0;
+  vp->blocks = (file->inode.i_blocks * 512 + fs->blksize - 1) / fs->blksize;
+  vp->blksize = fs->blksize;
+  vp->size = file->inode.i_size;
+  if (fs->super.s_feature_ro_compat & EXT2_FT_RO_COMPAT_LARGE_FILE)
+    vp->size |= (size_t) file->inode.i_size_high << 32;
+}
+
+int
+ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
+{
+  struct ext2_fs *fs = dir->mount->data;
+  struct vnode *vp;
+  ino_t ino;
+  int ret = ext2_lookup_inode (fs, dir, name, strlen (name), NULL, &ino);
+  if (ret)
+    return ret;
+
+  vp = vnode_alloc ();
+  if (UNLIKELY (!vp))
+    RETV_ERROR (ENOMEM, -1);
+  vp->ops = &ext2_vnode_ops;
+  vp->ino = ino;
+  REF_ASSIGN (vp->mount, dir->mount);
+  if (ext2_fill (vp))
     {
-      file->io_block = fs_block;
-      if (ext2_read_blocks (file->io_buffer, fs, fs_block, 1))
-	RETV_ERROR (EIO, -1);
+      UNREF_OBJECT (vp);
+      return ret;
     }
+  *result = vp;
   return 0;
-}
-
-/*!
- * Flushes the contents of a file's I/O buffer to disk.
- *
- * @param vp the vnode
- * @return zero on success
- */
-
-int
-ext2_flush_io_buffer_block (struct vnode *vp)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  block_t fs_block;
-  if (!file->io_buffer)
-    return 0;
-  if (ext2_write_blocks (file->io_buffer, fs, file->io_block, 1))
-    RETV_ERROR (EIO, -1);
-  return 0;
-}
-
-/*!
- * Reads a block of an inode into its indirect block buffer.
- *
- * @param vp the vnode
- * @param block the block number
- * @return zero on success
- */
-
-int
-ext2_read_ind_bmap (struct vnode *vp, block_t block)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  if (!file->ind_bmap)
-    {
-      file->ind_bmap = alloc_virtual_page ();
-      if (UNLIKELY (!file->ind_bmap))
-	return -1;
-    }
-  if (file->ind_block != block)
-    {
-      if (file->ind_block
-	  && ext2_write_blocks (file->ind_bmap, fs, file->ind_block, 1))
-	RETV_ERROR (EIO, -1);
-      file->ind_block = block;
-      if (ext2_read_blocks (file->ind_bmap, fs, block, 1))
-	RETV_ERROR (EIO, -1);
-    }
-  return 0;
-}
-
-/*!
- * Reads a block of an inode into its doubly indirect block buffer.
- *
- * @param vp the vnode
- * @param block the block number
- * @return zero on success
- */
-
-int
-ext2_read_dind_bmap (struct vnode *vp, block_t block)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  if (!file->dind_bmap)
-    {
-      file->dind_bmap = alloc_virtual_page ();
-      if (UNLIKELY (!file->dind_bmap))
-	return -1;
-    }
-  if (file->dind_block != block)
-    {
-      if (file->dind_block
-	  && ext2_write_blocks (file->dind_bmap, fs, file->dind_block, 1))
-	RETV_ERROR (EIO, -1);
-      file->dind_block = block;
-      if (ext2_read_blocks (file->dind_bmap, fs, block, 1))
-	RETV_ERROR (EIO, -1);
-    }
-  return 0;
-}
-
-/*!
- * Reads a block of an inode into its triply indirect block buffer.
- *
- * @param vp the vnode
- * @param block the block number
- * @return zero on success
- */
-
-int
-ext2_read_tind_bmap (struct vnode *vp, block_t block)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  if (!file->tind_bmap)
-    {
-      file->tind_bmap = alloc_virtual_page ();
-      if (UNLIKELY (!file->tind_bmap))
-	return -1;
-    }
-  if (file->tind_block != block)
-    {
-      if (file->tind_block
-	  && ext2_write_blocks (file->tind_bmap, fs, file->tind_block, 1))
-	RETV_ERROR (EIO, -1);
-      file->tind_block = block;
-      if (ext2_read_blocks (file->tind_bmap, fs, block, 1))
-	RETV_ERROR (EIO, -1);
-    }
-  return 0;
-}
-
-/*!
- * Writes an inode's indirect block buffer to the on-disk structure.
- *
- * @param vp the vnode
- * @return zero on success
- */
-
-int
-ext2_write_ind_bmap (struct vnode *vp)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  if (ext2_write_blocks (file->ind_bmap, fs, file->ind_block, 1))
-    RETV_ERROR (EIO, -1);
-  return 0;
-}
-
-/*!
- * Writes an inode's doubly indirect block buffer to the on-disk structure.
- *
- * @param vp the vnode
- * @return zero on success
- */
-
-int
-ext2_write_dind_bmap (struct vnode *vp)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  if (ext2_write_blocks (file->dind_bmap, fs, file->dind_block, 1))
-    RETV_ERROR (EIO, -1);
-  return 0;
-}
-
-/*!
- * Writes an inode's triply indirect block buffer to the on-disk structure.
- *
- * @param vp the vnode
- * @return zero on success
- */
-
-int
-ext2_write_tind_bmap (struct vnode *vp)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  if (ext2_write_blocks (file->tind_bmap, fs, file->tind_block, 1))
-    RETV_ERROR (EIO, -1);
-  return 0;
-}
-
-/*!
- * Determines the physical block numbers of one or more consecutive logical
- * blocks for a vnode.
- *
- * @param vp the vnode
- * @param blocks where to store physical block numbers. This must point to
- * a buffer capable of storing at least @p num @ref block_t values.
- * @param block first logical block number
- * @param num number of logical blocks past the first block to map
- * @return zero on success
- */
-
-int
-ext2_read_bmap (struct vnode *vp, block_t *blocks, block_t block, size_t num)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  size_t i;
-
-  /* Read direct blocks */
-  for (i = 0; block + i < EXT2_NDIR_BLOCKS; i++)
-    {
-      if (i >= num)
-	return 0;
-      blocks[i] = file->inode.i_block[block + i];
-    }
-
-  /* Read indirect blocks */
-  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_IND_LIMIT; i++)
-    {
-      if (i >= num)
-	return 0;
-      blocks[i] = file->ind_bmap[block + i - EXT2_NDIR_BLOCKS];
-    }
-
-  /* Read doubly indirect blocks */
-  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_DIND_LIMIT; i++)
-    {
-      block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      dind_block = block + i - EXT2_IND_LIMIT;
-      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      blocks[i] = file->ind_bmap[dind_block % fs->bmap_entries];
-    }
-
-  /* Read triply indirect blocks */
-  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_TIND_LIMIT; i++)
-    {
-      block_t tind_block;
-      ext2_block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      tind_block = block + i - EXT2_DIND_LIMIT;
-      dind_block =
-	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
-      if (ext2_read_dind_bmap (vp, dind_block))
-	return -1;
-      ind_block =
-	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      blocks[i] = file->ind_bmap[tind_block % fs->bmap_entries];
-    }
-
-  /* File is too large at this point */
-  RETV_ERROR (EFBIG, -1);
-}
-
-/*!
- * Sets the physical block numbers of one or more consecutive logical
- * blocks for a vnode. The vnode is expanded to include more blocks
- * if necessary.
- *
- * @param vp the vnode
- * @param blocks array of physical block numbers
- * @param block first logical block number
- * @param num number of logical blocks past the first block to map
- * @return zero on success
- */
-
-int
-ext2_write_bmap (struct vnode *vp, const block_t *blocks, block_t block,
-		 size_t num)
-{
-  struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  size_t i;
-
-  /* Write direct blocks */
-  for (i = 0; block + i < EXT2_NDIR_BLOCKS; i++)
-    {
-      if (i >= num)
-	return 0;
-      file->inode.i_block[block + i] = blocks[i];
-    }
-
-  /* Write indirect blocks */
-  if (ext2_read_ind_bmap (vp, file->inode.i_block[EXT2_IND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_IND_LIMIT; i++)
-    {
-      if (i >= num)
-	return 0;
-      file->ind_bmap[block + i - EXT2_NDIR_BLOCKS] = blocks[i];
-    }
-
-  /* Write doubly indirect blocks */
-  if (ext2_read_dind_bmap (vp, file->inode.i_block[EXT2_DIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_DIND_LIMIT; i++)
-    {
-      block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      dind_block = block + i - EXT2_IND_LIMIT;
-      ind_block = file->dind_bmap[dind_block / fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      file->ind_bmap[dind_block % fs->bmap_entries] = blocks[i];
-    }
-
-  /* Write triply indirect blocks */
-  if (ext2_read_tind_bmap (vp, file->inode.i_block[EXT2_TIND_BLOCK]))
-    return -1;
-  for (; block + i < EXT2_TIND_LIMIT; i++)
-    {
-      block_t tind_block;
-      ext2_block_t dind_block;
-      ext2_block_t ind_block;
-      if (i >= num)
-	return 0;
-      tind_block = block + i - EXT2_DIND_LIMIT;
-      dind_block =
-	file->tind_bmap[tind_block / fs->bmap_entries / fs->bmap_entries];
-      if (ext2_read_dind_bmap (vp, dind_block))
-	return -1;
-      ind_block =
-	file->dind_bmap[tind_block / fs->bmap_entries % fs->bmap_entries];
-      if (ext2_read_ind_bmap (vp, ind_block))
-	return -1;
-      file->ind_bmap[tind_block % fs->bmap_entries] = blocks[i];
-    }
-
-  /* File is too large at this point */
-  RETV_ERROR (EFBIG, -1);
 }
 
 ssize_t
@@ -478,137 +96,351 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
   struct ext2_file *file = vp->data;
   struct ext2_fs *fs = vp->mount->data;
-  size_t start_diff;
-  size_t end_diff;
-  block_t start_block;
-  block_t mid_block;
-  block_t end_block;
-  size_t blocks;
+  unsigned int count = 0;
+  unsigned int start;
+  unsigned int c;
+  uint64_t left;
+  char *ptr = buffer;
+  int ret = 0;
+  file->pos = offset;
+
   if (file->inode.i_flags & EXT4_INLINE_DATA_FL)
     RETV_ERROR (ENOTSUP, -1);
 
-  start_block = offset / fs->block_size;
-  mid_block = start_block + !!(offset % fs->block_size);
-  end_block = (offset + len) / fs->block_size;
-  blocks = end_block - mid_block;
-  start_diff = mid_block * fs->block_size - offset;
-  end_diff = offset + len - end_block * fs->block_size;
-
-  if ((size_t) offset >= vp->size)
-    RETV_ERROR (EINVAL, -1);
-  if (offset + len > vp->size)
-    len = vp->size - offset;
-
-  /* Completely contained in a single block */
-  if (mid_block > end_block)
+  while (file->pos < EXT2_I_SIZE (file->inode) && len > 0)
     {
-      if (ext2_read_io_buffer_block (vp, start_block))
-	return -1;
-      memcpy (buffer, file->io_buffer + fs->block_size - start_diff, len);
-      return len;
+      ret = ext2_sync_file_buffer_pos (file);
+      if (ret)
+	return ret;
+      ret = ext2_load_file_buffer (file, 0);
+      if (ret)
+	return ret;
+      start = file->pos % fs->blksize;
+      c = fs->blksize - start;
+      if (c > len)
+	c = len;
+      left = EXT2_I_SIZE (file->inode) - file->pos;
+      if (c > left)
+	c = left;
+      memcpy (ptr, file->buffer + start, c);
+      file->pos += c;
+      ptr += c;
+      count += c;
+      len -= c;
     }
-
-  /* Read full blocks */
-  if (blocks)
-    {
-      block_t *bmap = malloc (sizeof (block_t) * blocks);
-      size_t i;
-      if (UNLIKELY (!bmap))
-	RETV_ERROR (EIO, -1);
-      if (ext2_read_bmap (vp, bmap, mid_block, blocks))
-	{
-	  free (bmap);
-	  RETV_ERROR (EIO, -1);
-	}
-      for (i = 0; i < blocks; i++)
-	{
-	  if (ext2_read_blocks (buffer + start_diff + i * fs->block_size, fs,
-				bmap[i], 1))
-	    {
-	      free (bmap);
-	      RETV_ERROR (EIO, -1);
-	    }
-	}
-      free (bmap);
-    }
-
-  /* Read unaligned starting bytes */
-  if (start_diff)
-    {
-      if (ext2_read_io_buffer_block (vp, start_block))
-	return -1;
-      memcpy (buffer, file->io_buffer + fs->block_size - start_diff,
-	      start_diff);
-    }
-
-  /* Read unaligned ending bytes */
-  if (end_diff)
-    {
-      if (ext2_read_io_buffer_block (vp, end_block))
-	return -1;
-      memcpy (buffer + start_diff + blocks * fs->block_size, file->io_buffer,
-	      end_diff);
-    }
-  return len;
+  return count;
 }
 
 ssize_t
 ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_file *file = vp->data;
+  struct ext2_fs *fs = vp->mount->data;
+  const char *ptr = buffer;
+  unsigned int count = 0;
+  unsigned int start;
+  unsigned int c;
+  int ret = 0;
+  file->pos = offset;
+
+  if (file->inode.i_flags & EXT4_INLINE_DATA_FL)
+    RETV_ERROR (ENOTSUP, -1);
+
+  while (len > 0)
+    {
+      ret = ext2_sync_file_buffer_pos (file);
+      if (ret)
+	goto end;
+      start = file->pos % fs->blksize;
+      c = fs->blksize - start;
+      if (c > len)
+	c = len;
+      ret = ext2_load_file_buffer (file, c == fs->blksize);
+      if (ret)
+	goto end;
+      file->flags |= EXT2_FILE_BUFFER_DIRTY;
+      memcpy (file->buffer + start, ptr, c);
+
+      if (!file->physblock)
+	{
+	  ret = ext2_bmap (fs, file->ino, &file->inode,
+			   file->buffer + fs->blksize,
+			   file->ino ? BMAP_ALLOC : 0, file->block, 0,
+			   &file->physblock);
+	  if (ret)
+	    goto end;
+	}
+
+      file->pos += c;
+      ptr += c;
+      count += c;
+      len -= c;
+    }
+
+ end:
+  if (count && EXT2_I_SIZE (file->inode) < file->pos)
+    {
+      int ret2 = ext2_file_set_size (file, file->pos);
+      if (!ret)
+	ret = ret2;
+      if (!ret)
+	vp->size = file->pos;
+    }
+  return ret ?: (ssize_t) count;
 }
 
 void
 ext2_sync (struct vnode *vp)
 {
   struct ext2_file *file = vp->data;
-  struct ext2_fs *fs = vp->mount->data;
-  ext2_flush_io_buffer_block (vp);
-  ext2_write_inode (&file->inode, vp->ino, fs);
-  if (file->ind_block)
-    ext2_write_ind_bmap (vp);
-  if (file->dind_block)
-    ext2_write_dind_bmap (vp);
-  if (file->tind_block)
-    ext2_write_tind_bmap (vp);
+  ext2_file_flush (file);
 }
 
 int
 ext2_create (struct vnode **result, struct vnode *dir, const char *name,
 	     mode_t mode, dev_t rdev)
 {
-  RETV_ERROR (ENOSYS, -1);
+  return ext2_new_file (dir, name, (mode & ~S_IFMT) | S_IFREG, NULL);
 }
 
 int
 ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 	    mode_t mode)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_fs *fs = dir->mount->data;
+  struct ext3_extent_handle *handle;
+  struct ext2_inode inode;
+  struct vnode *temp = NULL;
+  block_t b;
+  ino_t ino;
+  char *block = NULL;
+  int drop_ref = 0;
+  int ret = ext2_read_bitmaps (fs);
+  if (ret)
+    goto end;
+
+  ret = ext2_new_inode (fs, dir->ino, NULL, &ino);
+  if (ret)
+    goto end;
+
+  memset (&inode, 0, sizeof (struct ext2_inode));
+  ret = ext2_new_block (fs, ext2_find_inode_goal (fs, ino, &inode, 0),
+			NULL, &b, NULL);
+  if (ret)
+    goto end;
+
+  ret = ext2_new_dir_block (fs, ino, dir->ino, &block);
+  if (ret)
+    goto end;
+
+  inode.i_mode = S_IFDIR | mode;
+  inode.i_uid = THIS_PROCESS->euid;
+  inode.i_gid = THIS_PROCESS->egid;
+  if (fs->super.s_feature_incompat & EXT3_FT_INCOMPAT_EXTENTS)
+    inode.i_flags |= EXT4_EXTENTS_FL;
+  else
+    inode.i_block[0] = b;
+  inode.i_size = fs->blksize;
+  ext2_iblk_set (fs, &inode, 1);
+  inode.i_links_count = 2;
+
+  ret = ext2_write_new_inode (fs, ino, &inode);
+  if (ret)
+    goto end;
+
+  temp = vnode_alloc ();
+  if (UNLIKELY (!temp))
+    GOTO_ERROR (ENOMEM, end);
+  temp->ops = &ext2_vnode_ops;
+  temp->data = malloc (sizeof (struct ext2_file));
+  REF_ASSIGN (temp->mount, dir->mount);
+  if (UNLIKELY (!temp->data))
+    goto end;
+  temp->ino = ino;
+  ret = ext2_open_file (fs, ino, temp->data);
+  if (ret)
+    goto end;
+  ret = ext2_write_dir_block (fs, b, block, 0, temp);
+  if (ret)
+    goto end;
+
+  if (fs->super.s_feature_incompat & EXT3_FT_INCOMPAT_EXTENTS)
+    {
+      ret = ext3_extent_open (fs, ino, &inode, &handle);
+      if (ret)
+	goto end;
+      ret = ext3_extent_set_bmap (handle, 0, b, 0);
+      if (ret)
+	goto end;
+    }
+
+  ext2_block_alloc_stats (fs, b, 1);
+  ext2_inode_alloc_stats (fs, ino, 1, 1);
+  drop_ref = 1;
+
+  ret = ext2_add_link (fs, dir, name, ino, EXT2_FILE_DIR);
+  if (ret)
+    goto end;
+  if (dir->ino != ino)
+    {
+      dir->nlink++;
+      ret = ext2_update_inode (fs, ino, &inode, sizeof (struct ext2_inode));
+      if (ret)
+	goto end;
+    }
+  drop_ref = 0;
+  REF_OBJECT (temp);
+  ext2_fill_vnode_data (temp);
+  *result = temp;
+
+ end:
+  if (block)
+    free (block);
+  if (temp)
+    UNREF_OBJECT (temp);
+  if (drop_ref)
+    {
+      ext2_block_alloc_stats (fs, b, -1);
+      ext2_inode_alloc_stats (fs, ino, -1, 1);
+    }
+  return ret;
 }
 
 int
-ext2_rename (struct vnode *vp, struct vnode *dir, const char *name)
+ext2_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
+	     const char *newname)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_fs *fs = olddir->mount->data;
+  ino_t ino;
+  struct ext2_inode inode;
+  int ret =
+    ext2_lookup_inode (fs, olddir, oldname, strlen (oldname), NULL, &ino);
+  if (ret)
+    return ret;
+
+  /* Remove existing link, if any */
+  ret = ext2_unlink_dirent (fs, newdir, newname, 0);
+  if (ret == -1 && errno != ENOENT)
+    return ret;
+
+  /* Determine mode and replace link */
+  ret = ext2_read_inode (fs, ino, &inode);
+  if (ret)
+    return ret;
+  ret = ext2_add_link (fs, newdir, newname, ino, inode.i_mode);
+  if (ret)
+    return ret;
+
+  /* Remove old entry */
+  return ext2_unlink_dirent (fs, olddir, oldname, 0);
 }
 
 int
 ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
 {
-  RETV_ERROR (ENOSYS, -1);
+  return ext2_add_link (dir->mount->data, dir, name, dir->ino,
+			ext2_dir_type (dir->mode));
 }
 
 int
 ext2_unlink (struct vnode *dir, const char *name)
 {
-  RETV_ERROR (ENOSYS, -1);
+  return ext2_unlink_dirent (dir->mount->data, dir, name, 0);
 }
 
 int
 ext2_symlink (struct vnode *dir, const char *name, const char *target)
 {
-  RETV_ERROR (ENOSYS, -1);
+  struct ext2_fs *fs = dir->mount->data;
+  blksize_t blksize = fs->blksize;
+  block_t block;
+  unsigned int target_len;
+  ino_t ino;
+  struct ext2_inode inode;
+  char *blockbuf = NULL;
+  int fast_link;
+  int inline_link;
+  int drop_ref = 0;
+  int ret = ext2_read_bitmaps (fs);
+  if (ret)
+    return ret;
+
+  target_len = strnlen (name, blksize + 1);
+  if (target_len >= blksize)
+    RETV_ERROR (ENAMETOOLONG, -1);
+
+  blockbuf = calloc (blksize, 1);
+  if (UNLIKELY (!blockbuf))
+    RETV_ERROR (ENOMEM, -1);
+  strncpy (blockbuf, name, blksize);
+
+  fast_link = target_len < 60;
+  if (!fast_link)
+    {
+      ret = ext2_new_block (fs, ext2_find_inode_goal (fs, dir->ino, NULL, 0),
+			    NULL, &block, NULL);
+      if (ret)
+	goto end;
+    }
+
+  memset (&inode, 0, sizeof (struct ext2_inode));
+  ret = ext2_new_inode (fs, dir->ino, NULL, &ino);
+  if (ret)
+    goto end;
+
+  inode.i_mode = SYMLINK_MODE;
+  inode.i_uid = THIS_PROCESS->euid;
+  inode.i_gid = THIS_PROCESS->egid;
+  inode.i_links_count = 1;
+  ext2_inode_set_size (fs, &inode, target_len);
+
+  inline_link = !fast_link
+    && (fs->super.s_feature_incompat & EXT4_FT_INCOMPAT_INLINE_DATA);
+  if (fast_link)
+    strcpy ((char *) &inode.i_block, name);
+  else if (inline_link)
+    RETV_ERROR (ENOTSUP, -1);
+  else
+    {
+      ext2_iblk_set (fs, &inode, 1);
+      if (fs->super.s_feature_incompat & EXT3_FT_INCOMPAT_EXTENTS)
+	inode.i_flags |= EXT4_EXTENTS_FL;
+    }
+
+  if (inline_link)
+    ret = ext2_update_inode (fs, ino, &inode, sizeof (struct ext2_inode));
+  else
+    ret = ext2_write_new_inode (fs, ino, &inode);
+  if (ret)
+    goto end;
+
+  if (!fast_link && !inline_link)
+    {
+      ret = ext2_bmap (fs, ino, &inode, NULL, BMAP_SET, 0, NULL, &block);
+      if (ret)
+	goto end;
+      ret = ext2_write_blocks (blockbuf, fs, block, 1);
+      if (ret)
+	goto end;
+      ext2_block_alloc_stats (fs, block, 1);
+    }
+  ext2_inode_alloc_stats (fs, ino, 1, 0);
+  drop_ref = 1;
+
+  ret = ext2_add_link (fs, dir, target, ino, EXT2_FILE_LNK);
+  if (ret)
+    goto end;
+  drop_ref = 0;
+
+ end:
+  free (blockbuf);
+  if (drop_ref)
+    {
+      if (!fast_link && !inline_link)
+	ext2_block_alloc_stats (fs, block, -1);
+      ext2_inode_alloc_stats (fs, ino, -1, 0);
+    }
+  return ret;
 }
 
 ssize_t
@@ -635,7 +467,7 @@ ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 int
 ext2_truncate (struct vnode *vp, off_t len)
 {
-  RETV_ERROR (ENOSYS, -1);
+  return ext2_file_set_size (vp->data, len);
 }
 
 int
@@ -645,30 +477,10 @@ ext2_fill (struct vnode *vp)
   struct ext2_file *file = calloc (1, sizeof (struct ext2_file));
   if (UNLIKELY (!file))
     return -1;
-  if (ext2_read_inode (&file->inode, vp->ino, fs))
+  if (ext2_read_inode (fs, vp->ino, &file->inode))
     return -1;
-
-  /* Fill vnode data */
-  vp->mode = file->inode.i_mode;
-  vp->nlink = file->inode.i_links_count;
-  vp->uid = file->inode.i_uid;
-  vp->gid = file->inode.i_gid;
-  vp->rdev = 0;
-  vp->atime.tv_sec = file->inode.i_atime;
-  vp->mtime.tv_sec = file->inode.i_mtime;
-  vp->ctime.tv_sec = file->inode.i_ctime;
-  vp->atime.tv_nsec = vp->mtime.tv_nsec = vp->ctime.tv_nsec = 0;
-  vp->blocks =
-    (file->inode.i_blocks * 512 + fs->block_size - 1) / fs->block_size;
-  vp->blksize = fs->block_size;
-
-  /* Set size of file */
-  vp->size = file->inode.i_size;
-  if (fs->dynamic
-      && (fs->super.s_feature_ro_compat & EXT2_FT_RO_COMPAT_LARGE_FILE))
-    vp->size |= (size_t) file->inode.i_size_high << 32;
-
   vp->data = file;
+  ext2_fill_vnode_data (vp);
   return 0;
 
  err0:
@@ -680,9 +492,6 @@ void
 ext2_dealloc (struct vnode *vp)
 {
   struct ext2_file *file = vp->data;
-  free_virtual_page (file->io_buffer);
-  free_virtual_page (file->ind_bmap);
-  free_virtual_page (file->dind_bmap);
-  free_virtual_page (file->tind_bmap);
+  ext2_file_flush (file);
   free (file);
 }

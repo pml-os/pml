@@ -169,7 +169,7 @@ mount_filesystem (const char *type, dev_t device, unsigned int flags)
 }
 
 /*!
- * Performs any initialization required by a filesystem backend. This function
+ * Performs any initialization required by as filesystem backend. This function
  * is called when a filesystem is mounted.
  *
  * @param mp the mount structure

@@ -1399,7 +1399,8 @@ int ext2_create (struct vnode **result, struct vnode *dir, const char *name,
 		 mode_t mode, dev_t rdev);
 int ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 		mode_t mode);
-int ext2_rename (struct vnode *vp, struct vnode *dir, const char *name);
+int ext2_rename (struct vnode *olddir, const char *oldname,
+		 struct vnode *newdir, const char *newname);
 int ext2_link (struct vnode *dir, struct vnode *vp, const char *name);
 int ext2_unlink (struct vnode *dir, const char *name);
 int ext2_symlink (struct vnode *dir, const char *name, const char *target);
