@@ -189,8 +189,10 @@ ext2_openfs (struct block_device *device, struct ext2_fs *fs)
     first_meta_bg = fs->desc_blocks;
   if (first_meta_bg > 0)
     {
-      ssize_t len = (group_block + group_zero_adjust + 1) * fs->blksize;
-      ret = device->read (device, dest, first_meta_bg * fs->blksize, len, 1);
+      ssize_t len = first_meta_bg * fs->blksize;
+      ret =
+	device->read (device, dest, len,
+		      (group_block + group_zero_adjust + 1) * fs->blksize, 1);
       if (ret != len)
 	{
 	  free (fs->group_desc);
