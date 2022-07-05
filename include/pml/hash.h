@@ -28,7 +28,30 @@
 /*! Type used for representing a hash. */
 typedef unsigned long hash_t;
 
+#define SHA256_DIGEST_SIZE 32
+#define SHA256_CHUNK_SIZE  64
+
+struct sha256_ctx
+{
+  unsigned char *digest;
+  unsigned char chunk[SHA256_CHUNK_SIZE];
+  unsigned char *ptr;
+  size_t rem;
+  size_t len;
+  uint32_t h[8];
+};
+
 __BEGIN_DECLS
+
+uint16_t crc16 (uint16_t seed, const void *data, size_t len);
+uint32_t crc32 (uint32_t seed, const void *data, size_t len);
+
+void sha256_init (struct sha256_ctx *ctx,
+		  unsigned char digest[SHA256_DIGEST_SIZE]);
+void sha256_write (struct sha256_ctx *ctx, const void *data, size_t len);
+unsigned char *sha256_close (struct sha256_ctx *ctx);
+void sha256_data (unsigned char digest[SHA256_DIGEST_SIZE], const void *data,
+		  size_t len);
 
 hash_t siphash (const void *buffer, size_t len, uint128_t key);
 

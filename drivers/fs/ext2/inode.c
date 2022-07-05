@@ -21,6 +21,14 @@
 #include <errno.h>
 #include <string.h>
 
+/*! Private structure for storing readdir data */
+
+struct ext2_readdir_priv
+{
+  struct dirent *dirent;
+  off_t offset;
+};
+
 const struct vnode_ops ext2_vnode_ops = {
   .lookup = ext2_lookup,
   .read = ext2_read,
@@ -39,31 +47,20 @@ const struct vnode_ops ext2_vnode_ops = {
   .dealloc = ext2_dealloc
 };
 
-/*!
- * Copies information from the on-disk inode structure to the vnode structure.
- *
- * @param vp the vnode
- */
-
-static void
-ext2_fill_vnode_data (struct vnode *vp)
+static int
+ext2_readdir_iter (struct vnode *dir, int entry, struct ext2_dirent *dirent,
+		   int offset, blksize_t blksize, char *buffer, void *private)
 {
-  struct ext2_fs *fs = vp->mount->data;
-  struct ext2_file *file = vp->data;
-  vp->mode = file->inode.i_mode;
-  vp->nlink = file->inode.i_links_count;
-  vp->uid = file->inode.i_uid;
-  vp->gid = file->inode.i_gid;
-  vp->rdev = 0;
-  vp->atime.tv_sec = file->inode.i_atime;
-  vp->mtime.tv_sec = file->inode.i_mtime;
-  vp->ctime.tv_sec = file->inode.i_ctime;
-  vp->atime.tv_nsec = vp->mtime.tv_nsec = vp->ctime.tv_nsec = 0;
-  vp->blocks = (file->inode.i_blocks * 512 + fs->blksize - 1) / fs->blksize;
-  vp->blksize = fs->blksize;
-  vp->size = file->inode.i_size;
-  if (fs->super.s_feature_ro_compat & EXT2_FT_RO_COMPAT_LARGE_FILE)
-    vp->size |= (size_t) file->inode.i_size_high << 32;
+  struct ext2_readdir_priv *r = private;
+  if (offset < r->offset)
+    return 0;
+  r->offset = offset;
+  r->dirent->d_ino = dirent->d_inode;
+  r->dirent->d_namlen = dirent->d_name_len & 0xff;
+  r->dirent->d_type = ext2_dir_type (DTTOIF (dirent->d_name_len >> 8));
+  strcpy (r->dirent->d_name, dirent->d_name);
+  r->dirent->d_reclen = dirent_rec_len (r->dirent->d_namlen);
+  return DIRENT_ABORT;
 }
 
 int
@@ -109,10 +106,10 @@ ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 
   while (file->pos < EXT2_I_SIZE (file->inode) && len > 0)
     {
-      ret = ext2_sync_file_buffer_pos (file);
+      ret = ext2_sync_file_buffer_pos (vp);
       if (ret)
 	return ret;
-      ret = ext2_load_file_buffer (file, 0);
+      ret = ext2_load_file_buffer (vp, 0);
       if (ret)
 	return ret;
       start = file->pos % fs->blksize;
@@ -148,14 +145,14 @@ ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 
   while (len > 0)
     {
-      ret = ext2_sync_file_buffer_pos (file);
+      ret = ext2_sync_file_buffer_pos (vp);
       if (ret)
 	goto end;
       start = file->pos % fs->blksize;
       c = fs->blksize - start;
       if (c > len)
 	c = len;
-      ret = ext2_load_file_buffer (file, c == fs->blksize);
+      ret = ext2_load_file_buffer (vp, c == fs->blksize);
       if (ret)
 	goto end;
       file->flags |= EXT2_FILE_BUFFER_DIRTY;
@@ -180,7 +177,7 @@ ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
  end:
   if (count && EXT2_I_SIZE (file->inode) < file->pos)
     {
-      int ret2 = ext2_file_set_size (file, file->pos);
+      int ret2 = ext2_file_set_size (vp, file->pos);
       if (!ret)
 	ret = ret2;
       if (!ret)
@@ -192,8 +189,7 @@ ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 void
 ext2_sync (struct vnode *vp)
 {
-  struct ext2_file *file = vp->data;
-  ext2_file_flush (file);
+  ext2_file_flush (vp);
 }
 
 int
@@ -290,7 +286,7 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
     }
   drop_ref = 0;
   REF_OBJECT (temp);
-  ext2_fill_vnode_data (temp);
+  ext2_update_vfs_inode (temp);
   *result = temp;
 
  end:
@@ -443,6 +439,16 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
   return ret;
 }
 
+off_t
+ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
+{
+  struct ext2_fs *fs = dir->mount->data;
+  struct ext2_readdir_priv r;
+  r.dirent = dirent;
+  r.offset = offset;
+  return ext2_dir_iterate (fs, dir, 0, NULL, ext2_readdir_iter, &r);
+}
+
 ssize_t
 ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 {
@@ -467,7 +473,11 @@ ext2_readlink (struct vnode *vp, char *buffer, size_t len)
 int
 ext2_truncate (struct vnode *vp, off_t len)
 {
-  return ext2_file_set_size (vp->data, len);
+  int ret = ext2_file_set_size (vp, len);
+  if (ret)
+    return ret;
+  vp->size = len;
+  return 0;
 }
 
 int
@@ -480,7 +490,7 @@ ext2_fill (struct vnode *vp)
   if (ext2_read_inode (fs, vp->ino, &file->inode))
     return -1;
   vp->data = file;
-  ext2_fill_vnode_data (vp);
+  ext2_update_vfs_inode (vp);
   return 0;
 
  err0:
@@ -492,6 +502,6 @@ void
 ext2_dealloc (struct vnode *vp)
 {
   struct ext2_file *file = vp->data;
-  ext2_file_flush (file);
+  ext2_file_flush (vp);
   free (file);
 }

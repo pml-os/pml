@@ -244,8 +244,8 @@ vfs_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
     RETV_ERROR (ENOTDIR, -1);
   if (!vfs_can_write (olddir, 0) || !vfs_can_write (newdir, 0))
     return -1;
-  if (dir->ops->rename)
-    return dir->ops->rename (olddir, oldname, newdir, newname);
+  if (olddir->ops->rename)
+    return olddir->ops->rename (olddir, oldname, newdir, newname);
   else
     RETV_ERROR (ENOTSUP, -1);
 }

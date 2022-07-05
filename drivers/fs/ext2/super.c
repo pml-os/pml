@@ -18,6 +18,7 @@
 
 #include <pml/alloc.h>
 #include <pml/ext2fs.h>
+#include <pml/hash.h>
 #include <pml/memory.h>
 #include <errno.h>
 
@@ -26,88 +27,6 @@ const struct mount_ops ext2_mount_ops = {
   .unmount = ext2_unmount,
   .check = ext2_check
 };
-
-static block_t
-mark_alloc_bitmap (struct ext2_fs *fs, struct ext2_bitmap *bitmap, int offset)
-{
-  size_t i;
-  for (i = 0; i < 8; i++)
-    {
-      if (!(bitmap->buffer[offset] & (1 << i)))
-	{
-	  bitmap->buffer[offset] |= 1 << i;
-	  return bitmap->group * fs->super.s_inodes_per_group +
-	    bitmap->curr * fs->block_size + offset * 8 + i;
-	}
-    }
-  return 0;
-}
-
-static int
-flush_bitmap (struct ext2_fs *fs, struct ext2_bitmap *bitmap)
-{
-  if (ext2_write_blocks (bitmap->buffer, fs, bitmap->block, 1))
-    RETV_ERROR (EIO, -1);
-  return 0;
-}
-
-static int
-alloc_block_bitmap (struct ext2_fs *fs)
-{
-  fs->block_bitmap.buffer = alloc_virtual_page ();
-  if (UNLIKELY (!fs->block_bitmap.buffer))
-    return -1;
-  fs->block_bitmap.block = fs->group_descs[0].bg_block_bitmap;
-  fs->block_bitmap.group = 0;
-  fs->block_bitmap.curr = 0;
-  fs->block_bitmap.len =
-    ALIGN_UP (fs->super.s_blocks_per_group, fs->block_size) / fs->block_size;
-  if (ext2_read_blocks (fs->block_bitmap.buffer, fs, fs->block_bitmap.block, 1))
-    {
-      free (fs->block_bitmap.buffer);
-      RETV_ERROR (EIO, -1);
-    }
-  return 0;
-}
-
-static int
-alloc_inode_bitmap (struct ext2_fs *fs)
-{
-  fs->inode_bitmap.buffer = alloc_virtual_page ();
-  if (UNLIKELY (!fs->inode_bitmap.buffer))
-    return -1;
-  fs->inode_bitmap.block = fs->group_descs[0].bg_inode_bitmap;
-  fs->inode_bitmap.group = 0;
-  fs->inode_bitmap.curr = 0;
-  fs->inode_bitmap.len =
-    ALIGN_UP (fs->super.s_inodes_per_group, fs->block_size) / fs->block_size;
-  if (ext2_read_blocks (fs->inode_bitmap.buffer, fs, fs->inode_bitmap.block, 1))
-    {
-      free (fs->inode_bitmap.buffer);
-      RETV_ERROR (EIO, -1);
-    }
-  return 0;
-}
-
-static int
-alloc_inode_table (struct ext2_fs *fs)
-{
-  fs->inode_table.buffer = alloc_virtual_page ();
-  if (UNLIKELY (!fs->inode_table.buffer))
-    return -1;
-  fs->inode_table.block = fs->group_descs[0].bg_inode_table;
-  fs->inode_table.group = 0;
-  fs->inode_table.curr = 0;
-  fs->inode_table.len =
-    ALIGN_UP (fs->super.s_inodes_per_group *
-	      fs->inode_size, fs->block_size) / fs->block_size;
-  if (ext2_read_blocks (fs->inode_table.buffer, fs, fs->inode_table.block, 1))
-    {
-      free (fs->inode_table.buffer);
-      RETV_ERROR (EIO, -1);
-    }
-  return 0;
-}
 
 /*!
  * Reads one or more consecutive blocks from an ext2 filesystem.
@@ -122,9 +41,9 @@ alloc_inode_table (struct ext2_fs *fs)
 int
 ext2_read_blocks (void *buffer, struct ext2_fs *fs, block_t block, size_t num)
 {
-  return -!(fs->device->read (fs->device, buffer, num * fs->block_size,
-			      block * fs->block_size, 1) ==
-	    (ssize_t) (num * fs->block_size));
+  return -!(fs->device->read (fs->device, buffer, num * fs->blksize,
+			      block * fs->blksize, 1) ==
+	    (ssize_t) (num * fs->blksize));
 }
 
 /*!
@@ -141,9 +60,9 @@ int
 ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
 		   size_t num)
 {
-  return -!(fs->device->write (fs->device, buffer, num * fs->block_size,
-			       block * fs->block_size, 1) ==
-	    (ssize_t) (num * fs->block_size));
+  return -!(fs->device->write (fs->device, buffer, num * fs->blksize,
+			       block * fs->blksize, 1) ==
+	    (ssize_t) (num * fs->blksize));
 }
 
 /*!
@@ -154,62 +73,157 @@ ext2_write_blocks (const void *buffer, struct ext2_fs *fs, block_t block,
  * @return the filesystem instance
  */
 
-struct ext2_fs *
-ext2_openfs (struct block_device *device, unsigned int flags)
+static int
+ext2_openfs (struct block_device *device, struct ext2_fs *fs)
 {
-  struct ext2_fs *fs = malloc (sizeof (struct ext2_fs));
-  ssize_t group_desc_size;
-  if (UNLIKELY (!fs))
-    return NULL;
-  fs->device = device;
+  unsigned long first_meta_bg;
+  unsigned long i;
+  block_t group_block;
+  block_t block;
+  char *dest;
+  size_t inosize;
+  uint64_t ngroups;
+  int group_zero_adjust = 0;
+  int ret;
 
-  /* Read superblock and check magic number */
+  /* Read and verify superblock */
   if (device->read (device, &fs->super, sizeof (struct ext2_super),
 		    EXT2_SUPER_OFFSET, 1) != sizeof (struct ext2_super))
-    GOTO_ERROR (EIO, err0);
-  if (fs->super.s_magic != EXT2_MAGIC)
-    GOTO_ERROR (EINVAL, err0);
+    RETV_ERROR (EIO, -1);
+  if (!ext2_superblock_checksum_valid (fs)
+      || fs->super.s_magic != EXT2_MAGIC
+      || fs->super.s_rev_level > EXT2_DYNAMIC_REV)
+    RETV_ERROR (EUCLEAN, -1);
+  fs->device = device;
 
-  /* Set block and inode sizes */
-  fs->block_size = 1 << (fs->super.s_log_block_size + 10);
-  fs->dynamic = fs->super.s_rev_level >= EXT2_DYNAMIC;
-  if (fs->dynamic)
-    fs->inode_size = fs->super.s_inode_size;
+  /* Check for unsupported features */
+  if ((fs->super.s_feature_incompat & ~EXT2_INCOMPAT_SUPPORT)
+      || (!(fs->mflags & MS_RDONLY)
+	  && (fs->super.s_feature_ro_compat & ~EXT2_RO_COMPAT_SUPPORT)))
+    RETV_ERROR (ENOTSUP, -1);
+  if (fs->super.s_feature_incompat & EXT3_FT_INCOMPAT_JOURNAL_DEV)
+    RETV_ERROR (ENOTSUP, -1); /* TODO Support ext3 journaling */
+
+  /* Check for valid block and cluster sizes */
+  if (fs->super.s_log_block_size >
+      EXT2_MAX_BLOCK_LOG_SIZE - EXT2_MIN_BLOCK_LOG_SIZE)
+    RETV_ERROR (EUCLEAN, -1);
+  if ((fs->super.s_feature_ro_compat & EXT4_FT_RO_COMPAT_BIGALLOC)
+      && fs->super.s_log_block_size != fs->super.s_log_cluster_size)
+    RETV_ERROR (EUCLEAN, -1);
+  fs->blksize = EXT2_BLOCK_SIZE (fs->super);
+
+  /* Determine inode size */
+  inosize = EXT2_INODE_SIZE (fs->super);
+  if (inosize < EXT2_OLD_INODE_SIZE
+      || inosize > (size_t) fs->blksize
+      || !IS_P2 (inosize))
+    RETV_ERROR (EUCLEAN, -1);
+
+  if ((fs->super.s_feature_incompat & EXT4_FT_INCOMPAT_64BIT)
+      && fs->super.s_desc_size < EXT2_MIN_DESC_SIZE_64)
+    RETV_ERROR (EUCLEAN, -1);
+
+  fs->cluster_ratio_bits =
+    fs->super.s_log_cluster_size - fs->super.s_log_block_size;
+  if (fs->super.s_blocks_per_group !=
+      fs->super.s_clusters_per_group << fs->cluster_ratio_bits)
+    RETV_ERROR (EUCLEAN, -1);
+  fs->inode_blocks_per_group =
+    (fs->super.s_inodes_per_group * inosize + fs->blksize - 1) / fs->blksize;
+
+  /* Don't read group descriptors for journal devices */
+  if (fs->super.s_feature_incompat & EXT3_FT_INCOMPAT_JOURNAL_DEV)
+    {
+      fs->group_desc_count = 0;
+      return 0;
+    }
+
+  if (!fs->super.s_inodes_per_group)
+    RETV_ERROR (EUCLEAN, -1);
+
+  /* Initialize checksum seed */
+  if (fs->super.s_feature_incompat & EXT4_FT_INCOMPAT_CSUM_SEED)
+    fs->checksum_seed = fs->super.s_checksum_seed;
+  else if ((fs->super.s_feature_ro_compat & EXT4_FT_RO_COMPAT_METADATA_CSUM)
+	   && (fs->super.s_feature_incompat & EXT4_FT_INCOMPAT_EA_INODE))
+    fs->checksum_seed = crc32 (0xffffffff, fs->super.s_uuid, 16);
+
+  /* Check for valid block count info */
+  if (!fs->super.s_blocks_per_group
+      || fs->super.s_blocks_per_group > EXT2_MAX_BLOCKS_PER_GROUP (fs->super)
+      || fs->inode_blocks_per_group >= EXT2_MAX_INODES_PER_GROUP (fs->super)
+      || !EXT2_DESC_PER_BLOCK (fs->super)
+      || fs->super.s_first_data_block >= ext2_blocks_count (&fs->super))
+    RETV_ERROR (EUCLEAN, -1);
+
+  /* Determine number of block groups */
+  ngroups = div64_ceil (ext2_blocks_count (&fs->super) -
+			fs->super.s_first_data_block,
+			fs->super.s_blocks_per_group);
+  if (ngroups >> 32)
+    RETV_ERROR (EUCLEAN, -1);
+  fs->group_desc_count = ngroups;
+  if (ngroups * fs->super.s_inodes_per_group != fs->super.s_inodes_count)
+    RETV_ERROR (EUCLEAN, -1);
+  fs->desc_blocks =
+    div32_ceil (fs->group_desc_count, EXT2_DESC_PER_BLOCK (fs->super));
+
+  /* Read block group descriptors */
+  fs->group_desc = malloc (fs->desc_blocks * fs->blksize);
+  if (UNLIKELY (!fs->group_desc))
+    RETV_ERROR (ENOMEM, -1);
+
+  group_block = fs->super.s_first_data_block;
+  if (!group_block && fs->blksize == 1024)
+    group_zero_adjust = 1;
+  dest = (char *) fs->group_desc;
+
+  if (fs->super.s_feature_incompat & EXT2_FT_INCOMPAT_META_BG)
+    {
+      first_meta_bg = fs->super.s_first_meta_bg;
+      if (first_meta_bg > fs->desc_blocks)
+	first_meta_bg = fs->desc_blocks;
+    }
   else
-    fs->inode_size = sizeof (struct ext2_inode);
-  if (fs->block_size > EXT2_MAX_BLOCK_SIZE)
-    GOTO_ERROR (EUCLEAN, err0);
-  fs->bmap_entries = fs->block_size / 4;
+    first_meta_bg = fs->desc_blocks;
+  if (first_meta_bg > 0)
+    {
+      ssize_t len = (group_block + group_zero_adjust + 1) * fs->blksize;
+      ret = device->read (device, dest, first_meta_bg * fs->blksize, len, 1);
+      if (ret != len)
+	{
+	  free (fs->group_desc);
+	  return ret;
+	}
+      dest += fs->blksize * first_meta_bg;
+    }
 
-  /* Allocate and read block group descriptors */
-  fs->group_desc_count = ext2_group_desc_count (&fs->super);
-  group_desc_size = sizeof (struct ext2_group_desc) * fs->group_desc_count;
-  fs->group_descs = malloc (group_desc_size);
-  if (UNLIKELY (!fs->group_descs))
-    goto err0;
-  if (device->read (device, fs->group_descs, group_desc_size,
-		    fs->block_size * (fs->super.s_first_data_block + 1), 1) !=
-      group_desc_size)
-    goto err1;
+  for (i = first_meta_bg; i < fs->desc_blocks; i++)
+    {
+      block = ext2_descriptor_block (fs, group_block, i);
+      ret = ext2_read_blocks (dest, fs, block, 1);
+      if (ret)
+	{
+	  free (fs->group_desc);
+	  return ret;
+	}
+      dest += fs->blksize;
+    }
 
-  /* Allocate bitmap buffers */
-  if (alloc_block_bitmap (fs))
-    goto err1;
-  if (alloc_inode_bitmap (fs))
-    goto err2;
-  if (alloc_inode_table (fs))
-    goto err3;
-  return fs;
-
- err3:
-  free (fs->inode_bitmap.buffer);
- err2:
-  free (fs->block_bitmap.buffer);
- err1:
-  free (fs->group_descs);
- err0:
-  free (fs);
-  return NULL;
+  fs->stride = fs->super.s_raid_stride;
+  if ((fs->super.s_feature_incompat & EXT4_FT_INCOMPAT_MMP)
+      && !(fs->mflags & MS_RDONLY))
+    {
+      ret = ext4_mmp_start (fs);
+      if (ret)
+	{
+	  ext4_mmp_stop (fs);
+	  free (fs->group_desc);
+	  return ret;
+	}
+    }
+  return 0;
 }
 
 /*!
@@ -221,14 +235,6 @@ ext2_openfs (struct block_device *device, unsigned int flags)
 void
 ext2_closefs (struct ext2_fs *fs)
 {
-  flush_bitmap (fs, &fs->block_bitmap);
-  free_virtual_page (fs->block_bitmap.buffer);
-  flush_bitmap (fs, &fs->inode_bitmap);
-  free_virtual_page (fs->inode_bitmap.buffer);
-  flush_bitmap (fs, &fs->inode_table);
-  free_virtual_page (fs->inode_table.buffer);
-  free (fs->group_descs);
-  free (fs);
 }
 
 int
@@ -236,6 +242,7 @@ ext2_mount (struct mount *mp, unsigned int flags)
 {
   struct ext2_fs *fs;
   struct block_device *device;
+  int ret;
 
   /* Determine block device */
   device = hashmap_lookup (device_num_map, mp->device);
@@ -243,17 +250,36 @@ ext2_mount (struct mount *mp, unsigned int flags)
     RETV_ERROR (ENOENT, -1);
   if (device->device.type != DEVICE_TYPE_BLOCK)
     RETV_ERROR (ENOTBLK, -1);
-  fs = ext2_openfs (device, flags);
-  if (!fs)
-    return -1;
+
+  /* Fill filesystem data */
+  fs = malloc (sizeof (struct ext2_fs));
+  if (UNLIKELY (!fs))
+    RETV_ERROR (ENOMEM, -1);
+  fs->mflags = flags;
+  ret = ext2_openfs (device, fs);
+  if (ret)
+    {
+      free (fs);
+      return ret;
+    }
+
+  if (!(fs->mflags & MS_RDONLY))
+    {
+      /* Update mount time and count */
+      fs->super.s_mnt_count++;
+      fs->super.s_mtime = time (NULL);
+      fs->super.s_state &= ~EXT2_STATE_VALID;
+      fs->flags |= EXT2_FLAG_CHANGED | EXT2_FLAG_DIRTY;
+      ext2_flush (fs, 0);
+    }
+  mp->data = fs;
 
   /* Allocate and fill root vnode */
-  mp->data = fs;
   mp->root_vnode = vnode_alloc ();
   if (UNLIKELY (!mp->root_vnode))
-    goto err0;
+    GOTO_ERROR (ENOMEM, err0);
   mp->ops = &ext2_mount_ops;
-  mp->root_vnode->ino = EXT2_ROOT_INO;
+  mp->root_vnode->ino = EXT2_ROOT_INODE;
   mp->root_vnode->ops = &ext2_vnode_ops;
   REF_ASSIGN (mp->root_vnode->mount, mp);
   if (ext2_fill (mp->root_vnode))
@@ -263,7 +289,8 @@ ext2_mount (struct mount *mp, unsigned int flags)
  err1:
   UNREF_OBJECT (mp->root_vnode);
  err0:
-  ext2_closefs (fs);
+  free (fs->group_desc);
+  free (fs);
   return -1;
 }
 
@@ -271,9 +298,7 @@ int
 ext2_unmount (struct mount *mp, unsigned int flags)
 {
   struct ext2_fs *fs = mp->data;
-  UNREF_OBJECT (mp->root_vnode);
-  ext2_closefs (fs);
-  return 0;
+  return ext2_flush (fs, FLUSH_VALID);
 }
 
 int
@@ -284,28 +309,4 @@ ext2_check (struct vnode *vp)
 		offsetof (struct ext2_super, s_magic)) != 2)
     return 0;
   return magic == EXT2_MAGIC;
-}
-
-/*!
- * Allocates a new block on the filesystem.
- *
- * @param fs the filesystem instance
- * @return the block number of the allocated block, or 0 on failure
- */
-
-block_t
-ext2_alloc_block (struct ext2_fs *fs)
-{
-  int i;
-  if (fs->block_bitmap.block)
-    {
-      for (i = 0; i < fs->block_size; i++)
-	{
-	  if (fs->block_bitmap.buffer[i] != 0xff)
-	    return mark_alloc_bitmap (fs, &fs->block_bitmap, i);
-	}
-      if (flush_bitmap (fs, &fs->block_bitmap))
-	return 0;
-    }
-  RETV_ERROR (ENOSPC, 0);
 }

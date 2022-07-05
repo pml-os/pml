@@ -265,6 +265,8 @@ void *valloc (size_t size);
 void *realloc (void *ptr, size_t size);
 void free (void *ptr);
 
+time_t time (time_t *t);
+
 __END_DECLS
 
 #endif

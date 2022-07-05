@@ -157,6 +157,7 @@ mount_filesystem (const char *type, dev_t device, unsigned int flags)
 	    return NULL;
 	  mp->ops = filesystem_table[i].ops;
 	  mp->device = device;
+	  mp->flags = flags;
 	  if (vfs_mount (mp, flags))
 	    {
 	      UNREF_OBJECT (mp);

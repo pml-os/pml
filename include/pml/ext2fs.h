@@ -128,19 +128,19 @@ enum ext2_os_type
 			       | EXT4_FT_INCOMPAT_LARGEDIR)
 
 /*! Supported ext2 read-only features */
-#define EXT2_RO_COMPAT_SUPPORTED (EXT2_FT_RO_COMPAT_SPARSE_SUPER	\
-				  | EXT4_FT_RO_COMPAT_HUGE_FILE		\
-				  | EXT2_FT_RO_COMPAT_LARGE_FILE	\
-				  | EXT4_FT_RO_COMPAT_DIR_NLINK		\
-				  | EXT4_FT_RO_COMPAT_EXTRA_ISIZE	\
-				  | EXT4_FT_RO_COMPAT_GDT_CSUM		\
-				  | EXT4_FT_RO_COMPAT_BIGALLOC		\
-				  | EXT4_FT_RO_COMPAT_QUOTA		\
-				  | EXT4_FT_RO_COMPAT_METADATA_CSUM	\
-				  | EXT4_FT_RO_COMPAT_READONLY		\
-				  | EXT4_FT_RO_COMPAT_PROJECT		\
-				  | EXT4_FT_RO_COMPAT_SHARED_BLOCKS	\
-				  | EXT4_FT_RO_COMPAT_VERITY)
+#define EXT2_RO_COMPAT_SUPPORT (EXT2_FT_RO_COMPAT_SPARSE_SUPER		\
+				| EXT4_FT_RO_COMPAT_HUGE_FILE		\
+				| EXT2_FT_RO_COMPAT_LARGE_FILE		\
+				| EXT4_FT_RO_COMPAT_DIR_NLINK		\
+				| EXT4_FT_RO_COMPAT_EXTRA_ISIZE		\
+				| EXT4_FT_RO_COMPAT_GDT_CSUM		\
+				| EXT4_FT_RO_COMPAT_BIGALLOC		\
+				| EXT4_FT_RO_COMPAT_QUOTA		\
+				| EXT4_FT_RO_COMPAT_METADATA_CSUM	\
+				| EXT4_FT_RO_COMPAT_READONLY		\
+				| EXT4_FT_RO_COMPAT_PROJECT		\
+				| EXT4_FT_RO_COMPAT_SHARED_BLOCKS	\
+				| EXT4_FT_RO_COMPAT_VERITY)
 
 /* Inode flags */
 
@@ -186,6 +186,9 @@ enum ext2_os_type
 /*! Maximum allowed file name length */
 #define EXT2_MAX_NAME                   255
 
+/*! Offset of the primary superblock in bytes */
+#define EXT2_SUPER_OFFSET               1024
+
 #define EXT3_EXTENT_MAGIC               0xf30a
 #define EXT2_DIR_NAME_CHECKSUM          0xde00
 
@@ -212,7 +215,7 @@ enum ext2_os_type
 
 #define EXT4_INODE_CSUM_HI_EXTRA_END					\
   (offsetof (struct ext2_large_inode, i_checksum_hi) + 2 - EXT2_OLD_INODE_SIZE)
-#define EXT2_BG_BLOCK_BITMAP_CSUM_HI_END				\
+#define EXT4_BG_BLOCK_BITMAP_CSUM_HI_END				\
   (offsetof (struct ext4_group_desc, bg_block_bitmap_csum_hi) + 2)
 #define EXT4_BG_INODE_BITMAP_CSUM_HI_END				\
   (offsetof (struct ext4_group_desc, bg_inode_bitmap_csum_hi) + 2)
@@ -349,8 +352,9 @@ enum ext2_os_type
 #define EXT2_INODES_PER_BLOCK(s) (EXT2_BLOCK_SIZE (s) / EXT2_INODE_SIZE (s))
 #define EXT2_DESC_PER_BLOCK(s) (EXT2_BLOCK_SIZE (s) / EXT2_DESC_SIZE (s))
 #define EXT2_MAX_BLOCKS_PER_GROUP(s)				\
-  (65528 * (EXT2_CLUSTER_SIZE (s) / EXT2_BLOCK_SIZE (s)))
-#define EXT2_MAX_INODES_PER_GROUP(s) (65536 - EXT2_INODES_PER_BLOCK (s))
+  ((unsigned int) (65528 * (EXT2_CLUSTER_SIZE (s) / EXT2_BLOCK_SIZE (s))))
+#define EXT2_MAX_INODES_PER_GROUP(s)			\
+  ((unsigned int) (65536 - EXT2_INODES_PER_BLOCK (s)))
 #define EXT2_CLUSTER_RATIO(fs) (1 << fs->cluster_ratio_bits)
 #define EXT2_CLUSTER_MASK(fs) (EXT2_CLUSTER_RATIO (fs) - 1)
 #define EXT2_GROUPS_TO_BLOCKS(s, g) ((block_t) s.s_blocks_per_group * (g))
@@ -744,7 +748,7 @@ struct ext2_lookup_ctx
   int found;
 };
 
-struct ext2_inode_cache_ent
+struct ext2_inode_cache_entry
 {
   ino_t ino;
   struct ext2_inode *inode;
@@ -757,7 +761,7 @@ struct ext2_inode_cache
   int cache_last;
   unsigned int cache_size;
   int refcnt;
-  struct ext2_inode_cache_ent *cache;
+  struct ext2_inode_cache_entry *cache;
 };
 
 /*! Ext2 64-bit bitmap types */
@@ -829,11 +833,13 @@ struct ext2_bitmap64
 struct ext2_fs
 {
   struct ext2_super super;              /*!< Copy of superblock */
+  struct block_device *device;          /*!< Device containing filesystem */
   unsigned int mflags;                  /*!< Mount flags */
   int flags;                            /*!< Driver-specific flags */
   blksize_t blksize;                    /*!< Block size */
   unsigned int group_desc_count;        /*!< Number of block groups */
   unsigned long desc_blocks;
+  struct ext2_group_desc *group_desc;
   unsigned int inode_blocks_per_group;
   struct ext2_bitmap *block_bitmap;
   struct ext2_bitmap *inode_bitmap;
@@ -1233,7 +1239,7 @@ int ext2_flush (struct ext2_fs *fs, int flags);
 int ext2_open_file (struct ext2_fs *fs, ino_t inode, struct ext2_file *file);
 int ext2_file_block_offset_too_big (struct ext2_fs *fs,
 				    struct ext2_inode *inode, block_t offset);
-int ext2_file_set_size (struct ext2_file *file, off_t size);
+int ext2_file_set_size (struct vnode *vp, off_t size);
 int ext2_read_inode (struct ext2_fs *fs, ino_t ino, struct ext2_inode *inode);
 int ext2_update_inode (struct ext2_fs *fs, ino_t ino, struct ext2_inode *inode,
 		       size_t bufsize);
@@ -1245,9 +1251,9 @@ block_t ext2_find_inode_goal (struct ext2_fs *fs, ino_t ino,
 int ext2_create_inode_cache (struct ext2_fs *fs, unsigned int cache_size);
 void ext2_free_inode_cache (struct ext2_inode_cache *cache);
 int ext2_flush_inode_cache (struct ext2_inode_cache *cache);
-int ext2_file_flush (struct ext2_file *file);
-int ext2_sync_file_buffer_pos (struct ext2_file *file);
-int ext2_load_file_buffer (struct ext2_file *file, int nofill);
+int ext2_file_flush (struct vnode *vp);
+int ext2_sync_file_buffer_pos (struct vnode *vp);
+int ext2_load_file_buffer (struct vnode *vp, int nofill);
 int ext2_bmap (struct ext2_fs *fs, ino_t ino, struct ext2_inode *inode,
 	       char *blockbuf, int flags, block_t block, int *retflags,
 	       block_t *physblock);

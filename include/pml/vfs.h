@@ -333,6 +333,20 @@ struct vnode
   void *data;                   /*!< Driver-specific private data */
 };
 
+/*!
+ * Determines a suitable value for the @ref dirent.d_reclen field in
+ * the directory entry structure.
+ *
+ * @param name_len the length of the entry name in bytes
+ * @return the record length
+ */
+
+static inline uint16_t
+dirent_rec_len (size_t name_len)
+{
+  return ALIGN_UP (offsetof (struct dirent, d_name) + name_len + 1, 8);
+}
+
 __BEGIN_DECLS
 
 extern struct filesystem *filesystem_table;
