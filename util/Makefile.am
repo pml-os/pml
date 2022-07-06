@@ -3,6 +3,8 @@ include $(top_srcdir)/compile.mk
 noinst_LIBRARIES = libutil.a
 
 libutil_a_SOURCES =	\
+	crc16.c		\
+	crc32.c		\
 	errno.c		\
 	lock.c		\
 	malloc.c	\
@@ -11,6 +13,7 @@ libutil_a_SOURCES =	\
 	memcmp.c	\
 	memmove.c	\
 	printf.c	\
+	sha256.c	\
 	siphash.c	\
 	strcat.c	\
 	strchr.c	\
@@ -19,5 +22,4 @@ libutil_a_SOURCES =	\
 	strdup.c	\
 	strlen.c	\
 	strstr.c	\
-	strtoul.c	\
-	time.c
+	strtoul.c

@@ -38,6 +38,7 @@ libarch_a_SOURCES =	\
 	syscall.S	\
 	syscall-init.c	\
 	thread.c	\
+	time.c		\
 	trampoline.S
 
 # Generate interrupt handler stubs and IDT fill function

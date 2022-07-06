@@ -255,7 +255,7 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
     {
       for (i = 0; argv[i]; i++)
 	nargs++;
-      argsm = malloc (sizeof (char *) * nargs);
+      argsm = calloc (nargs + 1, sizeof (char *));
       if (UNLIKELY (!argsm))
 	RETV_ERROR (ENOMEM, -1);
       memcpy (argsm, argv, sizeof (char *) * nargs);
@@ -265,7 +265,7 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
     {
       for (i = 0; envp[i]; i++)
 	nenv++;
-      envm = malloc (sizeof (char *) * nenv);
+      envm = calloc (nenv + 1, sizeof (char *));
       if (UNLIKELY (!envm))
 	goto err0;
       memcpy (envm, envp, sizeof (char *) * nenv);

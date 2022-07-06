@@ -136,7 +136,7 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
 struct thread *
 thread_create (struct thread_args *args)
 {
-  struct thread *thread = malloc (sizeof (struct thread));
+  struct thread *thread = calloc (1, sizeof (struct thread));
   if (UNLIKELY (!thread))
     return NULL;
   thread->tid = alloc_pid ();
@@ -241,7 +241,7 @@ thread_attach_process (struct process *process, struct thread *thread)
 struct thread *
 thread_clone (struct thread *thread, int copy)
 {
-  struct thread *t = malloc (sizeof (struct thread));
+  struct thread *t = calloc (1, sizeof (struct thread));
   uintptr_t *pml4t;
   uintptr_t *tlp;
   void *addr;

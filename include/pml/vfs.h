@@ -33,9 +33,16 @@
 /*! Constant with all permission bits set */
 #define FULL_PERM               (S_IRWXU | S_IRWXG | S_IRWXO)
 
+/*! Default permission bits for symbolic links */
+#define SYMLINK_MODE (S_IFLNK | S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
+
 /* Vnode flags */
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
+
+/* Mount flags */
+
+#define MS_RDONLY               (1 << 0)    /*!< Filesystem is read-only */
 
 /*! Represents a block number in a filesystem. */
 typedef unsigned long block_t;
@@ -202,12 +209,14 @@ struct vnode_ops
   /*!
    * Moves a file to a new directory with a new name.
    *
-   * @param vp the vnode to rename
-   * @param dir the directory to place the vnode in
-   * @param name the name of the new file
+   * @param olddir the directory containing the file to rename
+   * @param oldname name of the file to rename
+   * @param newdir the directory to place the renamed file
+   * @param newname the new name of the file
    * @return zero on success
    */
-  int (*rename) (struct vnode *vp, struct vnode *dir, const char *name);
+  int (*rename) (struct vnode *olddir, const char *oldname,
+		 struct vnode *newdir, const char *newname);
 
   /*!
    * Creates a hard link to a vnode.
@@ -324,6 +333,20 @@ struct vnode
   void *data;                   /*!< Driver-specific private data */
 };
 
+/*!
+ * Determines a suitable value for the @ref dirent.d_reclen field in
+ * the directory entry structure.
+ *
+ * @param name_len the length of the entry name in bytes
+ * @return the record length
+ */
+
+static inline uint16_t
+dirent_rec_len (size_t name_len)
+{
+  return ALIGN_UP (offsetof (struct dirent, d_name) + name_len + 1, 8);
+}
+
 __BEGIN_DECLS
 
 extern struct filesystem *filesystem_table;
@@ -351,7 +374,8 @@ int vfs_create (struct vnode **result, struct vnode *dir, const char *name,
 		mode_t mode, dev_t rdev);
 int vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 	       mode_t mode);
-int vfs_rename (struct vnode *vp, struct vnode *dir, const char *name);
+int vfs_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
+		const char *newname);
 int vfs_link (struct vnode *dir, struct vnode *vp, const char *name);
 int vfs_unlink (struct vnode *dir, const char *name);
 int vfs_symlink (struct vnode *dir, const char *name, const char *target);

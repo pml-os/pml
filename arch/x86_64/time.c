@@ -14,6 +14,16 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
+#include <pml/hpet.h>
 #include <stdlib.h>
 
 time_t real_time;
+
+time_t
+time (time_t *t)
+{
+  time_t tt = real_time + hpet_nanotime () / 1000000000;
+  if (t)
+    *t = tt;
+  return tt;
+}

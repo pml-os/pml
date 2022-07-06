@@ -157,6 +157,7 @@ mount_filesystem (const char *type, dev_t device, unsigned int flags)
 	    return NULL;
 	  mp->ops = filesystem_table[i].ops;
 	  mp->device = device;
+	  mp->flags = flags;
 	  if (vfs_mount (mp, flags))
 	    {
 	      UNREF_OBJECT (mp);
@@ -169,7 +170,7 @@ mount_filesystem (const char *type, dev_t device, unsigned int flags)
 }
 
 /*!
- * Performs any initialization required by a filesystem backend. This function
+ * Performs any initialization required by as filesystem backend. This function
  * is called when a filesystem is mounted.
  *
  * @param mp the mount structure

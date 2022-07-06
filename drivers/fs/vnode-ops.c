@@ -229,21 +229,23 @@ vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
 /*!
  * Moves a file to a new directory with a new name.
  *
- * @param vp the vnode to rename
- * @param dir the directory to place the vnode in
- * @param name the name of the new file
+ * @param olddir the directory containing the file to rename
+ * @param oldname name of the file to rename
+ * @param newdir the directory to place the renamed file
+ * @param newname the new name of the file
  * @return zero on success
  */
 
 int
-vfs_rename (struct vnode *vp, struct vnode *dir, const char *name)
+vfs_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
+	    const char *newname)
 {
-  if (!vfs_can_write (dir, 0))
-    return -1;
-  if (!S_ISDIR (dir->mode))
+  if (!S_ISDIR (olddir->mode) || !S_ISDIR (newdir->mode))
     RETV_ERROR (ENOTDIR, -1);
-  if (dir->ops->rename)
-    return dir->ops->rename (vp, dir, name);
+  if (!vfs_can_write (olddir, 0) || !vfs_can_write (newdir, 0))
+    return -1;
+  if (olddir->ops->rename)
+    return olddir->ops->rename (olddir, oldname, newdir, newname);
   else
     RETV_ERROR (ENOTSUP, -1);
 }
