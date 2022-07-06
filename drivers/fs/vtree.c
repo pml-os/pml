@@ -178,12 +178,21 @@ vnode_dir_name (const char *path, struct vnode **dir, const char **name)
       goto end;
     }
   *end = '\0';
-  vp = vnode_namei (ptr, 0);
-  if (!vp)
-    goto err0;
-
+  if (!*ptr)
+    {
+      /* Only slash is at the start of the path, the file is directly in
+	 the root directory */
+      REF_ASSIGN (vp, root_vnode);
+      *name = path + 1;
+    }
+  else
+    {
+      vp = vnode_namei (ptr, 0);
+      if (!vp)
+	goto err0;
+      *name = path + (end - ptr);
+    }
   *dir = vp;
-  *name = path + (end - ptr);
  end:
   free (ptr);
   return 0;

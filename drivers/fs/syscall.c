@@ -19,6 +19,7 @@
 #include <pml/fcntl.h>
 #include <pml/syscall.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <string.h>
 
 /*!
@@ -82,10 +83,14 @@ xstat (const char *path, struct stat *st, int follow_links)
 int
 sys_open (const char *path, int flags, ...)
 {
+  va_list args;
   struct fd_table *fds = &THIS_PROCESS->fds;
   struct vnode *vp;
   int fd;
-  int sysfd = alloc_fd ();
+  int sysfd;
+  va_start (args, flags);
+
+  sysfd = alloc_fd ();
   if (UNLIKELY (sysfd == -1))
     RETV_ERROR (ENFILE, -1);
   fd = alloc_procfd ();
@@ -98,6 +103,7 @@ sys_open (const char *path, int flags, ...)
 	{
 	  struct vnode *dir;
 	  const char *name;
+	  mode_t mode;
 	  int ret;
 	  if (vnode_dir_name (path, &dir, &name))
 	    return -1;
@@ -106,16 +112,17 @@ sys_open (const char *path, int flags, ...)
 	      UNREF_OBJECT (dir);
 	      RETV_ERROR (ENOENT, -1);
 	    }
+	  mode = va_arg (args, mode_t);
 	  if (flags & O_DIRECTORY)
-	    ret = vfs_mkdir (&vp, dir, name, FULL_PERM & ~THIS_PROCESS->umask);
+	    ret = vfs_mkdir (&vp, dir, name, mode & ~THIS_PROCESS->umask);
 	  else
-	    ret = vfs_create (&vp, dir, name,
-			      FULL_PERM & ~THIS_PROCESS->umask, 0);
+	    ret = vfs_create (&vp, dir, name, mode & ~THIS_PROCESS->umask, 0);
 	  UNREF_OBJECT (dir);
 	  if (ret)
 	    return -1;
 	}
-      return -1;
+      else
+	return -1;
     }
   else if ((flags & O_CREAT) && (flags & O_EXCL))
     {
@@ -126,7 +133,7 @@ sys_open (const char *path, int flags, ...)
   system_fd_table[sysfd].flags = flags & (O_ACCMODE | O_NONBLOCK);
   system_fd_table[sysfd].count = 1;
   fds->table[fd] = system_fd_table + sysfd;
-  return 0;
+  return fd;
 }
 
 int

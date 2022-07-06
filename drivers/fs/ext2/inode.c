@@ -196,7 +196,7 @@ int
 ext2_create (struct vnode **result, struct vnode *dir, const char *name,
 	     mode_t mode, dev_t rdev)
 {
-  return ext2_new_file (dir, name, (mode & ~S_IFMT) | S_IFREG, NULL);
+  return ext2_new_file (dir, name, (mode & ~S_IFMT) | S_IFREG, result);
 }
 
 int
