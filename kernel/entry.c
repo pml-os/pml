@@ -18,16 +18,32 @@
 
 #include <pml/device.h>
 #include <pml/panic.h>
-#include <pml/process.h>
 #include <pml/syscall.h>
 #include <pml/tty.h>
 #include <pml/vfs.h>
 #include <pml/wait.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 static char *init_argv[] = {"init", NULL};
 static char *sh_argv[] = {"sh", NULL};
+
+/*!
+ * Attempts to execute a file. If the file cannot be executed for any reason,
+ * execution continues in the current thread as normal and errors are ignored.
+ *
+ * @param path the path to the file to execute
+ * @param argv argument vector
+ * @param envp environment variable vector
+ */
+
+static void
+try_execve (const char *path, char *const *argv, char *const *envp)
+{
+  sys_execve (path, argv, envp);
+  printf ("%s: could not exec %s (errno %d)\n", __FUNCTION__, path, errno);
+}
 
 /*! Prints a welcome message on boot. */
 
@@ -66,11 +82,11 @@ fork_init (void)
 	}
 
       /* Run an init process */
-      sys_execve ("/sbin/init", init_argv, NULL);
-      sys_execve ("/bin/init", init_argv, NULL);
-      sys_execve ("/init", init_argv, NULL);
-      sys_execve ("/bin/sh", sh_argv, NULL);
-      panic ("No init process found");
+      try_execve ("/sbin/init", init_argv, NULL);
+      try_execve ("/bin/init", init_argv, NULL);
+      try_execve ("/init", init_argv, NULL);
+      try_execve ("/bin/sh", sh_argv, NULL);
+      panic ("No init process could be run");
     }
   else
     {

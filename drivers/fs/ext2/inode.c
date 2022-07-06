@@ -487,7 +487,7 @@ ext2_fill (struct vnode *vp)
   struct ext2_file *file = calloc (1, sizeof (struct ext2_file));
   if (UNLIKELY (!file))
     return -1;
-  if (ext2_read_inode (fs, vp->ino, &file->inode))
+  if (ext2_open_file (fs, vp->ino, file))
     return -1;
   vp->data = file;
   ext2_update_vfs_inode (vp);

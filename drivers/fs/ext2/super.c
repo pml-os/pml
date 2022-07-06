@@ -254,7 +254,7 @@ ext2_mount (struct mount *mp, unsigned int flags)
     RETV_ERROR (ENOTBLK, -1);
 
   /* Fill filesystem data */
-  fs = malloc (sizeof (struct ext2_fs));
+  fs = calloc (1, sizeof (struct ext2_fs));
   if (UNLIKELY (!fs))
     RETV_ERROR (ENOMEM, -1);
   fs->mflags = flags;

@@ -182,6 +182,10 @@ ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
   unsigned short i;
   unsigned char dma = ata_dma_support;
 
+  /* Copy data to the ATA buffer if writing */
+  if (op == ATA_OP_WRITE)
+    memcpy (ata_devices[device].buffer, buffer, sectors * ATA_SECTOR_SIZE);
+
  retry:
   if (dma)
     {
@@ -313,8 +317,9 @@ ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
       if ((status & ATA_SR_ERR) || (status & ATA_SR_DF))
 	return -1;
 
-      /* Copy the data to the user buffer */
-      memcpy (buffer, ata_devices[device].buffer, sectors * ATA_SECTOR_SIZE);
+      /* Copy the data to the user buffer if reading */
+      if (op == ATA_OP_READ)
+	memcpy (buffer, ata_devices[device].buffer, sectors * ATA_SECTOR_SIZE);
     }
   else
     {
@@ -768,7 +773,7 @@ ata_device_write (struct block_device *device, const void *buffer, size_t len,
 			     end_lba + part_offset, ata_buffer))
 	RETV_ERROR (EIO, -1);
     }
-  return 0;
+  return len;
 }
 
 void
