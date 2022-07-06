@@ -118,13 +118,14 @@ vnode_namei (const char *path, int link_count)
 		  if (UNLIKELY (!buffer))
 		    goto err0;
 		  THIS_PROCESS->cwd = vp;
-		  ret = vfs_readlink (nvp, buffer, PATH_MAX);
+		  ret = vfs_readlink (nvp, buffer, PATH_MAX - 1);
 		  if (ret == -1)
 		    {
 		      free (buffer);
 		      THIS_PROCESS->cwd = cwd;
 		      goto err0;
 		    }
+		  buffer[ret] = '\0';
 		  nvp = vnode_namei (buffer, link_count + 1);
 		  free (buffer);
 		  THIS_PROCESS->cwd = cwd;

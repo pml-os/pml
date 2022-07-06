@@ -458,9 +458,13 @@ ext2_readlink (struct vnode *vp, char *buffer, size_t len)
   if (size <= 60)
     {
       /* Link target is stored directly in block pointers */
+      size_t c = 0;
       for (i = 0; i < len && i < size; i++)
-	buffer[i] = ((char *) inode->i_block)[i];
-      return 0;
+	{
+	  buffer[i] = ((char *) inode->i_block)[i];
+	  c++;
+	}
+      return c;
     }
   else
     {
