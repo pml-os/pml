@@ -68,7 +68,7 @@ ASM_FUNC_BEGIN (syscall):
 	/* Check if a signal can be handled */
 	call	load_signal
 	test	%eax, %eax
-	jnz	2f
+	jnz	.signal
 
 	/* Disable task switching and switch stacks */
 	movabs	$thread_switch_lock, %rax
@@ -77,12 +77,21 @@ ASM_FUNC_BEGIN (syscall):
 	mov	%rbx, %rax
 	pop	%r11
 
-	/* Check if an error occurred */
+	/* Check for an error. Since the function could return either
+	   a 32-bit or 64-bit version of -1 for an error, check both. */
 	cmp	$-1, %rax
-	jne	1f
+	je	1f
+	mov	%rax, %r10
+	shr	$32, %r10
+	test	%r10d, %r10d
+	jnz	2f
+	cmp	$-1, %eax
+	jne	2f
+
+1:
 	or	$0x0001, %r11
 	mov	%r12d, %eax
-1:
+2:
 	pop	%r12
 	pop	%r10
 	pop	%r9
@@ -110,16 +119,27 @@ ASM_FUNC_BEGIN (syscall):
 	movl	$0, (%rax)
 	sysretq
 
-2:
+.signal:
 	/* Switch stacks and return to user mode */
 	mov	(%rsp), %rsp
 	mov	%rbx, %rax
 	pop	%r11
+
+	/* Check for an error. Since the function could return either
+	   a 32-bit or 64-bit version of -1 for an error, check both. */
 	cmp	$-1, %rax
-	jne	3f
+	je	3f
+	mov	%rax, %r10
+	shr	$32, %r10
+	test	%r10d, %r10d
+	jnz	4f
+	cmp	$-1, %eax
+	jne	4f
+
+3:
 	or	$0x0001, %r11
 	mov	%r12d, %eax
-3:
+4:
 	pop	%r12
 	pop	%r10
 	pop	%r9

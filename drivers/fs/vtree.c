@@ -190,7 +190,7 @@ vnode_dir_name (const char *path, struct vnode **dir, const char **name)
       vp = vnode_namei (ptr, 0);
       if (!vp)
 	goto err0;
-      *name = path + (end - ptr);
+      *name = path + 1 + (end - ptr);
     }
   *dir = vp;
  end:

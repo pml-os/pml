@@ -120,11 +120,27 @@ params = int fd, struct stat *st
 [lstat]
 params = const char *path, struct stat *st
 
+[mkdir]
+params = const char *path, mode_t mode
+
+[rename]
+params = const char *old_path, const char *new_path
+
 [link]
 params = const char *old_path, const char *new_path
 
 [unlink]
 params = const char *path
+
+[symlink]
+params = const char *old_path, const char *new_path
+
+[readlink]
+return_type = ssize_t
+params = const char *path, char *buffer, size_t len
+
+[truncate]
+params = const char *path, off_t len
 
 [dup]
 params = int fd

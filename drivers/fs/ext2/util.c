@@ -645,7 +645,8 @@ ext2_process_dir_block (struct ext2_fs *fs, block_t *blockno, blkcnt_t blkcnt,
       if (offset + rec_len > bufsize || rec_len < 8 || rec_len % 4
 	  || (unsigned int) (dirent->d_name_len & 0xff) + 8 > rec_len)
 	{
-	  ctx->err = -EUCLEAN;
+	  ctx->err = -1;
+	  errno = EUCLEAN;
 	  return BLOCK_ABORT;
 	}
       if (!dirent->d_inode)
@@ -2159,6 +2160,11 @@ ext2_new_file (struct vnode *dir, const char *name, mode_t mode,
   ext2_write_new_inode (fs, ino, inode);
   ext2_inode_alloc_stats (fs, ino, 1, S_ISDIR (inode->i_mode));
   ret = ext2_add_link (fs, dir, name, ino, ext2_dir_type (mode));
+  if (ret)
+    {
+      UNREF_OBJECT (vp);
+      return ret;
+    }
 
   vp->ino = ino;
   vp->mode = inode->i_mode;
@@ -2347,6 +2353,7 @@ ext2_block_iterate (struct ext2_fs *fs, struct vnode *dir, int flags,
   ctx.private = private;
   ctx.flags = flags;
   ctx.blkcnt = 0;
+  ctx.err = 0;
   if (blockbuf)
     ctx.ind_buf = blockbuf;
   else

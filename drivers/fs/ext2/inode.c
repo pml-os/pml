@@ -287,7 +287,10 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
   drop_ref = 0;
   REF_OBJECT (temp);
   ext2_update_vfs_inode (temp);
-  *result = temp;
+  if (result)
+    *result = temp;
+  else
+    UNREF_OBJECT (temp);
 
  end:
   if (block)

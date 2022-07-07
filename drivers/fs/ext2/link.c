@@ -176,6 +176,7 @@ ext2_add_link (struct ext2_fs *fs, struct vnode *dir, const char *name,
   l.inode = ino;
   l.flags = flags;
   l.done = 0;
+  l.err = 0;
   ret =
     ext2_dir_iterate (fs, dir, DIRENT_FLAG_EMPTY, NULL, ext2_process_link, &l);
   if (ret)
