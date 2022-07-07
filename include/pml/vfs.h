@@ -361,9 +361,6 @@ int vfs_can_seek (struct vnode *vp);
 int vfs_mount (struct mount *mp, unsigned int flags);
 int vfs_unmount (struct mount *mp, unsigned int flags);
 
-struct vnode *vnode_alloc (void);
-void vnode_free_child (void *data);
-
 int vfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
 int vfs_getattr (struct stat *stat, struct vnode *vp);
 ssize_t vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
@@ -391,6 +388,8 @@ int register_filesystem (const char *name, const struct mount_ops *ops);
 struct mount *mount_filesystem (const char *type, dev_t device,
 				unsigned int flags);
 const char *guess_filesystem_type (struct vnode *vp);
+
+struct vnode *vnode_alloc (void);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 struct vnode *vnode_namei (const char *path, int link_count);

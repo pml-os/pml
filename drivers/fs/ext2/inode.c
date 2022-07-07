@@ -209,6 +209,7 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
   struct vnode *temp = NULL;
   block_t b;
   ino_t ino;
+  ino_t scratch;
   char *block = NULL;
   int drop_ref = 0;
   int ret = ext2_read_bitmaps (fs);
@@ -248,7 +249,7 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
   if (UNLIKELY (!temp))
     GOTO_ERROR (ENOMEM, end);
   temp->ops = &ext2_vnode_ops;
-  temp->data = malloc (sizeof (struct ext2_file));
+  temp->data = calloc (1, sizeof (struct ext2_file));
   REF_ASSIGN (temp->mount, dir->mount);
   if (UNLIKELY (!temp->data))
     goto end;
@@ -274,13 +275,18 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
   ext2_inode_alloc_stats (fs, ino, 1, 1);
   drop_ref = 1;
 
+  ret = ext2_lookup_inode (fs, dir, name, strlen (name), NULL, &scratch);
+  if (!ret)
+    GOTO_ERROR (EEXIST, end);
   ret = ext2_add_link (fs, dir, name, ino, EXT2_FILE_DIR);
   if (ret)
     goto end;
   if (dir->ino != ino)
     {
+      struct ext2_file *dirfile = dir->data;
       dir->nlink++;
-      ret = ext2_update_inode (fs, ino, &inode, sizeof (struct ext2_inode));
+      ret = ext2_update_inode (fs, dir->ino, &dirfile->inode,
+			       sizeof (struct ext2_inode));
       if (ret)
 	goto end;
     }
