@@ -113,6 +113,10 @@ struct mount
    */
   struct vnode *root_vnode;
 
+  struct filesystem *fstype;    /*!< Filesystem type of mount */
+  struct vnode *parent;         /*!< Dir in parent fs containing root vnode */
+  char *root_name;              /*!< Name of dir entry of mount point */
+  struct hashmap *vcache;       /*!< Vnode cache */
   unsigned int flags;           /*!< Mount options */
   dev_t device;                 /*!< Device number, if applicable */
   const struct mount_ops *ops;  /*!< Mount operation vector */
@@ -327,7 +331,7 @@ struct vnode
   blksize_t blksize;            /*!< Optimal I/O block size */
   const struct vnode_ops *ops;  /*!< Vnode operation vector */
   unsigned int flags;           /*!< Vnode flags */
-  struct strmap *children;      /*!< Hashmap of child vnodes */
+  struct strmap *children;      /*!< Hashmap of child vnodes' inode numbers */
   struct vnode *parent;         /*!< Parent vnode */
   struct mount *mount;          /*!< Filesystem the vnode is on */
   void *data;                   /*!< Driver-specific private data */
@@ -350,8 +354,11 @@ dirent_rec_len (size_t name_len)
 __BEGIN_DECLS
 
 extern struct filesystem *filesystem_table;
+extern struct mount **mount_table;
 extern size_t filesystem_count;
+extern size_t mount_count;
 extern struct vnode *root_vnode;
+extern struct mount *devfs;
 
 int vfs_can_read (struct vnode *vp, int real);
 int vfs_can_write (struct vnode *vp, int real);
@@ -386,14 +393,20 @@ void init_vfs (void);
 void mount_root (void);
 int register_filesystem (const char *name, const struct mount_ops *ops);
 struct mount *mount_filesystem (const char *type, dev_t device,
-				unsigned int flags);
+				unsigned int flags, struct vnode *parent,
+				const char *name);
 const char *guess_filesystem_type (struct vnode *vp);
 
 struct vnode *vnode_alloc (void);
+void vnode_unref (void *data);
 int vnode_add_child (struct vnode *vp, struct vnode *child, const char *name);
+void vnode_place_cache (struct vnode *vp);
+struct vnode *vnode_lookup_cache (struct mount *mp, ino_t ino);
+void vnode_remove_cache (struct vnode *vp);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
 struct vnode *vnode_namei (const char *path, int link_count);
 int vnode_dir_name (const char *path, struct vnode **dir, const char **name);
+struct vnode *vnode_find_mount_point (struct vnode *vp, const char *name);
 
 __END_DECLS
 

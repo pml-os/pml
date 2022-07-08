@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 
+/*! Mount structure of devfs */
+struct mount *devfs;
+
 const struct mount_ops devfs_mount_ops = {
   .mount = devfs_mount,
   .unmount = devfs_unmount,
@@ -81,8 +84,9 @@ devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
 	RETV_ERROR (ENOENT, -1);
       vp->ino = makedev (device->major, device->minor);
     }
+  REF_ASSIGN (vp->mount, devfs);
   vp->ops = &devfs_vnode_ops;
-  if (vfs_fill (vp))
+  if (devfs_fill (vp))
     {
       UNREF_OBJECT (vp);
       return -1;

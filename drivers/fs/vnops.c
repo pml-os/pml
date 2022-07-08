@@ -1,4 +1,4 @@
-/* vnode-ops.c -- This file is part of PML.
+/* vnops.c -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -19,41 +19,6 @@
 #include <pml/syslimits.h>
 #include <pml/vfs.h>
 #include <errno.h>
-
-/*!
- * Allocates an empty vnode.
- *
- * @return a pointer to an empty vnode, or NULL if the allocation failed
- */
-
-struct vnode *
-vnode_alloc (void)
-{
-  struct vnode *vp;
-  ALLOC_OBJECT (vp, vfs_dealloc);
-  if (UNLIKELY (!vp))
-    return NULL;
-  vp->children = strmap_create ();
-  if (UNLIKELY (!vp->children))
-    {
-      UNREF_OBJECT (vp);
-      return 0;
-    }
-  return vp;
-}
-
-/*!
- * Callback function for freeing a hashmap of child vnodes.
- *
- * @param data pointer to a child vnode
- */
-
-void
-vnode_free_child (void *data)
-{
-  struct vnode *vp = data;
-  UNREF_OBJECT (vp);
-}
 
 /*!
  * Finds a vnode that is a child node of a directory through a path component.
@@ -422,8 +387,10 @@ void
 vfs_dealloc (struct vnode *vp)
 {
   if (vp->children)
-    strmap_free (vp->children, vnode_free_child);
+    strmap_free (vp->children, vnode_unref);
   UNREF_OBJECT (vp->parent);
+  vnode_remove_cache (vp);
   if (vp->ops->dealloc)
     vp->ops->dealloc (vp);
+  free (vp);
 }

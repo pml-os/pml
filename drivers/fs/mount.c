@@ -23,8 +23,12 @@
 #include <stdio.h>
 #include <string.h>
 
-/*! Mount structure of devfs. */
-static struct mount *devfs_mp;
+/*!
+ * Mount structure of dummy filesystem present before the root filesystem
+ * is mounted
+ */
+
+static struct mount default_mount;
 
 /*!
  * The system filesystem table. Filesystem drivers add entries to this table
@@ -33,11 +37,31 @@ static struct mount *devfs_mp;
 
 struct filesystem *filesystem_table;
 
+/*!
+ * The system mount table. Stores all mounted filesystem instances.
+ */
+
+struct mount **mount_table;
+
 /*! Number of entries in the filesystem table. */
 size_t filesystem_count;
 
+/*! Number of entries in the mount table. */
+size_t mount_count;
+
 /*! The vnode representing the root of the VFS filesystem. */
 struct vnode *root_vnode;
+
+static void
+free_mp (void *data)
+{
+  struct mount *mp = data;
+  hashmap_free (mp->vcache, vnode_unref);
+  UNREF_OBJECT (mp->root_vnode);
+  UNREF_OBJECT (mp->parent);
+  free (mp->root_name);
+  free (mp);
+}
 
 /*!
  * Initializes the VFS and allocates and initializes the root vnode. The
@@ -54,14 +78,16 @@ init_vfs (void)
   /* Set working directory to root directory */
   REF_ASSIGN (THIS_PROCESS->cwd, root_vnode);
   THIS_PROCESS->cwd_path = "/";
+  default_mount.vcache = hashmap_create ();
+  if (UNLIKELY (!default_mount.vcache))
+    panic ("Failed to allocate vnode cache");
+  root_vnode->mount = &default_mount;
 
   /* Mount devfs on /dev */
   if (register_filesystem ("devfs", &devfs_mount_ops))
     panic ("Failed to register devfs");
-  devfs_mp = mount_filesystem ("devfs", 0, 0);
-  if (UNLIKELY (!devfs_mp))
-    goto err0;
-  if (vnode_add_child (root_vnode, devfs_mp->root_vnode, "dev"))
+  devfs = mount_filesystem ("devfs", 0, 0, root_vnode, "dev");
+  if (UNLIKELY (!devfs))
     goto err0;
 
   /* Register standard filesystems */
@@ -94,13 +120,17 @@ mount_root (void)
   fs_type = guess_filesystem_type (vp);
   if (UNLIKELY (!fs_type))
     goto err0;
-  mp = mount_filesystem (fs_type, vp->ino, 0);
+  mp = mount_filesystem (fs_type, vp->ino, 0, NULL, NULL);
   if (UNLIKELY (!mp))
     goto err0;
-  if (vnode_add_child (mp->root_vnode, devfs_mp->root_vnode, "dev"))
+  if (vnode_add_child (mp->root_vnode, devfs->root_vnode, "dev"))
     goto err0;
-  UNREF_OBJECT (root_vnode);
+
+  /* Fix the root vnode pointer and update devfs's parent vnode */
+  UNREF_OBJECT (root_vnode); /* Remove reference from mount parent */
+  UNREF_OBJECT (root_vnode); /* Remove reference from initial allocation */
   REF_ASSIGN (root_vnode, mp->root_vnode);
+  REF_ASSIGN (devfs->parent, root_vnode);
 
   /* Make /.. link to / */
   REF_ASSIGN (root_vnode->parent, root_vnode);
@@ -140,29 +170,75 @@ register_filesystem (const char *name, const struct mount_ops *ops)
  * @param type the filesystem type
  * @param dev the device number of a corresponding device, if any
  * @param flags mount flags, passed to vfs_mount()
+ * @param parent the vnode of the directory containing the mount point in
+ * the parent filesystem
+ * @param name the directory entry under the parent directory containing
+ * the mount point
  * @return the mount structure, or NULL on failure
  */
 
 struct mount *
-mount_filesystem (const char *type, dev_t device, unsigned int flags)
+mount_filesystem (const char *type, dev_t device, unsigned int flags,
+		  struct vnode *parent, const char *name)
 {
+  struct mount **table;
   struct mount *mp;
   size_t i;
   for (i = 0; i < filesystem_count; i++)
     {
       if (!strcmp (filesystem_table[i].name, type))
 	{
-	  ALLOC_OBJECT (mp, free);
+	  ALLOC_OBJECT (mp, free_mp);
 	  if (UNLIKELY (!mp))
 	    return NULL;
 	  mp->ops = filesystem_table[i].ops;
 	  mp->device = device;
 	  mp->flags = flags;
+	  mp->vcache = hashmap_create ();
+	  mp->root_name = NULL;
+	  if (UNLIKELY (!mp->vcache))
+	    {
+	      UNREF_OBJECT (mp);
+	      return NULL;
+	    }
 	  if (vfs_mount (mp, flags))
 	    {
 	      UNREF_OBJECT (mp);
 	      return NULL;
 	    }
+	  if (hashmap_insert (mp->vcache, mp->root_vnode->ino, mp->root_vnode))
+	    {
+	      UNREF_OBJECT (mp);
+	      return NULL;
+	    }
+
+	  if (name)
+	    {
+	      mp->root_name = strdup (name);
+	      if (UNLIKELY (!mp->root_name))
+		{
+		  UNREF_OBJECT (mp);
+		  return NULL;
+		}
+	    }
+
+	  table =
+	    realloc (mount_table, sizeof (struct mount *) * ++mount_count);
+	  if (UNLIKELY (!table))
+	    {
+	      UNREF_OBJECT (mp);
+	      mount_count--;
+	      return NULL;
+	    }
+	  table[mount_count - 1] = mp;
+	  mount_table = table;
+
+	  REF_OBJECT (mp->root_vnode);
+	  mp->fstype = filesystem_table + i;
+	  if (parent)
+	    REF_ASSIGN (mp->parent, parent);
+	  else
+	    REF_ASSIGN (mp->parent, mp->root_vnode);
 	  return mp;
 	}
     }
@@ -217,6 +293,22 @@ guess_filesystem_type (struct vnode *vp)
     {
       if (filesystem_table[i].ops->check (vp))
 	return filesystem_table[i].name;
+    }
+  return NULL;
+}
+
+struct vnode *
+vnode_find_mount_point (struct vnode *vp, const char *name)
+{
+  size_t i;
+  for (i = 0; i < mount_count; i++)
+    {
+      if (mount_table[i]->parent == vp && mount_table[i]->root_name
+	  && !strcmp (mount_table[i]->root_name, name))
+	{
+	  REF_OBJECT (mount_table[i]->root_vnode);
+	  return mount_table[i]->root_vnode;
+	}
     }
   return NULL;
 }

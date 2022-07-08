@@ -32,8 +32,9 @@
 int
 vnode_add_child (struct vnode *vp, struct vnode *child, const char *name)
 {
-  if (strmap_insert (vp->children, name, child))
+  if (strmap_insert (vp->children, name, (void *) child->ino))
     return -1;
+  REF_OBJECT (child);
   REF_ASSIGN (child->parent, vp);
   return 0;
 }
@@ -52,11 +53,18 @@ vnode_add_child (struct vnode *vp, struct vnode *child, const char *name)
 struct vnode *
 vnode_lookup_child (struct vnode *dir, const char *name)
 {
-  struct vnode *vp = strmap_lookup (dir->children, name);
-  if (vp)
-    return vp;
+  struct vnode *vp;
+  ino_t ino = (ino_t) strmap_lookup (dir->children, name);
+  if (ino)
+    {
+      vp = vnode_lookup_cache (dir->mount, ino);
+      if (vp)
+	REF_OBJECT (vp);
+      return vp;
+    }
   if (vfs_lookup (&vp, dir, name))
     return NULL;
+  vnode_place_cache (vp);
   vnode_add_child (dir, vp, name);
   return vp;
 }
@@ -103,9 +111,15 @@ vnode_namei (const char *path, int link_count)
 	    REF_ASSIGN (nvp, vp->parent);
 	  else
 	    {
-	      nvp = vnode_lookup_child (vp, ptr);
+	      /* Check if the requested name is a mount point */
+	      nvp = vnode_find_mount_point (vp, ptr);
 	      if (!nvp)
-		goto err0;
+		{
+		  /* Do a normal lookup */
+		  nvp = vnode_lookup_child (vp, ptr);
+		  if (!nvp)
+		    goto err0;
+		}
 	      if (link_count >= 0 && S_ISLNK (nvp->mode))
 		{
 		  /* Change working directory for relative symlinks */
