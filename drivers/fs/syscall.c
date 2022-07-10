@@ -80,6 +80,47 @@ xstat (const char *path, struct stat *st, int follow_links)
   return ret;
 }
 
+static void sync_recurse_vnode (struct vnode *vp);
+static void unmark_sync_proc (struct vnode *vp);
+
+static void
+sync_children (const char *key, void *value, void *data)
+{
+  ino_t ino = (ino_t) value;
+  struct mount *mp = data;
+  struct vnode *vp = vnode_lookup_cache (mp, ino);
+  if (LIKELY (vp) && !(vp->flags & VN_FLAG_SYNC_PROC))
+    {
+      sync_recurse_vnode (vp);
+      vp->flags |= VN_FLAG_SYNC_PROC;
+    }
+}
+
+static void
+unmark_children (const char *key, void *value, void *data)
+{
+  ino_t ino = (ino_t) value;
+  struct mount *mp = data;
+  struct vnode *vp = vnode_lookup_cache (mp, ino);
+  if (LIKELY (vp) && (vp->flags & VN_FLAG_SYNC_PROC))
+    unmark_sync_proc (vp);
+}
+
+static void
+sync_recurse_vnode (struct vnode *vp)
+{
+  vfs_sync (vp);
+  vp->flags |= VN_FLAG_SYNC_PROC;
+  strmap_iterate (vp->children, sync_children, vp->mount);
+}
+
+static void
+unmark_sync_proc (struct vnode *vp)
+{
+  vp->flags &= ~VN_FLAG_SYNC_PROC;
+  strmap_iterate (vp->children, unmark_children, vp->mount);
+}
+
 int
 sys_open (const char *path, int flags, ...)
 {
@@ -353,10 +394,13 @@ sys_truncate (const char *path, off_t len)
 void
 sys_sync (void)
 {
-  /* TODO Sync all vnodes */
   size_t i;
   for (i = 0; i < mount_count; i++)
-    vfs_flush (mount_table[i]);
+    {
+      vfs_flush (mount_table[i]);
+      sync_recurse_vnode (mount_table[i]->root_vnode);
+      unmark_sync_proc (mount_table[i]->root_vnode);
+    }
 }
 
 int

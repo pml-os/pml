@@ -39,6 +39,7 @@
 /* Vnode flags */
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
+#define VN_FLAG_SYNC_PROC       (1 << 1)    /*!< Already processed by sync */
 
 /* Mount flags */
 

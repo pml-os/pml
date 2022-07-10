@@ -32,7 +32,27 @@
  * @param value the value that was inserted into the hashmap
  */
 
-typedef void (*hashmap_free_func_t) (void *value);
+typedef void (*hashmap_free_t) (void *value);
+
+/*!
+ * Callback function for iterating through a hashmap.
+ *
+ * @param key the key
+ * @param value the value
+ * @param data user data
+ */
+
+typedef void (*hashmap_iter_t) (unsigned long key, void *value, void *data);
+
+/*!
+ * Callback function for iterating through a string hashmap.
+ *
+ * @param key the key
+ * @param value the value
+ * @param data user data
+ */
+
+typedef void (*strmap_iter_t) (const char *key, void *value, void *data);
 
 /*!
  * Represents a linked list for a bucket in a hashmap. Contains a key and
@@ -83,15 +103,17 @@ struct strmap
 __BEGIN_DECLS
 
 struct hashmap *hashmap_create (void);
-void hashmap_free (struct hashmap *hashmap, hashmap_free_func_t free_func);
+void hashmap_free (struct hashmap *hashmap, hashmap_free_t free_func);
 int hashmap_insert (struct hashmap *hashmap, unsigned long key, void *value);
 void *hashmap_lookup (struct hashmap *hashmap, unsigned long key);
+void hashmap_iterate (struct hashmap *hashmap, hashmap_iter_t func, void *data);
 int hashmap_remove (struct hashmap *hashmap, unsigned long key);
 
 struct strmap *strmap_create (void);
-void strmap_free (struct strmap *strmap, hashmap_free_func_t free_func);
+void strmap_free (struct strmap *strmap, hashmap_free_t free_func);
 int strmap_insert (struct strmap *strmap, const char *key, void *value);
 void *strmap_lookup (struct strmap *strmap, const char *key);
+void strmap_iterate (struct strmap *strmap, strmap_iter_t func, void *data);
 int strmap_remove (struct strmap *strmap, const char *key);
 
 __END_DECLS

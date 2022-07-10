@@ -189,7 +189,13 @@ ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
 int
 ext2_sync (struct vnode *vp)
 {
-  return ext2_file_flush (vp);
+  struct ext2_fs *fs = vp->mount->data;
+  struct ext2_file *file = vp->data;
+  int ret = ext2_file_flush (vp);
+  if (ret)
+    return ret;
+  return ext2_update_inode (fs, file->ino, &file->inode,
+			    sizeof (struct ext2_inode));
 }
 
 int
@@ -285,10 +291,7 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
     {
       struct ext2_file *dirfile = dir->data;
       dir->nlink++;
-      ret = ext2_update_inode (fs, dir->ino, &dirfile->inode,
-			       sizeof (struct ext2_inode));
-      if (ret)
-	goto end;
+      dirfile->inode.i_links_count++;
     }
   drop_ref = 0;
   REF_OBJECT (temp);
@@ -343,8 +346,21 @@ ext2_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
 int
 ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
 {
-  return ext2_add_link (dir->mount->data, dir, name, vp->ino,
-			ext2_dir_type (vp->mode));
+  struct ext2_file *file = vp->data;
+  struct vnode *scratch;
+  int ret = ext2_lookup (&scratch, dir, name);
+  if (!ret)
+    {
+      UNREF_OBJECT (scratch);
+      RETV_ERROR (EEXIST, -1);
+    }
+  ret = ext2_add_link (dir->mount->data, dir, name, vp->ino,
+		       ext2_dir_type (vp->mode));
+  if (ret)
+    return ret;
+  vp->nlink++;
+  file->inode.i_links_count++;
+  return 0;
 }
 
 int
@@ -366,9 +382,17 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
   int fast_link;
   int inline_link;
   int drop_ref = 0;
+  struct vnode *scratch;
   int ret = ext2_read_bitmaps (fs);
   if (ret)
     return ret;
+
+  ret = ext2_lookup (&scratch, dir, name);
+  if (!ret)
+    {
+      UNREF_OBJECT (scratch);
+      RETV_ERROR (EEXIST, -1);
+    }
 
   target_len = strnlen (target, blksize + 1);
   if (target_len >= blksize)

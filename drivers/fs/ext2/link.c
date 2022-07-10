@@ -163,6 +163,7 @@ ext2_add_link (struct ext2_fs *fs, struct vnode *dir, const char *name,
   struct ext2_file *file = dir->data;
   struct ext2_inode *inode = &file->inode;
   struct ext2_link_ctx l;
+  struct vnode *vp;
   int ret;
   if (fs->mflags & MS_RDONLY)
     RETV_ERROR (EROFS, -1);

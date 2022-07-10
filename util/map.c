@@ -53,7 +53,7 @@ hashmap_create (void)
  */
 
 void
-hashmap_free (struct hashmap *hashmap, hashmap_free_func_t free_func)
+hashmap_free (struct hashmap *hashmap, hashmap_free_t free_func)
 {
   size_t i;
   for (i = 0; i < hashmap->bucket_count; i++)
@@ -194,6 +194,26 @@ hashmap_lookup (struct hashmap *hashmap, unsigned long key)
 }
 
 /*!
+ * Iterates through each key-value pair in a hashmap.
+ *
+ * @param hashmap the hashmap
+ * @param func the callback function to execute for each pair
+ * @param data data to pass to the callback function
+ */
+
+void
+hashmap_iterate (struct hashmap *hashmap, hashmap_iter_t func, void *data)
+{
+  size_t i;
+  for (i = 0; i < hashmap->bucket_count; i++)
+    {
+      struct hashmap_entry *entry;
+      for (entry = hashmap->buckets[i]; entry != NULL; entry = entry->next)
+	func (entry->key, entry->value, data);
+    }
+}
+
+/*!
  * Removes an entry matching a key from a hashmap.
  *
  * @param hashmap the hashmap
@@ -259,7 +279,7 @@ strmap_create (void)
  */
 
 void
-strmap_free (struct strmap *strmap, hashmap_free_func_t free_func)
+strmap_free (struct strmap *strmap, hashmap_free_t free_func)
 {
   size_t i;
   for (i = 0; i < strmap->bucket_count; i++)
@@ -394,6 +414,26 @@ strmap_lookup (struct strmap *strmap, const char *key)
 	return bucket->value;
     }
   return NULL;
+}
+
+/*!
+ * Iterates through each key-value pair in a string hashmap.
+ *
+ * @param hashmap the hashmap
+ * @param func the callback function to execute for each pair
+ * @param data data to pass to the callback function
+ */
+
+void
+strmap_iterate (struct strmap *strmap, strmap_iter_t func, void *data)
+{
+  size_t i;
+  for (i = 0; i < strmap->bucket_count; i++)
+    {
+      struct strmap_entry *entry;
+      for (entry = strmap->buckets[i]; entry != NULL; entry = entry->next)
+	func (entry->key, entry->value, data);
+    }
 }
 
 /*!

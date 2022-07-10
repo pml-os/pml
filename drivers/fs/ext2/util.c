@@ -1147,7 +1147,7 @@ ext2_inode_alloc_stats (struct ext2_fs *fs, ino_t ino, int inuse, int isdir)
 				 ext2_bg_free_inodes_count (fs, group) - inuse);
   if (isdir)
     ext2_bg_used_dirs_count_set (fs, group,
-				 ext2_bg_used_dirs_count (fs, group) - inuse);
+				 ext2_bg_used_dirs_count (fs, group) + inuse);
   ext2_bg_clear_flags (fs, group, EXT2_BG_INODE_UNINIT);
   if (ext2_has_group_desc_checksum (&fs->super))
     {

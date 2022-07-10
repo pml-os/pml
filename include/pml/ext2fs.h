@@ -192,8 +192,8 @@ enum ext2_os_type
 #define EXT3_EXTENT_MAGIC               0xf30a
 #define EXT2_DIR_NAME_CHECKSUM          0xde00
 
-#define EXT2_FILE_BUFFER_VALID          0x2000
-#define EXT2_FILE_BUFFER_DIRTY          0x4000
+#define EXT2_FILE_BUFFER_VALID          (1 << 13)
+#define EXT2_FILE_BUFFER_DIRTY          (1 << 14)
 
 #define EXT2_OLD_REV                    0  /*!< Old revision of ext2 */
 #define EXT2_DYNAMIC_REV                1  /*!< Ext2 with dynamic features */
