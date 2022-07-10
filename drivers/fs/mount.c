@@ -282,6 +282,20 @@ vfs_unmount (struct mount *mp, unsigned int flags)
 }
 
 /*!
+ * Flushes a filesystem by writing filesystem metadata to disk. Individual
+ * vnodes in the filesystem are not synchronized.
+ *
+ * @param mp the mount structure
+ */
+
+void
+vfs_flush (struct mount *mp)
+{
+  if (mp->ops->flush)
+    mp->ops->flush (mp);
+}
+
+/*!
  * Guesses the type of a filesystem.
  */
 

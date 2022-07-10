@@ -350,6 +350,24 @@ sys_truncate (const char *path, off_t len)
   return ret;
 }
 
+void
+sys_sync (void)
+{
+  /* TODO Sync all vnodes */
+  size_t i;
+  for (i = 0; i < mount_count; i++)
+    vfs_flush (mount_table[i]);
+}
+
+int
+sys_fsync (int fd)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_sync (file->vnode);
+}
+
 int
 sys_dup (int fd)
 {

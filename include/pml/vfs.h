@@ -96,6 +96,14 @@ struct mount_ops
    * @return nonzero if the vnode contains a valid filesystem
    */
   int (*check) (struct vnode *vp);
+
+  /*!
+   * Flushes a filesystem by writing filesystem metadata to disk. Individual
+   * vnodes in the filesystem are not synchronized.
+   *
+   * @param mp the mount structure
+   */
+  void (*flush) (struct mount *mp);
 };
 
 /*!
@@ -179,8 +187,9 @@ struct vnode_ops
    * any unwritten buffers to disk.
    *
    * @param vp the vnode to synchronize
+   * @return zero on success
    */
-  void (*sync) (struct vnode *vp);
+  int (*sync) (struct vnode *vp);
 
   /*!
    * Creates a new file under a directory and allocates a vnode for it.
@@ -367,13 +376,14 @@ int vfs_can_seek (struct vnode *vp);
 
 int vfs_mount (struct mount *mp, unsigned int flags);
 int vfs_unmount (struct mount *mp, unsigned int flags);
+void vfs_flush (struct mount *mp);
 
 int vfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
 int vfs_getattr (struct stat *stat, struct vnode *vp);
 ssize_t vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t vfs_write (struct vnode *vp, const void *buffer, size_t len,
 		   off_t offset);
-void vfs_sync (struct vnode *vp);
+int vfs_sync (struct vnode *vp);
 int vfs_create (struct vnode **result, struct vnode *dir, const char *name,
 		mode_t mode, dev_t rdev);
 int vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,

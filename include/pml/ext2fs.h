@@ -1235,7 +1235,7 @@ void ext2_block_alloc_stats (struct ext2_fs *fs, block_t block, int inuse);
 int ext2_write_backup_superblock (struct ext2_fs *fs, unsigned int group,
 				  block_t group_block, struct ext2_super *s);
 int ext2_write_primary_superblock (struct ext2_fs *fs, struct ext2_super *s);
-int ext2_flush (struct ext2_fs *fs, int flags);
+int ext2_flush_fs (struct ext2_fs *fs, int flags);
 int ext2_open_file (struct ext2_fs *fs, ino_t inode, struct ext2_file *file);
 int ext2_file_block_offset_too_big (struct ext2_fs *fs,
 				    struct ext2_inode *inode, block_t offset);
@@ -1395,12 +1395,13 @@ void ext3_extent_free (struct ext3_extent_handle *handle);
 int ext2_mount (struct mount *mp, unsigned int flags);
 int ext2_unmount (struct mount *mp, unsigned int flags);
 int ext2_check (struct vnode *vp);
+void ext2_flush (struct mount *mp);
 
 int ext2_lookup (struct vnode **result, struct vnode *dir, const char *name);
 ssize_t ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t ext2_write (struct vnode *vp, const void *buffer, size_t len,
 		    off_t offset);
-void ext2_sync (struct vnode *vp);
+int ext2_sync (struct vnode *vp);
 int ext2_create (struct vnode **result, struct vnode *dir, const char *name,
 		 mode_t mode, dev_t rdev);
 int ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,

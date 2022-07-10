@@ -1192,7 +1192,7 @@ ext2_write_primary_superblock (struct ext2_fs *fs, struct ext2_super *s)
 }
 
 int
-ext2_flush (struct ext2_fs *fs, int flags)
+ext2_flush_fs (struct ext2_fs *fs, int flags)
 {
   unsigned int state;
   unsigned int i;
@@ -2138,7 +2138,7 @@ ext2_new_file (struct vnode *dir, const char *name, mode_t mode,
       return ret;
     }
   vp->ops = &ext2_vnode_ops;
-  vp->data = malloc (sizeof (struct ext2_file));
+  vp->data = calloc (1, sizeof (struct ext2_file));
   REF_ASSIGN (vp->mount, dir->mount);
   if (UNLIKELY (!vp->data))
     {
@@ -2153,6 +2153,7 @@ ext2_new_file (struct vnode *dir, const char *name, mode_t mode,
     }
   file = vp->data;
   inode = &file->inode;
+  memset (inode, 0, sizeof (struct ext2_inode));
   inode->i_mode = mode;
   inode->i_uid = THIS_PROCESS->euid;
   inode->i_gid = THIS_PROCESS->egid;

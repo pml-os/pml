@@ -132,11 +132,15 @@ vfs_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
  * @param vp the vnode to synchronize
  */
 
-void
+int
 vfs_sync (struct vnode *vp)
 {
-  if (vfs_can_write (vp, 0) && vp->ops->sync)
-    vp->ops->sync (vp);
+  if (!vfs_can_write (vp, 0))
+    return -1;
+  if (vp->ops->sync)
+    return vp->ops->sync (vp);
+  else
+    RETV_ERROR (ENOTSUP, -1);
 }
 
 /*!

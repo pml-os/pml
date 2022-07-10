@@ -186,10 +186,10 @@ ext2_write (struct vnode *vp, const void *buffer, size_t len, off_t offset)
   return ret ?: (ssize_t) count;
 }
 
-void
+int
 ext2_sync (struct vnode *vp)
 {
-  ext2_file_flush (vp);
+  return ext2_file_flush (vp);
 }
 
 int
@@ -343,8 +343,8 @@ ext2_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
 int
 ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
 {
-  return ext2_add_link (dir->mount->data, dir, name, dir->ino,
-			ext2_dir_type (dir->mode));
+  return ext2_add_link (dir->mount->data, dir, name, vp->ino,
+			ext2_dir_type (vp->mode));
 }
 
 int
@@ -370,14 +370,14 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
   if (ret)
     return ret;
 
-  target_len = strnlen (name, blksize + 1);
+  target_len = strnlen (target, blksize + 1);
   if (target_len >= blksize)
     RETV_ERROR (ENAMETOOLONG, -1);
 
   blockbuf = calloc (blksize, 1);
   if (UNLIKELY (!blockbuf))
     RETV_ERROR (ENOMEM, -1);
-  strncpy (blockbuf, name, blksize);
+  strncpy (blockbuf, target, blksize);
 
   fast_link = target_len < 60;
   if (!fast_link)
@@ -402,7 +402,7 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
   inline_link = !fast_link
     && (fs->super.s_feature_incompat & EXT4_FT_INCOMPAT_INLINE_DATA);
   if (fast_link)
-    strcpy ((char *) &inode.i_block, name);
+    strcpy ((char *) &inode.i_block, target);
   else if (inline_link)
     RETV_ERROR (ENOTSUP, -1);
   else
@@ -432,7 +432,7 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
   ext2_inode_alloc_stats (fs, ino, 1, 0);
   drop_ref = 1;
 
-  ret = ext2_add_link (fs, dir, target, ino, EXT2_FILE_LNK);
+  ret = ext2_add_link (fs, dir, name, ino, EXT2_FILE_LNK);
   if (ret)
     goto end;
   drop_ref = 0;

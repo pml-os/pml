@@ -25,7 +25,8 @@
 const struct mount_ops ext2_mount_ops = {
   .mount = ext2_mount,
   .unmount = ext2_unmount,
-  .check = ext2_check
+  .check = ext2_check,
+  .flush = ext2_flush
 };
 
 /*!
@@ -228,17 +229,6 @@ ext2_openfs (struct block_device *device, struct ext2_fs *fs)
   return 0;
 }
 
-/*!
- * Deallocates the private ext2 filesystem data when closing a filesystem.
- *
- * @param fs the filesystem instance
- */
-
-void
-ext2_closefs (struct ext2_fs *fs)
-{
-}
-
 int
 ext2_mount (struct mount *mp, unsigned int flags)
 {
@@ -272,7 +262,7 @@ ext2_mount (struct mount *mp, unsigned int flags)
       fs->super.s_mtime = time (NULL);
       fs->super.s_state &= ~EXT2_STATE_VALID;
       fs->flags |= EXT2_FLAG_CHANGED | EXT2_FLAG_DIRTY;
-      ext2_flush (fs, 0);
+      ext2_flush_fs (fs, 0);
     }
   mp->data = fs;
 
@@ -300,7 +290,7 @@ int
 ext2_unmount (struct mount *mp, unsigned int flags)
 {
   struct ext2_fs *fs = mp->data;
-  return ext2_flush (fs, FLUSH_VALID);
+  return ext2_flush_fs (fs, FLUSH_VALID);
 }
 
 int
@@ -311,4 +301,11 @@ ext2_check (struct vnode *vp)
 		offsetof (struct ext2_super, s_magic)) != 2)
     return 0;
   return magic == EXT2_MAGIC;
+}
+
+void
+ext2_flush (struct mount *mp)
+{
+  struct ext2_fs *fs = mp->data;
+  ext2_flush_fs (fs, 0);
 }

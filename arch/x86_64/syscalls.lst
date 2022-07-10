@@ -142,6 +142,12 @@ params = const char *path, char *buffer, size_t len
 [truncate]
 params = const char *path, off_t len
 
+[sync]
+return_type = void
+
+[fsync]
+params = int fd
+
 [dup]
 params = int fd
 
