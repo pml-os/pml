@@ -1082,7 +1082,7 @@ ext2_free_blocks_count (const struct ext2_super *s)
 static inline void
 ext2_free_blocks_count_set (struct ext2_super *s, blkcnt_t blocks)
 {
-  s->s_r_blocks_count = blocks;
+  s->s_free_blocks_count = blocks;
   if (s->s_feature_incompat & EXT4_FT_INCOMPAT_64BIT)
     s->s_free_blocks_hi = blocks >> 32;
 }
