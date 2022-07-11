@@ -1564,6 +1564,29 @@ ext2_update_vfs_inode (struct vnode *vp)
     vp->size |= (size_t) file->inode.i_size_high << 32;
 }
 
+struct vnode *
+ext2_lookup_or_read (struct vnode *ref, ino_t ino)
+{
+  struct vnode *vp = vnode_lookup_cache (ref->mount, ino);
+  int ret;
+  if (vp)
+    return vp;
+  vp = vnode_alloc ();
+  if (UNLIKELY (!vp))
+    RETV_ERROR (ENOMEM, NULL);
+  vp->ops = ref->ops;
+  vp->ino = ino;
+  REF_ASSIGN (vp->mount, ref->mount);
+  ret = ext2_fill (vp);
+  if (ret)
+    {
+      UNREF_OBJECT (vp);
+      return NULL;
+    }
+  vnode_place_cache (vp);
+  return vp;
+}
+
 int
 ext2_inode_set_size (struct ext2_fs *fs, struct ext2_inode *inode, off_t size)
 {

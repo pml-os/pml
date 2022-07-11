@@ -316,8 +316,9 @@ ext2_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
 	     const char *newname)
 {
   struct ext2_fs *fs = olddir->mount->data;
+  struct ext2_file *file;
+  struct vnode *vp;
   ino_t ino;
-  struct ext2_inode inode;
   int ret =
     ext2_lookup_inode (fs, olddir, oldname, strlen (oldname), NULL, &ino);
   if (ret)
@@ -328,11 +329,13 @@ ext2_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
   if (ret == -1 && errno != ENOENT)
     return ret;
 
-  /* Determine mode and replace link */
-  ret = ext2_read_inode (fs, ino, &inode);
-  if (ret)
-    return ret;
-  ret = ext2_add_link (fs, newdir, newname, ino, inode.i_mode);
+  vp = ext2_lookup_or_read (olddir, ino);
+  if (!vp)
+    return -1;
+  file = vp->data;
+
+  /* Create new link */
+  ret = ext2_link (newdir, vp, newname);
   if (ret)
     return ret;
 

@@ -1244,6 +1244,7 @@ int ext2_read_inode (struct ext2_fs *fs, ino_t ino, struct ext2_inode *inode);
 int ext2_update_inode (struct ext2_fs *fs, ino_t ino, struct ext2_inode *inode,
 		       size_t bufsize);
 void ext2_update_vfs_inode (struct vnode *vp);
+struct vnode *ext2_lookup_or_read (struct vnode *ref, ino_t ino);
 int ext2_inode_set_size (struct ext2_fs *fs, struct ext2_inode *inode,
 			 off_t size);
 block_t ext2_find_inode_goal (struct ext2_fs *fs, ino_t ino,

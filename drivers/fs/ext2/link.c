@@ -116,26 +116,12 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
   if (!dirent->d_inode)
     return 0;
 
-  /* Remove link from inode link count and unallocate if no remaining links */
-  vp = vnode_lookup_cache (dir->mount, dirent->d_inode);
+  vp = ext2_lookup_or_read (dir, dirent->d_inode);
   if (!vp)
-    {
-      vp = vnode_alloc ();
-      if (UNLIKELY (!vp))
-	RETV_ERROR (ENOMEM, -1);
-      vp->ops = &ext2_vnode_ops;
-      vp->ino = dirent->d_inode;
-      REF_ASSIGN (vp->mount, dir->mount);
-      ret = ext2_fill (vp);
-      if (ret)
-	{
-	  UNREF_OBJECT (vp);
-	  return ret;
-	}
-      vnode_place_cache (vp);
-    }
+    return -1;
   file = vp->data;
 
+  /* Remove link from inode link count and unallocate if no remaining links */
   if (S_ISDIR (file->inode.i_mode))
     {
       /* Make sure the directory is empty */
