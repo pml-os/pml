@@ -1454,7 +1454,7 @@ ext2_update_inode (struct ext2_fs *fs, ino_t ino, struct ext2_inode *inode,
   if (fs->mflags & MS_RDONLY)
     RETV_ERROR (EROFS, -1);
 
-  winode = malloc (len);
+  winode = calloc (len, 1);
   if (UNLIKELY (!winode))
     RETV_ERROR (ENOMEM, -1);
   if (bufsize < (size_t) len)

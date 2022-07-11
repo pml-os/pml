@@ -226,6 +226,13 @@ ext2_openfs (struct block_device *device, struct ext2_fs *fs)
 	  return ret;
 	}
     }
+
+  ret = ext2_read_bitmaps (fs);
+  if (ret)
+    {
+      free (fs->group_desc);
+      return ret;
+    }
   return 0;
 }
 

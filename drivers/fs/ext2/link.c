@@ -101,8 +101,9 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
 {
   struct ext2_link_ctx *l = private;
   struct ext2_fs *fs = l->fs;
+  struct ext2_file *file;
   struct ext2_dirent *prev = l->prev;
-  struct ext2_inode inode;
+  struct vnode *vp;
   int ret;
   l->prev = dirent;
   if (l->name)
@@ -116,10 +117,26 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
     return 0;
 
   /* Remove link from inode link count and unallocate if no remaining links */
-  ret = ext2_read_inode (fs, dirent->d_inode, &inode);
-  if (ret)
-    goto end;
-  if (S_ISDIR (inode.i_mode))
+  vp = vnode_lookup_cache (dir->mount, dirent->d_inode);
+  if (!vp)
+    {
+      vp = vnode_alloc ();
+      if (UNLIKELY (!vp))
+	RETV_ERROR (ENOMEM, -1);
+      vp->ops = &ext2_vnode_ops;
+      vp->ino = dirent->d_inode;
+      REF_ASSIGN (vp->mount, dir->mount);
+      ret = ext2_fill (vp);
+      if (ret)
+	{
+	  UNREF_OBJECT (vp);
+	  return ret;
+	}
+      vnode_place_cache (vp);
+    }
+  file = vp->data;
+
+  if (S_ISDIR (file->inode.i_mode))
     {
       /* Make sure the directory is empty */
       int empty = 1;
@@ -132,13 +149,17 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
 	  return DIRENT_ABORT;
 	}
     }
-  if (--inode.i_links_count == 0)
+  vp->nlink--;
+  file->inode.i_links_count--;
+  if (!vp->nlink)
     {
-      inode.i_dtime = time (NULL);
-      ext2_inode_alloc_stats (fs, dirent->d_inode, -1, S_ISDIR (inode.i_mode));
-      ext2_dealloc_blocks (fs, dirent->d_inode, &inode, NULL, 0, ~0UL);
+      file->inode.i_dtime = time (NULL);
+      ext2_inode_alloc_stats (fs, dirent->d_inode, -1,
+			      S_ISDIR (file->inode.i_mode));
+      ext2_dealloc_blocks (fs, dirent->d_inode, &file->inode, NULL, 0, ~0UL);
     }
-  ext2_update_inode (fs, dirent->d_inode, &inode, sizeof (struct ext2_inode));
+  ext2_update_inode (fs, dirent->d_inode, &file->inode,
+		     sizeof (struct ext2_inode));
 
  end:
   if (offset)

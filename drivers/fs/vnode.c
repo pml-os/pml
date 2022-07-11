@@ -91,7 +91,7 @@ vnode_place_cache (struct vnode *vp)
  * @param mp the mount structure of the filesystem'
  * @param ino the inode number
  * @return the vnode structure, or NULL if the lookup failed. The returned
- * pointer should be passed to UNREF_OBJECT() when it is no longer in use.
+ * pointer should not be freed.
  */
 
 struct vnode *

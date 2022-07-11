@@ -79,7 +79,8 @@ ext2_lookup (struct vnode **result, struct vnode *dir, const char *name)
   vp->ops = &ext2_vnode_ops;
   vp->ino = ino;
   REF_ASSIGN (vp->mount, dir->mount);
-  if (ext2_fill (vp))
+  ret = ext2_fill (vp);
+  if (ret)
     {
       UNREF_OBJECT (vp);
       return ret;
@@ -218,11 +219,7 @@ ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
   ino_t scratch;
   char *block = NULL;
   int drop_ref = 0;
-  int ret = ext2_read_bitmaps (fs);
-  if (ret)
-    goto end;
-
-  ret = ext2_new_inode (fs, dir->ino, NULL, &ino);
+  int ret = ext2_new_inode (fs, dir->ino, NULL, &ino);
   if (ret)
     goto end;
 
@@ -383,11 +380,7 @@ ext2_symlink (struct vnode *dir, const char *name, const char *target)
   int inline_link;
   int drop_ref = 0;
   struct vnode *scratch;
-  int ret = ext2_read_bitmaps (fs);
-  if (ret)
-    return ret;
-
-  ret = ext2_lookup (&scratch, dir, name);
+  int ret = ext2_lookup (&scratch, dir, name);
   if (!ret)
     {
       UNREF_OBJECT (scratch);
