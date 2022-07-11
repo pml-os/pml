@@ -17,6 +17,25 @@
 #include <pml/asm.h>
 #include <pml/memory.h>
 
+		.macro chkerr
+	/* Check for an error. Since the function could return either
+	   a 32-bit or 64-bit version of -1 for an error, check both. */
+	cmp	$-1, %rax
+	je	1f
+	mov	%rax, %r10
+	shr	$32, %r10
+	test	%r10d, %r10d
+	jnz	2f
+	cmp	$-1, %eax
+	jne	2f
+
+1:
+	or	$0x0001, %r11
+	mov	%r12d, %eax
+2:
+	pop	%r12
+	.endm
+
 	.section .text
 	.global syscall
 ASM_FUNC_BEGIN (syscall):
@@ -77,22 +96,7 @@ ASM_FUNC_BEGIN (syscall):
 	mov	%rbx, %rax
 	pop	%r11
 
-	/* Check for an error. Since the function could return either
-	   a 32-bit or 64-bit version of -1 for an error, check both. */
-	cmp	$-1, %rax
-	je	1f
-	mov	%rax, %r10
-	shr	$32, %r10
-	test	%r10d, %r10d
-	jnz	2f
-	cmp	$-1, %eax
-	jne	2f
-
-1:
-	or	$0x0001, %r11
-	mov	%r12d, %eax
-2:
-	pop	%r12
+	chkerr
 	pop	%r10
 	pop	%r9
 	pop	%r8
@@ -125,22 +129,7 @@ ASM_FUNC_BEGIN (syscall):
 	mov	%rbx, %rax
 	pop	%r11
 
-	/* Check for an error. Since the function could return either
-	   a 32-bit or 64-bit version of -1 for an error, check both. */
-	cmp	$-1, %rax
-	je	3f
-	mov	%rax, %r10
-	shr	$32, %r10
-	test	%r10d, %r10d
-	jnz	4f
-	cmp	$-1, %eax
-	jne	4f
-
-3:
-	or	$0x0001, %r11
-	mov	%r12d, %eax
-4:
-	pop	%r12
+	chkerr
 	pop	%r10
 	pop	%r9
 	pop	%r8

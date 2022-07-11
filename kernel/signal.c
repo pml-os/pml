@@ -370,21 +370,23 @@ sys_kill (pid_t pid, int sig)
   if (sig <= 0 || sig > NSIG)
     RETV_ERROR (EINVAL, -1);
   if (pid == -1)
-    RETV_ERROR (ENOSYS, -1); /* TODO Send signal to all non-system processes */
-  else if (pid <= 0)
     {
-      /* Send signal to all processes with the same process group number */
+      /* Send signal to all non-system processes */
       size_t i;
       for (i = 1; i < process_queue.len; i++)
 	{
-	  if (process_queue.queue[i]->pgid == -pid)
+	  if (process_queue.queue[i]->euid
+	      && process_queue.queue[i] != THIS_PROCESS)
 	    {
 	      int ret = sys_kill (process_queue.queue[i]->pid, sig);
-	      if (ret == -1)
+	      if (ret)
 		return ret;
 	    }
 	}
+      return 0;
     }
+  else if (pid <= 0)
+    return sys_killpg (-pid, sig);
 
   process = lookup_pid (pid);
   if (!process)
@@ -398,5 +400,21 @@ sys_kill (pid_t pid, int sig)
   info.si_pid = THIS_PROCESS->pid;
   info.si_uid = THIS_PROCESS->uid;
   send_signal (process, sig, &info);
+  return 0;
+}
+
+int
+sys_killpg (pid_t pgrp, int sig)
+{
+  size_t i;
+  for (i = 1; i < process_queue.len; i++)
+    {
+      if (process_queue.queue[i]->pgid == pgrp)
+	{
+	  int ret = sys_kill (process_queue.queue[i]->pid, sig);
+	  if (ret)
+	    return ret;
+	}
+    }
   return 0;
 }

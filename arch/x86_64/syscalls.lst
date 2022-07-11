@@ -181,4 +181,7 @@ params = int how, const sigset_t *set, sigset_t *old_set
 [kill]
 params = pid_t pid, int sig
 
+[killpg]
+params = pid_t pgrp, int sig
+
 # End of system calls list
