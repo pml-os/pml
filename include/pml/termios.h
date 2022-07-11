@@ -169,6 +169,19 @@
 #define PENDIN                  (1 << 14)   /*!< Reprint queue on next read */
 #define IEXTEN                  (1 << 15)   /*!< Enable input processing */
 
+/* Actions for TCXONC */
+
+#define TCOOFF                  0
+#define TCOON                   1
+#define TCIOFF                  2
+#define TCION                   3
+
+/* Actions for TCFLSH */
+
+#define TCIFLUSH                0
+#define TCOFLUSH                1
+#define TCIOFLUSH               2
+
 /*! A type suitable for representing special characters */
 typedef unsigned char cc_t;
 /*! Represents a baud rate */

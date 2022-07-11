@@ -367,11 +367,11 @@ ext3_extent_get (struct ext3_extent_handle *handle, int flags,
     case EXT2_EXTENT_ROOT:
       handle->level = 0;
       path = handle->path + handle->level;
-      /* fallthrough */
+      __fallthrough;
     case EXT2_EXTENT_FIRST_SIB:
       path->left = path->entries;
       path->curr = NULL;
-      /* fallthrough */
+      __fallthrough;
     case EXT2_EXTENT_NEXT_SIB:
       if (path->left <= 0)
 	RETV_ERROR (ESRCH, -1);

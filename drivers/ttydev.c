@@ -16,12 +16,17 @@
 
 /*! @file */
 
+#include <pml/devfs.h>
 #include <pml/device.h>
 #include <pml/pit.h>
 #include <pml/tty.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+struct tty kernel_tty;
+struct tty *current_tty = &kernel_tty;
+struct hashmap *tty_hashmap;
 
 ssize_t
 tty_device_read (struct char_device *dev, unsigned char *c, int block)
@@ -34,8 +39,7 @@ tty_device_read (struct char_device *dev, unsigned char *c, int block)
       *c = tty->input.buffer[tty->input.start];
       if (++tty->input.start == tty->input.end)
 	{
-	  tty->input.start = 0;
-	  tty->input.end = 0;
+	  tty->input.start = tty->input.end = 0;
 	  tty->flags &= ~TTY_FLAG_FLUSH;
 	  return 2;
 	}
@@ -94,7 +98,7 @@ tty_device_write (struct char_device *dev, unsigned char c, int block)
       info.si_code = 0;
       info.si_errno = 0;
       send_signal (THIS_PROCESS, SIGTTOU, &info);
-      return -1;
+      RETV_ERROR (EINTR, -1);
     }
   tty_output_byte (tty, c, 0);
   return 1;
@@ -109,12 +113,65 @@ tty_device_init (void)
 {
   struct char_device *device =
     (struct char_device *) device_add ("console", 0, 0, DEVICE_TYPE_CHAR);
-  if (UNLIKELY (!device))
+  if (LIKELY (device))
     {
-      printf ("tty: failed to allocate /dev/console\n");
-      return;
+      device->device.data = current_tty;
+      device->read = tty_device_read;
+      device->write = tty_device_write;
     }
-  device->device.data = current_tty;
-  device->read = tty_device_read;
-  device->write = tty_device_write;
+  else
+    printf ("tty: failed to allocate /dev/console\n");
+
+  /* Initialize TTY hashmap */
+  tty_hashmap = hashmap_create ();
+  if (hashmap_insert (tty_hashmap, 0, &kernel_tty))
+    printf ("tty: failed to initialize default tty\n");
+}
+
+/*!
+ * Determines the controlling TTY of a session.
+ *
+ * @param sid the session ID
+ * @return the controlling TTY of the session, or the default TTY if the
+ * session does not have a controlling TTY
+ */
+
+struct tty *
+tty_get_from_sid (pid_t sid)
+{
+  struct tty *tty;
+  if (!tty_hashmap)
+    return &kernel_tty;
+  tty = hashmap_lookup (tty_hashmap, sid);
+  if (tty)
+    return tty;
+  else
+    return &kernel_tty;
+}
+
+/*!
+ * Obtains the TTY structure of a file descriptor representing a TTY.
+ *
+ * @param fd the file descriptor
+ * @return the TTY structure, or NULL if the file descriptor is invalid or does
+ * not represent a TTY
+ */
+
+struct tty *
+tty_from_fd (int fd)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return NULL;
+  /* XXX Bad hack to get device from vnode */
+  if (file->vnode->mount == devfs)
+    {
+      struct device *device =
+	hashmap_lookup (device_num_map, file->vnode->rdev);
+      if (UNLIKELY (!device))
+	return NULL;
+      if (device->type == DEVICE_TYPE_CHAR)
+	return device->data;
+    }
+  return NULL;
 }

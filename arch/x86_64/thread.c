@@ -19,6 +19,7 @@
 #include <pml/alloc.h>
 #include <pml/memory.h>
 #include <pml/panic.h>
+#include <pml/tty.h>
 #include <errno.h>
 #include <string.h>
 
@@ -121,6 +122,7 @@ thread_switch (void **stack, uintptr_t *pml4t_phys)
 	}
     }
   while (THIS_THREAD->state != THREAD_STATE_RUNNING);
+  current_tty = tty_get_from_sid (THIS_PROCESS->sid);
   thread_get_args (THIS_THREAD, pml4t_phys, stack);
 }
 
@@ -245,8 +247,6 @@ thread_clone (struct thread *thread, int copy)
   uintptr_t *pml4t;
   uintptr_t *tlp;
   void *addr;
-  void *cptr;
-  pid_t tid;
   size_t i;
   if (UNLIKELY (!t))
     return NULL;

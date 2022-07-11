@@ -23,6 +23,7 @@
  */
 
 #include <pml/cdefs.h>
+#include <pml/map.h>
 #include <pml/syslimits.h>
 #include <pml/termios.h>
 #include <pml/types.h>
@@ -86,8 +87,11 @@ __BEGIN_DECLS
 
 extern struct tty kernel_tty;
 extern struct tty *current_tty;
+extern struct hashmap *tty_hashmap;
 
 void tty_device_init (void);
+struct tty *tty_get_from_sid (pid_t sid);
+struct tty *tty_from_fd (int fd);
 int tty_putchar (struct tty *tty, int c);
 void tty_wait_input_ready (struct tty *tty);
 void tty_flush_input_line (struct tty *tty, unsigned char delim);

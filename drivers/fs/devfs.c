@@ -284,7 +284,7 @@ devfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
 ssize_t
 devfs_readlink (struct vnode *vp, char *buffer, size_t len)
 {
-  RETV_ERROR (ENOSYS, -1);
+  RETV_ERROR (EIO, -1);
 }
 
 int

@@ -186,7 +186,6 @@ ata_access (enum ata_op op, enum ata_channel channel, enum ata_drive drive,
   if (op == ATA_OP_WRITE)
     memcpy (ata_devices[device].buffer, buffer, sectors * ATA_SECTOR_SIZE);
 
- retry:
   if (dma)
     {
       /* Setup PRDT for DMA */

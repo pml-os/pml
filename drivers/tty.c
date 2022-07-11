@@ -35,9 +35,6 @@
 
 #define CHAR_MATCH(c, tp, x) ((c) == (tp)->c_cc[(x)] && (tp)->c_cc[(x)] != 0xff)
 
-struct tty kernel_tty;
-struct tty *current_tty = &kernel_tty;
-
 /*!
  * Writes a character to a terminal.
  *

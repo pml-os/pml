@@ -244,7 +244,6 @@ sys_execve (const char *path, char *const *argv, char *const *envp)
   char **envm = NULL;
   size_t nenv = 0;
   char **arrbuf;
-  char **ptrs;
   size_t i;
   int ret;
   if (!vp)

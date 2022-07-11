@@ -145,7 +145,7 @@ device_ata_init (void)
 	  if (ata_devices[i].size > 0
 	      && !ata_read_sectors (ata_devices[i].channel,
 				    ata_devices[i].drive, 1, 0, &mbr_buffer)
-	      && mbr_buffer.magic == 0xaa55)
+	      && mbr_buffer.magic == MBR_MAGIC)
 	    {
 	      size_t p;
 	      for (p = 0; p < 4; p++)

@@ -54,8 +54,6 @@ siphash (const void *buffer, size_t len, uint128_t key)
   const unsigned char *data = buffer;
   int rem = len & 7;
   const unsigned char *end = buffer + len - rem;
-  hash_t hash;
-  unsigned char *ptr = (unsigned char *) &hash;
   uint64_t v0 = 0x736f6d6570736575ULL;
   uint64_t v1 = 0x646f72616e646f6dULL;
   uint64_t v2 = 0x6c7967656e657261ULL;

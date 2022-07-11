@@ -104,7 +104,6 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
   struct ext2_file *file;
   struct ext2_dirent *prev = l->prev;
   struct vnode *vp;
-  int ret;
   l->prev = dirent;
   if (l->name)
     {
@@ -147,7 +146,6 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
   ext2_update_inode (fs, dirent->d_inode, &file->inode,
 		     sizeof (struct ext2_inode));
 
- end:
   if (offset)
     prev->d_rec_len += dirent->d_rec_len;
   else
@@ -170,7 +168,6 @@ ext2_add_link (struct ext2_fs *fs, struct vnode *dir, const char *name,
   struct ext2_file *file = dir->data;
   struct ext2_inode *inode = &file->inode;
   struct ext2_link_ctx l;
-  struct vnode *vp;
   int ret;
   if (fs->mflags & MS_RDONLY)
     RETV_ERROR (EROFS, -1);

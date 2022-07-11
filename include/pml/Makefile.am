@@ -37,6 +37,7 @@ pmlinclude_HEADERS =	\
 	fcntl.h		\
 	hash.h		\
 	hpet.h		\
+	ioctl.h		\
 	kbd.h		\
 	lock.h		\
 	map.h		\

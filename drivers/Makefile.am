@@ -8,6 +8,7 @@ libdrivers_a_SOURCES =	\
 	acpi.c		\
 	ata.c		\
 	hpet.c		\
+	ioctl.c		\
 	pci.c		\
 	pcspk.c		\
 	pit.c		\

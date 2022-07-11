@@ -61,6 +61,8 @@
 
 #define minor(dev) ((dev) & 0xffff)
 
+#define MBR_MAGIC               0xaa55  /*!< Magic number of MBR */
+
 /*! Types of special device files */
 
 enum device_type

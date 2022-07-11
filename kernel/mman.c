@@ -428,10 +428,6 @@ sys_munmap (void *addr, size_t len)
 int
 sys_msync (void *addr, size_t len, int flags)
 {
-  struct mmap_table *mmaps = &THIS_PROCESS->mmaps;
-  struct mmap *region;
-  uintptr_t base = (uintptr_t) addr;
-
   if (((uintptr_t) addr & (PAGE_SIZE - 1))
       || ((flags & MS_ASYNC) && (flags & MS_SYNC))
       || (flags & (MS_ASYNC | MS_SYNC | MS_INVALIDATE)) == 0)
