@@ -77,7 +77,6 @@ init_vfs (void)
 
   /* Set working directory to root directory */
   REF_ASSIGN (THIS_PROCESS->cwd, root_vnode);
-  THIS_PROCESS->cwd_path = "/";
   default_mount.vcache = hashmap_create ();
   if (UNLIKELY (!default_mount.vcache))
     panic ("Failed to allocate vnode cache");

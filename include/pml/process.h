@@ -156,7 +156,6 @@ struct process
   gid_t sgid;                   /*!< Saved group ID */
   mode_t umask;                 /*!< File creation mode mask */
   struct vnode *cwd;            /*!< Current working directory */
-  char *cwd_path;               /*!< Absolute path to CWD */
   struct thread_queue threads;  /*!< Process thread queue */
   int priority;                 /*!< Process priority */
   struct fd_table fds;          /*!< File descriptor table */

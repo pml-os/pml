@@ -32,11 +32,14 @@ static int
 dupfd (int fd, int fd2)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;
+  struct fd *file = file_fd (fd);
   size_t i;
+  if (!file)
+    return -1;
   for (i = fd2; i < fds->size; i++)
     {
       if (!fds->table[i])
-	return i;
+	goto found;
     }
   if (fds->size < fds->max_size)
     {
@@ -52,10 +55,15 @@ dupfd (int fd, int fd2)
 	      sizeof (struct fd *) * (new_size - fds->size));
       fds->table = table;
       fds->size = new_size;
-      return fd2;
+      i = fd2;
     }
   else
     RETV_ERROR (EMFILE, -1);
+
+ found:
+  fds->table[i] = file;
+  file->count++;
+  return 0;
 }
 
 /*!

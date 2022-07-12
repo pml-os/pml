@@ -158,7 +158,6 @@ process_fork (struct thread **t, int copy)
   process->egid = THIS_PROCESS->egid;
   process->sgid = THIS_PROCESS->sgid;
   REF_ASSIGN (process->cwd, THIS_PROCESS->cwd);
-  process->cwd_path = strdup (THIS_PROCESS->cwd_path);
   *t = thread;
 
   /* Copy program break data */
@@ -196,7 +195,6 @@ process_fork (struct thread **t, int copy)
  err3:
   free (process->mmaps.table);
  err2:
-  free (process->cwd_path);
   UNREF_OBJECT (process->cwd);
  err1:
   thread_free (thread);
