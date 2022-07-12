@@ -20,6 +20,7 @@
 #include <pml/devfs.h>
 #include <pml/device.h>
 #include <pml/memory.h>
+#include <pml/tty.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -82,6 +83,15 @@ devfs_lookup (struct vnode **result, struct vnode *dir, const char *name)
       struct device *device = strmap_lookup (device_name_map, name);
       if (!device)
 	RETV_ERROR (ENOENT, -1);
+      if (device->type == DEVICE_TYPE_CHAR)
+	{
+	  struct tty *tty = device->data;
+	  if (tty->flags & TTY_FLAG_EXCL)
+	    {
+	      UNREF_OBJECT (vp);
+	      RETV_ERROR (EPERM, -1);
+	    }
+	}
       vp->ino = makedev (device->major, device->minor);
     }
   REF_ASSIGN (vp->mount, devfs);

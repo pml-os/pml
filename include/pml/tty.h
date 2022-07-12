@@ -33,6 +33,7 @@
 
 #define TTY_FLAG_LITERAL_INPUT  (1 << 0)    /*!< Next char is literal */
 #define TTY_FLAG_FLUSH          (1 << 1)    /*!< Flush input buffer */
+#define TTY_FLAG_EXCL           (1 << 2)    /*!< Exclusive mode */
 
 struct tty;
 
@@ -78,6 +79,7 @@ struct tty
   void *screen;                     /*!< Buffer containing contents of screen */
   int flags;                        /*!< Terminal flags */
   pid_t pgid;                       /*!< Process group ID of foreground */
+  pid_t sid;     /*!< Session ID of TTY, or -1 if not controlling any session */
   struct tty_input input;           /*!< Terminal input buffer */
   const struct tty_output *output;  /*!< Output function vector */
   struct termios termios;           /*!< Termios structure */

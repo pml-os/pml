@@ -251,6 +251,49 @@ div64_ceil (unsigned long a, unsigned long b)
   return (a - 1) / b + 1;
 }
 
+/*!
+ * Rounds a 32-bit unsigned integer to the next highest power of two. If the
+ * input is already a power of two, the function returns the input unchanged.
+ *
+ * @param x the integer
+ * @return the result
+ */
+
+static inline unsigned int
+next32_p2 (unsigned int x)
+{
+  x--;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  x++;
+  return x;
+}
+
+/*!
+ * Rounds a 64-bit unsigned integer to the next highest power of two. If the
+ * input is already a power of two, the function returns the input unchanged.
+ *
+ * @param x the integer
+ * @return the result
+ */
+
+static inline unsigned long
+next64_p2 (unsigned long x)
+{
+  x--;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  x |= x >> 32;
+  x++;
+  return x;
+}
+
 __BEGIN_DECLS
 
 extern time_t real_time;

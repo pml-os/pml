@@ -169,6 +169,12 @@
 #define PENDIN                  (1 << 14)   /*!< Reprint queue on next read */
 #define IEXTEN                  (1 << 15)   /*!< Enable input processing */
 
+/* Actions for tcsetattr() */
+
+#define TCSANOW                 0
+#define TCSADRAIN               1
+#define TCSAFLUSH               2
+
 /* Actions for TCXONC */
 
 #define TCOOFF                  0

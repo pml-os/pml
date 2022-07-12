@@ -23,42 +23,6 @@
 #include <string.h>
 
 /*!
- * Allocates a file descriptor in the current process's file descriptor table.
- * The file is not considered as allocated until a vnode is written to it.
- *
- * @return the file descriptor, or -1 on failure
- */
-
-static int
-alloc_procfd (void)
-{
-  struct fd_table *fds = &THIS_PROCESS->fds;
-  for (; fds->curr < fds->size; fds->curr++)
-    {
-      if (!fds->table[fds->curr])
-	return fds->curr++;
-    }
-  if (fds->size < fds->max_size)
-    {
-      /* Expand the file descriptor table up to the soft limit */
-      size_t new_size =
-	fds->size * 2 < fds->max_size ? fds->size * 2 : fds->max_size;
-      struct fd **table = realloc (fds->table, sizeof (struct fd *) * new_size);
-      if (UNLIKELY (!table))
-	return -1;
-      memset (table + fds->size, 0,
-	      sizeof (struct fd *) * (new_size - fds->size));
-      fds->table = table;
-      fds->size = new_size;
-      if (fds->curr >= fds->size)
-	RETV_ERROR (EMFILE, -1);
-      return fds->curr++;
-    }
-  else
-    RETV_ERROR (EMFILE, -1);
-}
-
-/*!
  * Unified function for stat(2) and lstat(2) with an additional argument
  * for whether to follow symbolic links.
  *

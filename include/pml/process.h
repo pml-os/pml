@@ -193,6 +193,7 @@ void map_pid_process (pid_t pid, struct process *process);
 void unmap_pid (pid_t pid);
 struct process *lookup_pid (pid_t pid);
 
+int alloc_procfd (void);
 int alloc_fd (void);
 void free_fd (struct process *process, int fd);
 struct fd *file_fd (int fd);

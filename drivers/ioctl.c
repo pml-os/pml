@@ -29,11 +29,12 @@ sys_ioctl (int fd, unsigned long req, ...)
   struct tty *tty;
   struct termios *tp;
   struct winsize *ws;
+  int action;
   va_start (args, req);
 
   tty = tty_from_fd (fd);
   if (!tty)
-    RETV_ERROR (ENOTTY, -1);
+    GOTO_ERROR (ENOTTY, err);
 
   switch (req)
     {
@@ -68,9 +69,65 @@ sys_ioctl (int fd, unsigned long req, ...)
 	  sys_killpg (tty->pgid, SIGWINCH);
 	break;
       }
+    case TCSBRK:
+    case TCSBRKP:
+    case TIOCSBRK:
+    case TIOCCBRK:
+    case TCXONC:
+      GOTO_ERROR (ENOSYS, err);
       /* TODO Implement remaining ioctls */
+    case TIOCINQ:
+      *va_arg (args, int *) = tty->input.end - tty->input.start;
+      break;
+    case TIOCOUTQ:
+      *va_arg (args, int *) = 0;
+      break;
+    case TCFLSH:
+      action = va_arg (args, int);
+      switch (action)
+	{
+	case TCIFLUSH:
+	  tty->input.start = tty->input.end = 0;
+	  break;
+	default:
+	  GOTO_ERROR (ENOSYS, err);
+	}
+      break;
+    case TIOCSTI:
+      tty_recv (tty, *va_arg (args, const char *));
+      break;
+    case TIOCCONS:
+    case TIOCSCTTY:
+    case TIOCNOTTY:
+      GOTO_ERROR (ENOSYS, err);
+    case TIOCGPGRP:
+      *va_arg (args, pid_t *) = tty->pgid;
+      break;
+    case TIOCSPGRP:
+      tty->pgid = *va_arg (args, const pid_t *);
+      break;
+    case TIOCGSID:
+      *va_arg (args, pid_t *) = tty->sid;
+      break;
+    case TIOCEXCL:
+      tty->flags |= TTY_FLAG_EXCL;
+      break;
+    case TIOCGEXCL:
+      *va_arg (args, int *) = !!(tty->flags & TTY_FLAG_EXCL);
+      break;
+    case TIOCNXCL:
+      tty->flags &= ~TTY_FLAG_EXCL;
+      break;
+    case TIOCGETD:
+    case TIOCSETD:
+      GOTO_ERROR (ENOSYS, err);
     default:
-      RETV_ERROR (EINVAL, -1);
+      GOTO_ERROR (EINVAL, err);
     }
+  va_end (args);
   return 0;
+
+ err:
+  va_end (args);
+  return -1;
 }

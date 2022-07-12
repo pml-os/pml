@@ -151,6 +151,9 @@ params = int fd
 [dup]
 params = int fd
 
+[fcntl]
+params = int fd, int cmd, ...
+
 [ioctl]
 params = int fd, unsigned long req, ...
 

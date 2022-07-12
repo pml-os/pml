@@ -23,23 +23,27 @@
 #define TCSETSF                 0x8003
 #define TIOCGWINSZ              0x8004
 #define TIOCSWINSZ              0x8005
-#define TCXONC                  0x8006
-#define TIOCINQ                 0x8007
+#define TCSBRK                  0x8006
+#define TCSBRKP                 0x8007
+#define TIOCSBRK                0x8008
+#define TIOCCBRK                0x8009
+#define TCXONC                  0x800a
+#define TIOCINQ                 0x800b
 #define FIONREAD                TIOCINQ
-#define TIOCOUTQ                0x8008
-#define TCFLSH                  0x8009
-#define TIOCSTI                 0x800a
-#define TIOCCONS                0x800b
-#define TIOCSCTTY               0x800c
-#define TIOCNOTTY               0x800d
-#define TIOCGPGRP               0x800e
-#define TIOCSPGRP               0x800f
-#define TIOCGSID                0x8010
-#define TIOCEXCL                0x8011
-#define TIOCGEXCL               0x8012
-#define TIOCNXCL                0x8013
-#define TIOCGETD                0x8014
-#define TIOCSETD                0x8015
+#define TIOCOUTQ                0x800c
+#define TCFLSH                  0x800d
+#define TIOCSTI                 0x800e
+#define TIOCCONS                0x800f
+#define TIOCSCTTY               0x8010
+#define TIOCNOTTY               0x8011
+#define TIOCGPGRP               0x8012
+#define TIOCSPGRP               0x8013
+#define TIOCGSID                0x8014
+#define TIOCEXCL                0x8015
+#define TIOCGEXCL               0x8016
+#define TIOCNXCL                0x8017
+#define TIOCGETD                0x8018
+#define TIOCSETD                0x8019
 
 struct winsize
 {

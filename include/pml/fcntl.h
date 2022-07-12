@@ -41,4 +41,13 @@
 #define SEEK_CUR                1
 #define SEEK_END                2
 
+#define F_DUPFD                 0x4000
+#define F_GETFD                 0x4001
+#define F_SETFD                 0x4002
+#define F_GETFL                 0x4003
+#define F_SETFL                 0x4004
+#define F_SETLK                 0x4005
+#define F_SETLKW                0x4006
+#define F_GETLK                 0x4007
+
 #endif
