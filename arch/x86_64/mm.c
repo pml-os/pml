@@ -516,7 +516,8 @@ vm_init (void)
       | PAGE_FLAG_SIZE | PAGE_FLAG_GLOBAL;
 
   /* Map kernel stack to correct address space */
-  kernel_pml4t[507] = ((uintptr_t) kernel_thread_local_pdpt - KERNEL_VMA)
+  kernel_pml4t[PML4T_INDEX (THREAD_LOCAL_BASE_VMA)] =
+    ((uintptr_t) kernel_thread_local_pdpt - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   kernel_thread_local_pdpt[511] = ((uintptr_t) kernel_stack_pdt - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;

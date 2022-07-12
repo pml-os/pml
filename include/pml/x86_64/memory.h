@@ -28,14 +28,16 @@
  * <td>User-space static/program memory</td></tr>
  * <tr><td>@c 0x0000400000000000</td><td>@c 0x00007fffffffffff</td><td>64T</td>
  * <td>User-space memory mappings</td></tr>
- * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffd7fffffffff</td>
+ * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffcffffffffff</td>
  * <td>~125T</td><td>Reserved kernel memory</td></tr>
- * <tr><td>@c 0xffff800000000000</td><td>@c 0xfffffdffafffffff</td>
+ * <tr><td>@c 0xfffffd0000000000</td><td>@c 0xfffffd7fafffffff</td>
  * <td>~511G</td><td>Thread-local storage</td></tr>
- * <tr><td>@c 0xfffffdffb0000000</td><td>@c 0xfffffdffbfffffff</td><td>256M</td>
+ * <tr><td>@c 0xfffffd7fb0000000</td><td>@c 0xfffffd7fbfffffff</td><td>256M</td>
  * <td>Thread-local kernel data</td></tr>
- * <tr><td>@c 0xfffffdffc0000000</td><td>@c 0xfffffdffffffffff</td><td>1G</td>
+ * <tr><td>@c 0xfffffd7fc0000000</td><td>@c 0xfffffd7fffffffff</td><td>1G</td>
  * <td>Thread stack space</td></tr>
+ * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffdffffffffff</td><td>512G</td>
+ * <td>Reserved kernel memory</td></tr>
  * <tr><td>@c 0xfffffe0000000000</td><td>@c 0xffffffffffffffff</td><td>2T</td>
  * <td>Physical memory mappings</td></tr>
  * </table>
@@ -50,17 +52,17 @@
 /*! Virtual address of the top of user-space memory */
 #define USER_MEM_TOP_VMA        0x0000800000000000
 /*! Base virtual address of thread-local storage */
-#define THREAD_LOCAL_BASE_VMA   0xfffffd8000000000
+#define THREAD_LOCAL_BASE_VMA   0xfffffd0000000000
 /*! Base virtual address of thread-local kernel data */
-#define THREAD_KERNEL_DATA_VMA  0xfffffdffb0000000
+#define THREAD_KERNEL_DATA_VMA  0xfffffd7fb0000000
 /*! Base virtual address of process stack */
-#define PROCESS_STACK_BASE_VMA  0xfffffdffc0000000
+#define PROCESS_STACK_BASE_VMA  0xfffffd7fc0000000
 /*! Virtual address of the top of the syscall stack */
-#define SYSCALL_STACK_TOP_VMA   0xfffffdffd0000000
+#define SYSCALL_STACK_TOP_VMA   0xfffffd7fd0000000
 /*! Virtual address of the top of the kernel-mode interrupt stack */
-#define INTERRUPT_STACK_TOP_VMA 0xfffffdffe0000000
+#define INTERRUPT_STACK_TOP_VMA 0xfffffd7fe0000000
 /*! Virtual address of the top of the user-mode process stack */
-#define PROCESS_STACK_TOP_VMA   0xfffffe0000000000
+#define PROCESS_STACK_TOP_VMA   0xfffffd8000000000
 /*! Base of physical memory map */
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
@@ -74,9 +76,9 @@
 /* Thread-local kernel data addresses */
 
 /*! Address where the siginfo structure for a process is passed */
-#define SIGINFO_VMA             0xfffffdffb0000000
+#define SIGINFO_VMA             0xfffffd7fb0000000
 /*! Address of the signal trampoline */
-#define SIGNAL_TRAMPOLINE_VMA   0xfffffdffb0001000
+#define SIGNAL_TRAMPOLINE_VMA   0xfffffd7fb0001000
 
 /* Paging definitions */
 
