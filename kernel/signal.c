@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/hpet.h>
 #include <pml/memory.h>
 #include <pml/syscall.h>
 #include <errno.h>
@@ -360,6 +361,40 @@ sys_sigprocmask (int how, const sigset_t *set, sigset_t *old_set)
 	}
     }
   return 0;
+}
+
+int
+sys_nanosleep (const struct timespec *req, struct timespec *rem)
+{
+  int printf (const char *);
+  clock_t now = hpet_nanotime ();
+  clock_t target = now + req->tv_sec * 1000000000 + req->tv_nsec;
+  while (now < target)
+    {
+      /* TODO Check for signal and return EINTR */
+      sched_yield ();
+      now = hpet_nanotime ();
+    }
+  return 0;
+}
+
+int
+sys_pause (void)
+{
+  /* TODO Implement */
+  while (1)
+    ;
+  RETV_ERROR (EINTR, -1);
+}
+
+int
+sys_sigsuspend (const sigset_t *mask)
+{
+  sigset_t set = THIS_THREAD->sigblocked;
+  THIS_THREAD->sigblocked = *mask;
+  sys_pause ();
+  THIS_THREAD->sigblocked = set;
+  return -1;
 }
 
 int

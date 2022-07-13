@@ -39,7 +39,7 @@ unsigned long hpet_resolution;
 clock_t
 hpet_nanotime (void)
 {
-  return HPET_REG (HPET_REG_COUNTER_VALUE) * 1000000000 / hpet_resolution;
+  return HPET_REG (HPET_REG_COUNTER_VALUE) * hpet_resolution / 1000000;
 }
 
 /*!
