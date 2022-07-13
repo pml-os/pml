@@ -36,7 +36,9 @@
  * <td>Thread-local kernel data</td></tr>
  * <tr><td>@c 0xfffffd7fc0000000</td><td>@c 0xfffffd7fffffffff</td><td>1G</td>
  * <td>Thread stack space</td></tr>
- * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffdffffffffff</td><td>512G</td>
+ * <tr><td>@c 0xfffffd8000000000</td><td>@c 0xfffffd8fffffffff</td><td>64G</td>
+ * <td>Pipe buffer mappings</td></tr>
+ * <tr><td>@c 0xfffffd9000000000</td><td>@c 0xfffffdffffffffff</td><td>448G</td>
  * <td>Reserved kernel memory</td></tr>
  * <tr><td>@c 0xfffffe0000000000</td><td>@c 0xffffffffffffffff</td><td>2T</td>
  * <td>Physical memory mappings</td></tr>
@@ -63,6 +65,10 @@
 #define INTERRUPT_STACK_TOP_VMA 0xfffffd7fe0000000
 /*! Virtual address of the top of the user-mode process stack */
 #define PROCESS_STACK_TOP_VMA   0xfffffd8000000000
+/*! Base virtual address of pipe buffer area */
+#define PIPE_BUFFER_BASE_VMA    0xfffffd8000000000
+/*! Top virtual address of pipe buffer area */
+#define PIPE_BUFFER_TOP_VMA     0xfffffd9000000000
 /*! Base of physical memory map */
 #define LOW_PHYSICAL_BASE_VMA   0xfffffe0000000000
 
@@ -268,6 +274,7 @@ extern void *__kernel_end;
 
 extern uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t kernel_thread_local_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
+extern uintptr_t alloc_space_pdpt[PAGE_STRUCT_ENTRIES] __page_align;
 extern uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4] __page_align;
 
 extern struct page_meta *phys_alloc_table;

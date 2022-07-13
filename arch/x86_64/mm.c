@@ -30,6 +30,7 @@ static int mem_avail;
 
 uintptr_t kernel_pml4t[PAGE_STRUCT_ENTRIES];
 uintptr_t kernel_thread_local_pdpt[PAGE_STRUCT_ENTRIES];
+uintptr_t alloc_space_pdpt[PAGE_STRUCT_ENTRIES];
 uintptr_t phys_map_pdpt[PAGE_STRUCT_ENTRIES * 4];
 
 struct page_meta *phys_alloc_table;
@@ -505,7 +506,9 @@ vm_init (void)
   uintptr_t addr;
   size_t i;
 
-  /* Map physical memory region */
+  /* Map allocation space and physical memory regions */
+  kernel_pml4t[507] = ((uintptr_t) alloc_space_pdpt - KERNEL_VMA)
+    | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_GLOBAL;
   for (i = 0; i < 4; i++)
     kernel_pml4t[i + 508] =
       ((uintptr_t) (phys_map_pdpt + i * PAGE_STRUCT_ENTRIES) - KERNEL_VMA)

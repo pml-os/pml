@@ -393,7 +393,8 @@ vfs_dealloc (struct vnode *vp)
   if (vp->children)
     strmap_free (vp->children, vnode_unref);
   UNREF_OBJECT (vp->parent);
-  vnode_remove_cache (vp);
+  if (vp->mount)
+    vnode_remove_cache (vp);
   if (vp->ops->dealloc)
     vp->ops->dealloc (vp);
   free (vp);

@@ -17,6 +17,7 @@
 /*! @file */
 
 #include <pml/fcntl.h>
+#include <pml/lock.h>
 #include <pml/syscall.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -24,6 +25,8 @@
 
 /*! Index to start searching for free file descriptor */
 static size_t fd_table_start;
+
+static lock_t fd_lock;
 
 /*! System file descriptor table. */
 struct fd *system_fd_table;
@@ -68,8 +71,8 @@ dupfd (int fd, int fd2)
 
 /*!
  * Allocates a file descriptor in the current process's file descriptor table.
- * The file is not considered as allocated until a vnode is written to it.
  *
+ * @param file the entry in the system file descriptor table to map
  * @return the file descriptor, or -1 on failure
  */
 
@@ -77,10 +80,14 @@ int
 alloc_procfd (void)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;
+  spinlock_acquire (&fd_lock);
   for (; fds->curr < fds->size; fds->curr++)
     {
       if (!fds->table[fds->curr])
-	return fds->curr++;
+	{
+	  spinlock_release (&fd_lock);
+	  return fds->curr++;
+	}
     }
   if (fds->size < fds->max_size)
     {
@@ -89,23 +96,31 @@ alloc_procfd (void)
 	fds->size * 2 < fds->max_size ? fds->size * 2 : fds->max_size;
       struct fd **table = realloc (fds->table, sizeof (struct fd *) * new_size);
       if (UNLIKELY (!table))
-	return -1;
+	{
+	  spinlock_release (&fd_lock);
+	  return -1;
+	}
       memset (table + fds->size, 0,
 	      sizeof (struct fd *) * (new_size - fds->size));
       fds->table = table;
       fds->size = new_size;
       if (fds->curr >= fds->size)
-	RETV_ERROR (EMFILE, -1);
+	{
+	  spinlock_release (&fd_lock);
+	  RETV_ERROR (EMFILE, -1);
+	}
+      spinlock_release (&fd_lock);
       return fds->curr++;
     }
   else
-    RETV_ERROR (EMFILE, -1);
+    {
+      spinlock_release (&fd_lock);
+      RETV_ERROR (EMFILE, -1);
+    }
 }
 
 /*!
- * Allocates a file descriptor from the system file descriptor table. The
- * file descriptor is not truly allocated until a vnode is associated with it,
- * so free_fd() need not be called until the file is actually used.
+ * Allocates a file descriptor from the system file descriptor table.
  *
  * @return an index into the system file descriptor table, or -1 if the table
  * is full
@@ -114,27 +129,32 @@ alloc_procfd (void)
 int
 alloc_fd (void)
 {
+  spinlock_acquire (&fd_lock);
   for (; fd_table_start < SYSTEM_FD_TABLE_SIZE; fd_table_start++)
     {
-      if (!system_fd_table[fd_table_start].vnode)
-	return fd_table_start;
+      if (!system_fd_table[fd_table_start].count)
+	{
+	  system_fd_table[fd_table_start].count++;
+	  spinlock_release (&fd_lock);
+	  return fd_table_start++;
+	}
     }
+  spinlock_release (&fd_lock);
   return -1;
 }
 
 /*!
- * Removes a reference from a file descriptor, removing it entirely from
- * a process's file descriptor table if necessary.
+ * Removes a reference from a file descriptor in the system file descriptor
+ * table.
  *
  * @param process the process owning the file descriptor
  * @param fd a file descriptor
  */
 
 void
-free_fd (struct process *process, int fd)
+free_fd (int fd)
 {
-  struct fd_table *fds = &process->fds;
-  fd = fds->table[fd] - system_fd_table;
+  spinlock_acquire (&fd_lock);
   if (!--system_fd_table[fd].count)
     {
       UNREF_OBJECT (system_fd_table[fd].vnode);
@@ -142,6 +162,69 @@ free_fd (struct process *process, int fd)
       if ((size_t) fd < fd_table_start)
 	fd_table_start = fd;
     }
+  spinlock_release (&fd_lock);
+}
+
+/*!
+ * Frees a file descriptor from the current process's file descriptor table.
+ * If the removed reference is the last reference to the file, the
+ * corresponding entry in the system file descriptor table is also closed.
+ *
+ * @param fd the file descriptor
+ */
+
+void
+free_procfd (int fd)
+{
+  return free_altprocfd (THIS_PROCESS, fd);
+}
+
+/*!
+ * Frees a file descriptor from a process's file descriptor table. If the
+ * removed reference is the last reference to the file, the corresponding
+ * entry in the system file descriptor table is also closed.
+ *
+ * @param process the process containing the file descriptor table to index
+ * @param fd the file descriptor
+ */
+
+void
+free_altprocfd (struct process *process, int fd)
+{
+  struct fd_table *fds = &process->fds;
+  int sysfd;
+  if (!fds->table[fd])
+    return;
+  spinlock_acquire (&fd_lock);
+  sysfd = fds->table[fd] - system_fd_table;
+  fds->table[fd] = NULL;
+  if (!--system_fd_table[sysfd].count)
+    {
+      UNREF_OBJECT (system_fd_table[sysfd].vnode);
+      memset (system_fd_table + sysfd, 0, sizeof (struct fd));
+      if ((size_t) sysfd < fd_table_start)
+	fd_table_start = sysfd;
+    }
+  spinlock_release (&fd_lock);
+}
+
+/*!
+ * Fills a file descriptor in both the process and system file descriptor
+ * tables.
+ *
+ * @param fd the process file descriptor
+ * @param sysfd the system file descriptor table index
+ * @param vp the vnode
+ * @param flags the file open and mode flags
+ */
+
+void
+fill_fd (int fd, int sysfd, struct vnode *vp, int flags)
+{
+  struct fd_table *fds = &THIS_PROCESS->fds;
+  system_fd_table[sysfd].vnode = vp;
+  system_fd_table[sysfd].flags = flags & (O_ACCMODE | O_NONBLOCK);
+  fds->table[fd] = system_fd_table + sysfd;
 }
 
 /*!

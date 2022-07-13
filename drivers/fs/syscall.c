@@ -89,7 +89,6 @@ int
 sys_open (const char *path, int flags, ...)
 {
   va_list args;
-  struct fd_table *fds = &THIS_PROCESS->fds;
   struct vnode *vp;
   int fd;
   int sysfd = alloc_fd ();
@@ -97,7 +96,7 @@ sys_open (const char *path, int flags, ...)
     RETV_ERROR (ENFILE, -1);
   fd = alloc_procfd ();
   if (fd == -1)
-    return -1;
+    goto err0;
   vp = vnode_namei (path, flags & O_NOFOLLOW ? -1 : 0);
   if (!vp)
     {
@@ -108,11 +107,11 @@ sys_open (const char *path, int flags, ...)
 	  mode_t mode;
 	  int ret;
 	  if (vnode_dir_name (path, &dir, &name))
-	    return -1;
+	    goto err1;
 	  if (!strcmp (name, ".") || !strcmp (name, ".."))
 	    {
 	      UNREF_OBJECT (dir);
-	      RETV_ERROR (ENOENT, -1);
+	      GOTO_ERROR (ENOENT, err1);
 	    }
 	  va_start (args, flags);
 	  mode = va_arg (args, mode_t);
@@ -123,21 +122,24 @@ sys_open (const char *path, int flags, ...)
 	    ret = vfs_create (&vp, dir, name, mode & ~THIS_PROCESS->umask, 0);
 	  UNREF_OBJECT (dir);
 	  if (ret)
-	    return -1;
+	    goto err1;
 	}
       else
-	return -1;
+	goto err1;
     }
   else if ((flags & O_CREAT) && (flags & O_EXCL))
     {
       UNREF_OBJECT (vp);
-      RETV_ERROR (EEXIST, -1);
+      GOTO_ERROR (EEXIST, err1);
     }
-  system_fd_table[sysfd].vnode = vp;
-  system_fd_table[sysfd].flags = flags & (O_ACCMODE | O_NONBLOCK);
-  system_fd_table[sysfd].count = 1;
-  fds->table[fd] = system_fd_table + sysfd;
+  fill_fd (fd, sysfd, vp, flags);
   return fd;
+
+ err1:
+  free_procfd (fd);
+ err0:
+  free_fd (sysfd);
+  return -1;
 }
 
 int
@@ -146,8 +148,7 @@ sys_close (int fd)
   struct fd_table *fds = &THIS_PROCESS->fds;
   if (!fds->table[fd])
     RETV_ERROR (EBADF, -1);
-  free_fd (THIS_PROCESS, fd);
-  fds->table[fd] = NULL;
+  free_procfd (fd);
   return 0;
 }
 

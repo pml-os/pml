@@ -151,6 +151,9 @@ params = int fd
 [dup]
 params = int fd
 
+[pipe]
+params = int fds[2]
+
 [fcntl]
 params = int fd, int cmd, ...
 

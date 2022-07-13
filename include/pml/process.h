@@ -194,7 +194,10 @@ struct process *lookup_pid (pid_t pid);
 
 int alloc_procfd (void);
 int alloc_fd (void);
-void free_fd (struct process *process, int fd);
+void free_fd (int fd);
+void free_procfd (int fd);
+void free_altprocfd (struct process *process, int fd);
+void fill_fd (int fd, int sysfd, struct vnode *vp, int flags);
 struct fd *file_fd (int fd);
 
 struct process *process_alloc (int priority);

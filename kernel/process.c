@@ -66,7 +66,7 @@ process_free (struct process *process)
   for (i = 0; i < process->fds.size; i++)
     {
       if (process->fds.table[i])
-	free_fd (process, i);
+	free_altprocfd (process, i);
     }
   for (i = 0; i < process->cpids.len; i++)
     {
