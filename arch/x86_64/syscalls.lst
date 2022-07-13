@@ -148,6 +148,12 @@ return_type = void
 [fsync]
 params = int fd
 
+[chdir]
+params = const char *path
+
+[fchdir]
+params = int fd
+
 [dup]
 params = int fd
 

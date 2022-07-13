@@ -378,6 +378,28 @@ sys_fsync (int fd)
 }
 
 int
+sys_chdir (const char *path)
+{
+  struct vnode *vp = vnode_namei (path, 0);
+  if (!vp)
+    return -1;
+  UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = vp;
+  return 0;
+}
+
+int
+sys_fchdir (int fd)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  UNREF_OBJECT (THIS_PROCESS->cwd);
+  REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+  return 0;
+}
+
+int
 sys_dup (int fd)
 {
   struct fd_table *fds = &THIS_PROCESS->fds;
