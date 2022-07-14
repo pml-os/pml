@@ -106,9 +106,7 @@ ASM_FUNC_END (sched_exec)
 
 	.global sched_yield
 ASM_FUNC_BEGIN (sched_yield):
-	lea	.after_ts(%rip), %rdi
-	call	sched_yield_to
-.after_ts:
+	int	$0x28
 	ret
 ASM_FUNC_END (sched_yield)
 

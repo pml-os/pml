@@ -79,6 +79,8 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rax,%rbx,8), %rax
 	call	*%rax
 
+	.global __syscall_intr
+__syscall_intr:
 	/* Save return value and errno */
 	mov	%rax, %rbx
 	call	get_errno

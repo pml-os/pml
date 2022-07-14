@@ -20,6 +20,7 @@
 #include <pml/memory.h>
 #include <pml/syscall.h>
 #include <errno.h>
+#include <limits.h>
 #include <string.h>
 
 static clock_t
@@ -223,6 +224,20 @@ poll_signal_handler (sigset_t *mask)
 }
 
 /*!
+ * Checks whether the current thread is executing a slow system call.
+ * This function should be called from assembly; it is faster to just
+ * check the value of @ref thread.slow_syscall directly.
+ *
+ * @return nonzero if executing a slow syscall
+ */
+
+int
+slow_syscall (void)
+{
+  return THIS_THREAD->slow_syscall;
+}
+
+/*!
  * Sends a signal to a thread.
  *
  * @param thread the thread to signal
@@ -366,7 +381,6 @@ sys_sigprocmask (int how, const sigset_t *set, sigset_t *old_set)
 int
 sys_nanosleep (const struct timespec *req, struct timespec *rem)
 {
-  int printf (const char *);
   clock_t now = hpet_nanotime ();
   clock_t target = now + req->tv_sec * 1000000000 + req->tv_nsec;
   while (now < target)
@@ -381,10 +395,10 @@ sys_nanosleep (const struct timespec *req, struct timespec *rem)
 int
 sys_pause (void)
 {
-  /* TODO Implement */
+  SLOW_SYSCALL_BEGIN;
   while (1)
-    ;
-  RETV_ERROR (EINTR, -1);
+    sched_yield ();
+  __builtin_unreachable ();
 }
 
 int

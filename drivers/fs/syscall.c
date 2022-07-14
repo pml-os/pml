@@ -22,6 +22,9 @@
 #include <stdarg.h>
 #include <string.h>
 
+static void sync_recurse_vnode (struct vnode *vp);
+static void unmark_sync_proc (struct vnode *vp);
+
 /*!
  * Unified function for stat(2) and lstat(2) with an additional argument
  * for whether to follow symbolic links.
@@ -43,9 +46,6 @@ xstat (const char *path, struct stat *st, int follow_links)
   UNREF_OBJECT (vp);
   return ret;
 }
-
-static void sync_recurse_vnode (struct vnode *vp);
-static void unmark_sync_proc (struct vnode *vp);
 
 static void
 sync_children (const char *key, void *value, void *data)

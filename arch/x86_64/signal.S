@@ -27,7 +27,7 @@ ASM_FUNC_BEGIN (load_signal):
 	/* If a signal is already waiting, don't check for another */
 	call	signal_handler
 	test	%rax, %rax
-	jnz	.stack_check
+	jnz	.slow_check
 
 	/* Check if a signal needs to be handled */
 	call	poll_signal
@@ -36,10 +36,20 @@ ASM_FUNC_BEGIN (load_signal):
 	mov	%eax, %edi
 	call	handle_signal
 
+.slow_check:
+	/* Check if we are in a slow system call. If we are, run the signal
+	   handler immediately instead of doing the stack check. */
+	/*call	slow_syscall
+	test	%eax, %eax
+	jz	.stack_check
+	xor	%eax, %eax
+	leave
+	ret*/
+
 .stack_check:
-	/* TODO Interrupt a slow system call, if any */
 	/* Check the stack to determine the origin of the syscall.
-	   If EDI is nonzero check for a syscall entry, otherwise check
+	   This makes sure a signal is only executed when returning to user
+	   mode. If EDI is nonzero check for a syscall entry, otherwise check
 	   for an interrupt handler entry */
 	mov	-16(%rbp), %edi
 	test	%edi, %edi

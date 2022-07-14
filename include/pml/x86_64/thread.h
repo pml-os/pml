@@ -80,6 +80,15 @@ struct thread
   int hflags;                   /*!< Signal handler flags */
   int hsig;                     /*!< Signal number being handled */
   sigset_t hmask;               /*!< Signal mask requested by the handler */
+
+  /*!
+   * Set if the thread is currently executing a 'slow' system call. Slow
+   * system calls may be interrupted by signals.
+   *
+   * @see SLOW_SYSCALL_BEGIN
+   * @see SLOW_SYSCALL_END
+   */
+  volatile int slow_syscall;
 };
 
 /*!

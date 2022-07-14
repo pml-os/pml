@@ -46,6 +46,20 @@
 #define PROCESS_WAIT_STOPPED    4       /*!< The process was stopped */
 
 /*!
+ * Marks the beginning of a region in a syscall function where the syscall
+ * may be interrupted by a signal and return @ref EINTR.
+ */
+
+#define SLOW_SYSCALL_BEGIN      (THIS_THREAD->slow_syscall = 1)
+
+/*!
+ * Marks the end of a region in a syscall function where the syscall
+ * may be interrupted by a signal and return @ref EINTR.
+ */
+
+#define SLOW_SYSCALL_END        (THIS_THREAD->slow_syscall = 0)
+
+/*!
  * Represents an entry in the system file descriptor table. This structure
  * stores the underlying vnode corresponding to an open file as well as other
  * info exposed through the syscall API like file offsets, access mode, etc.
@@ -220,6 +234,7 @@ void handle_signal (int sig);
 int poll_signal (void);
 void *signal_handler (void);
 void *poll_signal_handler (sigset_t *mask);
+int slow_syscall (void);
 void send_signal_thread (struct thread *thread, int sig, const siginfo_t *info);
 void send_signal (struct process *process, int sig, const siginfo_t *info);
 
