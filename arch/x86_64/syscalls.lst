@@ -93,6 +93,10 @@ params = void *addr
 return_type = void *
 params = ptrdiff_t incr
 
+[umask]
+return_type = mode_t
+params = mode_t mask
+
 [open]
 params = const char *path, int flags, ...
 

@@ -85,6 +85,14 @@ unmark_sync_proc (struct vnode *vp)
   strmap_iterate (vp->children, unmark_children, vp->mount);
 }
 
+mode_t
+sys_umask (mode_t mode)
+{
+  mode_t old = THIS_PROCESS->umask;
+  THIS_PROCESS->umask = mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+  return old;
+}
+
 int
 sys_open (const char *path, int flags, ...)
 {
