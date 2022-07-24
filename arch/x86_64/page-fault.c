@@ -67,9 +67,9 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
       pml4t = THIS_THREAD->args.pml4t;
       pml4e = PML4T_INDEX (addr);
       if (addr >> 48 != !!(pml4e & 0x100) * 0xffff) /* Check sign extension */
-	goto fatal;
+	goto signal;
       if (!(pml4t[pml4e] & PAGE_FLAG_PRESENT))
-	goto fatal;
+	goto signal;
       if (pml4t[pml4e] & PAGE_FLAG_COW)
 	{
 	  uintptr_t page = alloc_page ();
@@ -77,7 +77,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	  uintptr_t *cp =
 	    (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
 	  if (UNLIKELY (!page))
-	    goto fatal;
+	    goto signal;
 	  memset (np, 0, PAGE_SIZE);
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
@@ -95,7 +95,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
       pdpt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pml4t[pml4e], PAGE_SIZE));
       pdpe = PDPT_INDEX (addr);
       if ((pdpt[pdpe] & PAGE_FLAG_SIZE) || !(pdpt[pdpe] & PAGE_FLAG_PRESENT))
-	goto fatal;
+	goto signal;
       if (pdpt[pdpe] & PAGE_FLAG_COW)
 	{
 	  uintptr_t page = alloc_page ();
@@ -103,7 +103,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	  uintptr_t *cp =
 	    (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
 	  if (UNLIKELY (!page))
-	    goto fatal;
+	    goto signal;
 	  memset (np, 0, PAGE_SIZE);
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
@@ -121,7 +121,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
       pdt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdpt[pdpe], PAGE_SIZE));
       pde = PDT_INDEX (addr);
       if ((pdt[pde] & PAGE_FLAG_SIZE) || !(pdt[pde] & PAGE_FLAG_PRESENT))
-	goto fatal;
+	goto signal;
       if (pdt[pde] & PAGE_FLAG_COW)
 	{
 	  uintptr_t page = alloc_page ();
@@ -129,7 +129,7 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	  uintptr_t *cp =
 	    (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
 	  if (UNLIKELY (!page))
-	    goto fatal;
+	    goto signal;
 	  memset (np, 0, PAGE_SIZE);
 	  for (i = 0; i < PAGE_STRUCT_ENTRIES; i++)
 	    {
@@ -147,12 +147,12 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
       pt = (uintptr_t *) PHYS_REL (ALIGN_DOWN (pdt[pde], PAGE_SIZE));
       pte = PT_INDEX (addr);
       if (!(pt[pte] & PAGE_FLAG_PRESENT))
-	goto fatal;
+	goto signal;
       if (pt[pte] & PAGE_FLAG_COW)
 	{
 	  uintptr_t page = alloc_page ();
 	  if (UNLIKELY (!page))
-	    goto fatal;
+	    goto signal;
 	  memcpy ((void *) PHYS_REL (page),
 		  (void *) PHYS_REL (ALIGN_DOWN (pt[pte], PAGE_SIZE)),
 		  PAGE_SIZE);
@@ -165,11 +165,13 @@ int_page_fault (unsigned long err, uintptr_t inst_addr)
 	}
     }
 
+ signal:
   info.si_signo = SIGSEGV;
   info.si_code = err & PAGE_ERR_PRESENT ? SEGV_ACCERR : SEGV_MAPERR;
   info.si_errno = 0;
   info.si_addr = (void *) addr;
   send_signal_thread (THIS_THREAD, SIGSEGV, &info);
+  return;
 
  fatal:
   panic ("CPU exception: page fault\nVirtual address: %p\nInstruction: %p\n"
