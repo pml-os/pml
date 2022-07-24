@@ -61,6 +61,9 @@
 
 #define SMP_AP_LONG_START_ADDR  0x8100
 
+/*! Interrupt vector number of sigreturn interrupt */
+#define INT_SIGRETURN           0x90
+
 /*! Number of IRQs handled by an I/O APIC */
 #define IOAPIC_IRQ_COUNT        24
 
@@ -227,6 +230,8 @@ void init_idt (void);
 
 void int_start (void);
 void smp_init (void);
+
+void int_sigreturn (void);
 
 __END_DECLS
 

@@ -17,7 +17,7 @@
 #include <pml/asm.h>
 #include <pml/memory.h>
 
-		.macro chkerr
+	.macro chkerr
 	/* Check for an error. Since the function could return either
 	   a 32-bit or 64-bit version of -1 for an error, check both. */
 	cmp	$-1, %rax
@@ -79,8 +79,6 @@ ASM_FUNC_BEGIN (syscall):
 	mov	(%rax,%rbx,8), %rax
 	call	*%rax
 
-	.global __syscall_intr
-__syscall_intr:
 	/* Save return value and errno */
 	mov	%rax, %rbx
 	call	get_errno
@@ -89,7 +87,7 @@ __syscall_intr:
 	/* Check if a signal can be handled */
 	call	load_signal
 	test	%eax, %eax
-	jnz	.signal
+	jnz	.done
 
 	/* Disable task switching and switch stacks */
 	movabs	$thread_switch_lock, %rax
@@ -125,7 +123,7 @@ __syscall_intr:
 	movl	$0, (%rax)
 	sysretq
 
-.signal:
+.done:
 	/* Switch stacks and return to user mode */
 	mov	(%rsp), %rsp
 	mov	%rbx, %rax

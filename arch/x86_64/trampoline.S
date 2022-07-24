@@ -17,7 +17,9 @@
 /* Routines included in a page mapped with user execution privileges */
 
 #include <pml/asm.h>
+#include <pml/errno.h>
 #include <pml/memory.h>
+#include <pml/interrupt.h>
 #include <pml/signal.h>
 #include <pml/syscall.h>
 
@@ -35,6 +37,20 @@ ASM_FUNC_BEGIN (signal_trampoline):
 	call	int_restore_registers
 	ret
 ASM_FUNC_END (signal_trampoline)
+
+	.global signal_trampoline_syscall
+ASM_FUNC_BEGIN (signal_trampoline_syscall):
+	xor	%ebp, %ebp
+	push	%rsi
+	call	*%rdi
+	pop	%rdi
+	int	$INT_SIGRETURN
+	ret
+
+ASM_FUNC_END (signal_trampoline_syscall)
+	.global signal_trampoline_syscall_vma
+	.set signal_trampoline_syscall_vma, SIGNAL_TRAMPOLINE_VMA + \
+		signal_trampoline_syscall - signal_trampoline
 
 	.global int_save_registers
 ASM_FUNC_BEGIN (int_save_registers):

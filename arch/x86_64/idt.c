@@ -54,6 +54,7 @@ init_idt (void)
 {
   /* Fill and load the IDT */
   fill_idt_vectors ();
+  set_int_vector (INT_SIGRETURN, int_sigreturn, 3, IDT_GATE_INT);
   idt_ptr.size = sizeof (idt_table) - 1;
   idt_ptr.addr = idt_table;
   load_idt (idt_ptr);

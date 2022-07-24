@@ -216,6 +216,8 @@ poll_signal_handler (sigset_t *mask)
   if (!(THIS_THREAD->hflags & SA_NODEFER))
     sigaddset (&THIS_THREAD->sigblocked, THIS_THREAD->hsig);
 
+  sigdelset (&THIS_THREAD->sigready, THIS_THREAD->sig);
+  THIS_THREAD->sig = 0;
   THIS_THREAD->handler = NULL;
   THIS_THREAD->hflags = 0;
   THIS_THREAD->hsig = 0;
@@ -235,6 +237,19 @@ int
 slow_syscall (void)
 {
   return THIS_THREAD->slow_syscall;
+}
+
+/*!
+ * Updates the mask of blocked signals for the current thread. This function
+ * is meant to be called by the signal return routine to restore the previous
+ * signal mask without the use of a system call.
+ *
+ * @param mask pointer to the signal mask
+ */
+
+void
+update_signal_mask (sigset_t mask) {
+  THIS_THREAD->sigblocked = mask;
 }
 
 /*!
