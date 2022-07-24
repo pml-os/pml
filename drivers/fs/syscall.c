@@ -407,6 +407,47 @@ sys_fchdir (int fd)
   return 0;
 }
 
+ssize_t
+sys_getdents (int fd, void *dirp, size_t len)
+{
+  struct fd *file = file_fd (fd);
+  struct dirent *ptr = dirp;
+  struct dirent dirent;
+  size_t written = 0;
+  off_t prev = file->offset;
+  if (!file)
+    return -1;
+  while (written < len)
+    {
+      size_t rec_len;
+      file->offset = vfs_readdir (file->vnode, &dirent, file->offset);
+      if (file->offset == -1)
+	{
+	  file->offset = prev;
+	  return -1;
+	}
+      else if (!file->offset)
+	break;
+      rec_len =
+	offsetof (struct dirent, d_name) + ALIGN_UP (dirent.d_namlen + 1, 8);
+      if (written + rec_len > len)
+	{
+	  file->offset = prev;
+	  break;
+	}
+      ptr->d_ino = dirent.d_ino;
+      ptr->d_reclen = rec_len;
+      ptr->d_namlen = dirent.d_namlen;
+      ptr->d_type = dirent.d_type;
+      strncpy (ptr->d_name, dirent.d_name, ptr->d_namlen);
+      ptr->d_name[ptr->d_namlen] = '\0';
+      ptr = (struct dirent *) ((void *) ptr + ptr->d_reclen);
+      prev = file->offset;
+      written += ptr->d_reclen;
+    }
+  return written;
+}
+
 int
 sys_dup (int fd)
 {

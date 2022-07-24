@@ -164,6 +164,10 @@ params = const char *path
 [fchdir]
 params = int fd
 
+[getdents]
+return_type = ssize_t
+params = int fd, void *dirp, size_t len
+
 [dup]
 params = int fd
 
