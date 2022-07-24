@@ -240,6 +240,19 @@ slow_syscall (void)
 }
 
 /*!
+ * Disable interrupting a slow system call. This function is called after
+ * a signal interrupting a system call is handled. This function should be
+ * called from assembly; it is faster to just call @ref SLOW_SYSTEM_CALL
+ * directly.
+ */
+
+void
+slow_syscall_end (void)
+{
+  SLOW_SYSCALL_END;
+}
+
+/*!
  * Updates the mask of blocked signals for the current thread. This function
  * is meant to be called by the signal return routine to restore the previous
  * signal mask without the use of a system call.
@@ -398,12 +411,16 @@ sys_nanosleep (const struct timespec *req, struct timespec *rem)
 {
   clock_t now = hpet_nanotime ();
   clock_t target = now + req->tv_sec * 1000000000 + req->tv_nsec;
+  SLOW_SYSCALL_BEGIN;
   while (now < target)
     {
-      /* TODO Check for signal and return EINTR */
+      clock_t left = target - now;
+      rem->tv_sec = left / 1000000000;
+      rem->tv_nsec = left % 1000000000;
       sched_yield ();
       now = hpet_nanotime ();
     }
+  SLOW_SYSCALL_END;
   return 0;
 }
 

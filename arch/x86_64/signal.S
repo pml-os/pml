@@ -100,6 +100,7 @@ ASM_FUNC_BEGIN (run_signal):
 	call	slow_syscall
 	test	%eax, %eax
 	jz	.int_handle
+	call	slow_syscall_end
 
 	/* Setup fake interrupt stack frame to read */
 	movabs	$SYSCALL_STACK_TOP_VMA, %rax
