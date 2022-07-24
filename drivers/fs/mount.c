@@ -76,7 +76,7 @@ init_vfs (void)
     goto err0;
 
   /* Set working directory to root directory */
-  REF_ASSIGN (THIS_PROCESS->cwd, root_vnode);
+  THIS_PROCESS->cwd = root_vnode;
   default_mount.vcache = hashmap_create ();
   if (UNLIKELY (!default_mount.vcache))
     panic ("Failed to allocate vnode cache");
@@ -130,6 +130,7 @@ mount_root (void)
   UNREF_OBJECT (root_vnode); /* Remove reference from initial allocation */
   REF_ASSIGN (root_vnode, mp->root_vnode);
   REF_ASSIGN (devfs->parent, root_vnode);
+  REF_ASSIGN (THIS_PROCESS->cwd, root_vnode);
 
   /* Make /.. link to / */
   REF_ASSIGN (root_vnode->parent, root_vnode);

@@ -83,7 +83,7 @@ vga_text_erase_char (struct tty *tty)
   if (tty->x)
     {
       tty->x--;
-      vga_text_write_char (tty, ' ', tty->x, tty->y);
+      vga_text_write_char (tty, tty->x, tty->y, ' ');
       vga_text_update_cursor (tty);
     }
   return 0;
@@ -96,7 +96,7 @@ vga_text_erase_line (struct tty *tty, size_t len)
   if (len > tty->x)
     len = tty->x;
   for (i = 0; i < len; i++)
-    vga_text_write_char (tty, ' ', --tty->x, tty->y);
+    vga_text_write_char (tty, --tty->x, tty->y, ' ');
   vga_text_update_cursor (tty);
   return 0;
 }
