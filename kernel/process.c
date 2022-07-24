@@ -157,6 +157,9 @@ process_fork (struct thread **t, int copy)
   process->gid = THIS_PROCESS->gid;
   process->egid = THIS_PROCESS->egid;
   process->sgid = THIS_PROCESS->sgid;
+  memcpy (process->sup_gids, THIS_PROCESS->sup_gids,
+	  sizeof (gid_t) * NGROUPS_MAX);
+  process->nsup_gids = THIS_PROCESS->nsup_gids;
   REF_ASSIGN (process->cwd, THIS_PROCESS->cwd);
   *t = thread;
 

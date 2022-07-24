@@ -430,3 +430,27 @@ sys_setresgid (gid_t rgid, gid_t egid, gid_t sgid)
     THIS_PROCESS->sgid = sgid;
   return 0;
 }
+
+int
+sys_getgroups (int size, gid_t *list)
+{
+  if (!size)
+    return THIS_PROCESS->nsup_gids;
+  else if (THIS_PROCESS->nsup_gids > (size_t) size)
+    RETV_ERROR (EINVAL, -1);
+  memcpy (list, THIS_PROCESS->sup_gids,
+	  sizeof (gid_t) * THIS_PROCESS->nsup_gids);
+  return 0;
+}
+
+int
+sys_setgroups (size_t size, const gid_t *list)
+{
+  if (THIS_PROCESS->euid)
+    RETV_ERROR (EPERM, -1);
+  else if (size > NGROUPS_MAX)
+    RETV_ERROR (EINVAL, -1);
+  memcpy (THIS_PROCESS->sup_gids, list, sizeof (gid_t) * size);
+  THIS_PROCESS->nsup_gids = size;
+  return 0;
+}

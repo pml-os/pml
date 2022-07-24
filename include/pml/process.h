@@ -25,6 +25,7 @@
 #include <pml/lock.h>
 #include <pml/mman.h>
 #include <pml/resource.h>
+#include <pml/syslimits.h>
 #include <pml/thread.h>
 
 /*! Number of file descriptors in system file descriptor table */
@@ -168,6 +169,8 @@ struct process
   gid_t gid;                    /*!< Real group ID */
   gid_t egid;                   /*!< Effective group ID */
   gid_t sgid;                   /*!< Saved group ID */
+  gid_t sup_gids[NGROUPS_MAX];  /*!< Supplementary group IDs */
+  size_t nsup_gids;             /*!< Number of supplementary group IDs */
   mode_t umask;                 /*!< File creation mode mask */
   struct vnode *cwd;            /*!< Current working directory */
   struct thread_queue threads;  /*!< Process thread queue */

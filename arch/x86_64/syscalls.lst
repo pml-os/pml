@@ -78,6 +78,12 @@ params = gid_t *rgid, gid_t *egid, gid_t *sgid
 [setresgid]
 params = gid_t rgid, gid_t egid, gid_t sgid
 
+[getgroups]
+params = int size, gid_t *list
+
+[setgroups]
+params = size_t size, const gid_t *list
+
 [execve]
 params = const char *path, char *const *argv, char *const *envp
 
