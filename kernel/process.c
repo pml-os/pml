@@ -57,6 +57,7 @@ process_alloc (int priority)
 void
 process_free (struct process *process)
 {
+  struct process *parent;
   size_t i;
   if (process->threads.len)
     thread_unmap_user_mem (process->threads.queue[0]);
@@ -69,6 +70,24 @@ process_free (struct process *process)
       if (process->fds.table[i])
 	free_altprocfd (process, i);
     }
+
+  /* Remove the process from its parent's child list */
+  parent = lookup_pid (process->ppid);
+  if (LIKELY (parent))
+    {
+      for (i = 0; i < parent->children.len; i++)
+	{
+	  if (parent->children.info[i].pid == process->pid)
+	    {
+	      memmove (parent->children.info + i, parent->children.info + i + 1,
+		       sizeof (struct child_info) *
+		       (--parent->children.len - i));
+	      break;
+	    }
+	}
+    }
+
+  /* Reassign any child processes' parents to PID 1 */
   if (process->children.len)
     {
       struct process *init = lookup_pid (1);
@@ -95,6 +114,7 @@ process_free (struct process *process)
 	}
     }
   free (process->children.info);
+  free (process->waits.states);
   free (process);
 }
 
@@ -215,11 +235,7 @@ process_fork (struct thread **t, int copy)
   if (UNLIKELY (!temp))
     goto err3;
   THIS_PROCESS->children.info = temp;
-  temp += THIS_PROCESS->children.len - 1;
-  temp->pid = process->pid;
-  memset (&temp->rusage, 0, sizeof (struct rusage));
-  temp->status = PROCESS_WAIT_RUNNING;
-  temp->code = 0;
+  temp[THIS_PROCESS->children.len - 1].pid = process->pid;
   return process;
 
  err3:
@@ -263,21 +279,19 @@ process_fill_wait (struct process *process, int mode, int status)
 {
   pid_t target = process->pid;
   pid_t ppid = process->ppid;
-  size_t i;
+  struct wait_state *temp;
   process = lookup_pid (ppid);
   if (UNLIKELY (!process))
     return; /* Should never happen */
-  for (i = 0; i < process->children.len; i++)
-    {
-      struct child_info *info = &process->children.info[i];
-      if (info->pid == target)
-	{
-	  info->pgid = process->pgid;
-	  info->status = mode;
-	  info->code = status;
-	  memcpy (&info->rusage, &THIS_PROCESS->self_rusage,
-		  sizeof (struct rusage));
-	  break;
-	}
-    }
+  temp = realloc (process->waits.states,
+		  sizeof (struct wait_state) * ++process->waits.len);
+  if (UNLIKELY (!temp))
+    panic ("Failed to allocate wait state");
+  process->waits.states = temp;
+  temp += process->waits.len - 1;
+  temp->pid = target;
+  temp->pgid = process->pgid;
+  temp->status = mode;
+  temp->code = status;
+  memcpy (&temp->rusage, &THIS_PROCESS->self_rusage, sizeof (struct rusage));
 }

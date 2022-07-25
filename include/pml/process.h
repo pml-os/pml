@@ -102,18 +102,12 @@ struct brk
 };
 
 /*!
- * Contains information about a child process. These fields are set when
- * the child process has wait information to report, with the exception of
- * @ref child_info.pid.
+ * Contains information about a child process.
  */
 
 struct child_info
 {
   pid_t pid;                    /*!< Process ID of child process */
-  pid_t pgid;                   /*!< Process group of child process */
-  struct rusage rusage;         /*!< Resource usage information */
-  int status;                   /*!< Process execution status */
-  int code;                     /*!< Exit code or signal number */
 };
 
 /*!
@@ -124,6 +118,29 @@ struct child_table
 {
   size_t len;                   /*!< Number of children */
   struct child_info *info;      /*!< Array of child process info structures */
+};
+
+/*!
+ * Contains information about a reaped process.
+ */
+
+struct wait_state
+{
+  pid_t pid;                    /*!< Process ID of child process */
+  pid_t pgid;                   /*!< Process group of child process */
+  struct rusage rusage;         /*!< Resource usage information */
+  int status;                   /*!< Process execution status */
+  int code;                     /*!< Exit code or signal number */
+};
+
+/*!
+ * Contains a list of states of child processes that have terminated.
+ */
+
+struct wait_queue
+{
+  size_t len;                   /*!< Number of processes */
+  struct wait_state *states;    /*!< Array of wait states */
 };
 
 /*!
@@ -180,6 +197,7 @@ struct process
   struct mmap_table mmaps;      /*!< Memory regions allocated to process */
   struct brk brk;               /*!< Program break */
   struct child_table children;  /*!< Child process list */
+  struct wait_queue waits;      /*!< Queue of reaped processes */
   struct rusage self_rusage;    /*!< Resource usage of process */
   struct rusage child_rusage;   /*!< Resource usage of terminated children */
   struct sigaction sighandlers[NSIG];   /*!< Signal handler array */

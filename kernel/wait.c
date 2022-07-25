@@ -25,38 +25,34 @@ static pid_t
 do_wait (pid_t pid, int *status, struct rusage *rusage)
 {
   size_t i;
-  struct child_table *children = &THIS_PROCESS->children;
-  for (i = 0; i < children->len; i++)
+  struct wait_queue *waits = &THIS_PROCESS->waits;
+  thread_switch_lock = 1;
+  for (i = 0; i < waits->len; i++)
     {
-      if (!(pid > 0 && children->info[i].pid != pid)
-	  && children->info[i].status != PROCESS_WAIT_RUNNING
-	  && !(!pid && children->info[i].pgid != THIS_PROCESS->pgid))
+      if (!(pid > 0 && waits->states[i].pid != pid)
+	  && waits->states[i].status != PROCESS_WAIT_RUNNING
+	  && !(!pid && waits->states[i].pgid != THIS_PROCESS->pgid))
 	{
-	  int remove = 1;
+	  pid_t ret;
 	  if (rusage)
-	    memcpy (rusage, &children->info[i].rusage, sizeof (struct rusage));
-	  *status = (children->info[i].code & 0xff) << 8;
-	  switch (children->info[i].status)
+	    memcpy (rusage, &waits->states[i].rusage, sizeof (struct rusage));
+	  *status = (waits->states[i].code & 0xff) << 8;
+	  switch (waits->states[i].status)
 	    {
 	    case PROCESS_WAIT_SIGNALED:
 	      *status |= 0x01;
 	      break;
 	    case PROCESS_WAIT_STOPPED:
 	      *status |= 0x7f;
-	      remove = 0;
 	      break;
 	    }
-	  if (remove)
-	    memmove (children->info + i, children->info + i + 1,
-		     --children->len - i);
-	  else
-	    {
-	      children->info[i].status = PROCESS_WAIT_STOPPED;
-	      children->info[i].code = 0;
-	    }
-	  return children->info[i].pid;
+	  ret = waits->states[i].pid;
+	  memmove (waits->states + i, waits->states + i + 1, --waits->len - i);
+	  thread_switch_lock = 0;
+	  return ret;
 	}
     }
+  thread_switch_lock = 0;
   return 0;
 }
 

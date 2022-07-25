@@ -490,7 +490,8 @@ sys_killpg (pid_t pgrp, int sig)
   size_t i;
   for (i = 1; i < process_queue.len; i++)
     {
-      if (process_queue.queue[i]->pgid == pgrp)
+      if (process_queue.queue[i]->pgid == pgrp
+	  && process_queue.queue[i]->pid > 1)
 	{
 	  int ret = sys_kill (process_queue.queue[i]->pid, sig);
 	  if (ret)
