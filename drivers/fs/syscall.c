@@ -153,8 +153,7 @@ sys_open (const char *path, int flags, ...)
 int
 sys_close (int fd)
 {
-  struct fd_table *fds = &THIS_PROCESS->fds;
-  if (!fds->table[fd])
+  if (!file_fd (fd))
     RETV_ERROR (EBADF, -1);
   free_procfd (fd);
   return 0;

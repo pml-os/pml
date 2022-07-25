@@ -125,6 +125,43 @@ class ThisThread(gdb.Command):
                     'threads.queue[process_queue.queue[process_queue.front]->' +
                     'threads.front]', from_tty)
 
+class PrintHeap(gdb.Command):
+    '''Prints the contents of the kernel heap.'''
+
+    def __init__(self):
+        super(PrintHeap, self).__init__('print-heap', gdb.COMMAND_DATA)
+
+    def invoke(self, arg, from_tty):
+        header_type = gdb.lookup_type('struct kh_header')
+        tail_type = gdb.lookup_type('struct kh_tail')
+        header_size = header_type.sizeof
+        tail_size = tail_type.sizeof
+        header_type = header_type.pointer()
+        tail_type = tail_type.pointer()
+        void_type = gdb.lookup_type('void').pointer()
+        header = gdb.parse_and_eval('(struct kh_header *) kh_base_addr')
+        end_addr = gdb.parse_and_eval('kh_end_addr')
+        i = 0
+        while header.address < end_addr:
+            if int(header['magic']) != 0x07242005:
+                print('Bad header magic number: ' + hex(header['magic']))
+                break
+            block = header.cast(void_type) + header_size
+            tail = (block + header['size']).cast(tail_type)
+            if int(tail['magic']) != 0xdeadc0de:
+                print('Bad tail magic number: ' + hex(tail['magic']))
+                break
+            if tail['header'] != header:
+                print('Unmatched header in tail block')
+                break
+            alloc = 'allocated' if header['flags'] & 1 else 'free'
+            addr = str(block)
+            size = int(header['size'])
+            i += 1
+            print('{}: {}, size {} ({})'.format(addr, alloc, size, hex(size)))
+            header = (tail.cast(void_type) + tail_size).cast(header_type)
+        print('{} objects total'.format(i))
+
 class Relocate(gdb.Command):
     '''Prints the virtual address of a physical address.'''
 
@@ -192,6 +229,7 @@ ExcUp()
 PrintPage()
 ThisProcess()
 ThisThread()
+PrintHeap()
 Relocate()
 PML4T()
 PrintPageIndex()
@@ -203,5 +241,6 @@ gdb.execute('alias -a asf = add-symbol-file')
 gdb.execute('alias -a ppage = print-page')
 gdb.execute('alias -a thpr = this-process')
 gdb.execute('alias -a thtd = this-thread')
+gdb.execute('alias -a ph = print-heap')
 gdb.execute('alias -a ppi = print-page-index')
 gdb.execute('alias -a ps = page-state')
