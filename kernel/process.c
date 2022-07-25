@@ -16,6 +16,7 @@
 
 /*! @file */
 
+#include <pml/panic.h>
 #include <errno.h>
 #include <string.h>
 
@@ -68,13 +69,32 @@ process_free (struct process *process)
       if (process->fds.table[i])
 	free_altprocfd (process, i);
     }
-  for (i = 0; i < process->cpids.len; i++)
+  if (process->children.len)
     {
-      struct process *child = lookup_pid (process->cpids.pids[i]);
-      if (LIKELY (child))
-	child->ppid = 1;
+      struct process *init = lookup_pid (1);
+      struct child_info *temp;
+      size_t start;
+      if (LIKELY (init))
+	{
+	  start = init->children.len;
+	  init->children.len += process->children.len;
+	  temp = realloc (init->children.info,
+			  sizeof (struct child_info) * init->children.len);
+	  if (UNLIKELY (!temp))
+	    panic ("process: could not allocate child info nodes for init");
+	  init->children.info = temp;
+	  memcpy (init->children.info + start, process->children.info,
+		  sizeof (struct child_info) * process->children.len);
+	  for (i = 0; i < process->children.len; i++)
+	    {
+	      struct process *child =
+		lookup_pid (process->children.info[i].pid);
+	      if (LIKELY (child))
+		child->ppid = 1;
+	    }
+	}
     }
-  free (process->cpids.pids);
+  free (process->children.info);
   free (process);
 }
 
@@ -137,6 +157,7 @@ process_fork (struct thread **t, int copy)
 {
   struct thread *thread;
   struct process *process = process_alloc (THIS_PROCESS->priority);
+  struct child_info *temp;
   size_t i;
   if (UNLIKELY (!process))
     return NULL;
@@ -189,10 +210,16 @@ process_fork (struct thread **t, int copy)
     }
 
   /* Add new process to child process table */
-  THIS_PROCESS->cpids.pids =
-    realloc (THIS_PROCESS->cpids.pids,
-	     sizeof (pid_t *) * ++THIS_PROCESS->cpids.len);
-  THIS_PROCESS->cpids.pids[THIS_PROCESS->cpids.len - 1] = process->pid;
+  temp = realloc (THIS_PROCESS->children.info,
+		  sizeof (struct child_info) * ++THIS_PROCESS->children.len);
+  if (UNLIKELY (!temp))
+    goto err3;
+  THIS_PROCESS->children.info = temp;
+  temp += THIS_PROCESS->children.len - 1;
+  temp->pid = process->pid;
+  memset (&temp->rusage, 0, sizeof (struct rusage));
+  temp->status = PROCESS_WAIT_RUNNING;
+  temp->code = 0;
   return process;
 
  err3:
@@ -235,27 +262,22 @@ void
 process_fill_wait (struct process *process, int mode, int status)
 {
   pid_t target = process->pid;
-  pid_t pid = process->ppid;
-  int direct = 1;
-  while (pid != process->pid)
+  pid_t ppid = process->ppid;
+  size_t i;
+  process = lookup_pid (ppid);
+  if (UNLIKELY (!process))
+    return; /* Should never happen */
+  for (i = 0; i < process->children.len; i++)
     {
-      struct wait_state *ws;
-      process = lookup_pid (pid);
-      if (!process)
-	break;
-      ws = &process->wait;
-      if (ws->status == PROCESS_WAIT_WAITING
-	  && (ws->pid == target || (direct && (ws->pid == -1 || ws->pid == 0)))
-	  && (!ws->do_stopped || mode != PROCESS_WAIT_STOPPED))
+      struct child_info *info = &process->children.info[i];
+      if (info->pid == target)
 	{
-	  ws->pid = target;
-	  ws->pgid = process->pgid;
-	  ws->status = mode;
-	  ws->code = status;
-	  memcpy (&ws->rusage, &THIS_PROCESS->self_rusage,
+	  info->pgid = process->pgid;
+	  info->status = mode;
+	  info->code = status;
+	  memcpy (&info->rusage, &THIS_PROCESS->self_rusage,
 		  sizeof (struct rusage));
+	  break;
 	}
-      pid = process->ppid;
-      direct = 0;
     }
 }

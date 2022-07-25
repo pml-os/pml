@@ -40,10 +40,10 @@
 /*! Expands to a pointer to the currently running thread */
 #define THIS_THREAD (THIS_PROCESS->threads.queue[THIS_PROCESS->threads.front])
 
-#define PROCESS_WAIT_NONE       0       /*!< Not waiting */
-#define PROCESS_WAIT_WAITING    1       /*!< Waiting for process state */
-#define PROCESS_WAIT_EXITED     2       /*!< The process exited normally */
-#define PROCESS_WAIT_SIGNALED   3       /*!< The process was signaled */
+#define PROCESS_WAIT_RUNNING    0       /*!< The process is running */
+#define PROCESS_WAIT_EXITED     1       /*!< The process exited normally */
+#define PROCESS_WAIT_SIGNALED   2       /*!< The process was signaled */
+#define PROCESS_WAIT_STOPPING   3       /*!< The process is stopping */
 #define PROCESS_WAIT_STOPPED    4       /*!< The process was stopped */
 
 /*!
@@ -102,13 +102,28 @@ struct brk
 };
 
 /*!
+ * Contains information about a child process. These fields are set when
+ * the child process has wait information to report, with the exception of
+ * @ref child_info.pid.
+ */
+
+struct child_info
+{
+  pid_t pid;                    /*!< Process ID of child process */
+  pid_t pgid;                   /*!< Process group of child process */
+  struct rusage rusage;         /*!< Resource usage information */
+  int status;                   /*!< Process execution status */
+  int code;                     /*!< Exit code or signal number */
+};
+
+/*!
  * Contains a list of the IDs of all processes that are children of a process.
  */
 
-struct cpid_table
+struct child_table
 {
-  size_t len;                   /*!< Number of child PIDs */
-  pid_t *pids;                  /*!< Array of process IDs */
+  size_t len;                   /*!< Number of children */
+  struct child_info *info;      /*!< Array of child process info structures */
 };
 
 /*!
@@ -138,20 +153,6 @@ struct mmap_table
 };
 
 /*!
- * Contains information about a process that is being waited.
- */
-
-struct wait_state
-{
-  pid_t pid;                    /*!< Process ID */
-  pid_t pgid;                   /*!< Process group ID */
-  struct rusage rusage;         /*!< Resource usage information */
-  int status;                   /*!< Process execution status */
-  int code;                     /*!< Exit code or signal number */
-  int do_stopped;               /*!< Whether to report stopped processes */
-};
-
-/*!
  * Represents a process. Processes have a unique ID and also store their
  * parent process's ID. Each process is assigned a priority, but currently
  * process priorities are not implemented and are ignored.
@@ -178,10 +179,9 @@ struct process
   struct fd_table fds;          /*!< File descriptor table */
   struct mmap_table mmaps;      /*!< Memory regions allocated to process */
   struct brk brk;               /*!< Program break */
-  struct cpid_table cpids;      /*!< Child process ID list */
+  struct child_table children;  /*!< Child process list */
   struct rusage self_rusage;    /*!< Resource usage of process */
   struct rusage child_rusage;   /*!< Resource usage of terminated children */
-  struct wait_state wait;       /*!< Wait state */
   struct sigaction sighandlers[NSIG];   /*!< Signal handler array */
 };
 

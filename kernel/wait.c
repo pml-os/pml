@@ -22,51 +22,59 @@
 #include <string.h>
 
 static pid_t
-do_wait (pid_t pid, int *status, struct rusage *rusage, struct wait_state *ws)
+do_wait (pid_t pid, int *status, struct rusage *rusage)
 {
-  if (ws->status == PROCESS_WAIT_WAITING)
-    return 0;
-  if (!pid && THIS_PROCESS->pgid != ws->pgid)
-    return 0;
-
-  if (rusage)
-    memcpy (rusage, &ws->rusage, sizeof (struct rusage));
-  *status = (ws->code & 0xff) << 8;
-  switch (ws->status)
+  size_t i;
+  struct child_table *children = &THIS_PROCESS->children;
+  for (i = 0; i < children->len; i++)
     {
-    case PROCESS_WAIT_SIGNALED:
-      *status |= 0x01;
-      break;
-    case PROCESS_WAIT_STOPPED:
-      *status |= 0x7f;
-      break;
+      if (!(pid > 0 && children->info[i].pid != pid)
+	  && children->info[i].status != PROCESS_WAIT_RUNNING
+	  && !(!pid && children->info[i].pgid != THIS_PROCESS->pgid))
+	{
+	  int remove = 1;
+	  if (rusage)
+	    memcpy (rusage, &children->info[i].rusage, sizeof (struct rusage));
+	  *status = (children->info[i].code & 0xff) << 8;
+	  switch (children->info[i].status)
+	    {
+	    case PROCESS_WAIT_SIGNALED:
+	      *status |= 0x01;
+	      break;
+	    case PROCESS_WAIT_STOPPED:
+	      *status |= 0x7f;
+	      remove = 0;
+	      break;
+	    }
+	  if (remove)
+	    memmove (children->info + i, children->info + i + 1,
+		     --children->len - i);
+	  else
+	    {
+	      children->info[i].status = PROCESS_WAIT_STOPPED;
+	      children->info[i].code = 0;
+	    }
+	  return children->info[i].pid;
+	}
     }
-
-  ws->status = PROCESS_WAIT_NONE;
-  return ws->pid;
+  return 0;
 }
 
 pid_t
 sys_wait4 (pid_t pid, int *status, int flags, struct rusage *rusage)
 {
-  struct wait_state *ws = &THIS_PROCESS->wait;
   if (pid < -1)
     pid = -pid;
-  if (!THIS_PROCESS->cpids.len)
+  if (!THIS_PROCESS->children.len)
     RETV_ERROR (ECHILD, -1);
   if (pid > 0 && !lookup_pid (pid))
     RETV_ERROR (ESRCH, -1);
 
-  /* Fill wait state */
-  ws->pid = pid;
-  ws->status = PROCESS_WAIT_WAITING;
-  ws->do_stopped = !!(flags & WUNTRACED);
-
   if (flags & WNOHANG)
-    return do_wait (pid, status, rusage, ws);
+    return do_wait (pid, status, rusage);
   while (1)
     {
-      pid_t ret = do_wait (pid, status, rusage, ws);
+      pid_t ret = do_wait (pid, status, rusage);
       if (ret)
 	return ret;
       sched_yield ();
