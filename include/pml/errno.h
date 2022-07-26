@@ -163,6 +163,7 @@
 /*! Operation not possible due to RF-kill */
 #define ERFKILL                 132
 #define EHWPOISON               133 /*!< Memory page has hardware error */
+#define EFTYPE                  134 /*!< Inappropriate file type or format */
 
 #define EWOULDBLOCK             EAGAIN
 #define EDEADLOCK               EDEADLK
