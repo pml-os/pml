@@ -29,6 +29,7 @@ do_wait (pid_t pid, int *status, struct rusage *rusage)
   thread_switch_lock = 1;
   for (i = 0; i < waits->len; i++)
     {
+      /* XXX What to do with states that are never waited for? */
       if (!(pid > 0 && waits->states[i].pid != pid)
 	  && waits->states[i].status != PROCESS_WAIT_RUNNING
 	  && !(!pid && waits->states[i].pgid != THIS_PROCESS->pgid))
