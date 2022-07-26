@@ -1,4 +1,4 @@
-/* syscall.h -- This file is part of PML.
+/* utsname.h -- This file is part of PML.
    Copyright (C) 2021 XNSC
 
    PML is free software: you can redistribute it and/or modify
@@ -14,32 +14,18 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/* DO NOT MODIFY THIS FILE */
+#ifndef __PML_UTSNAME_H
+#define __PML_UTSNAME_H
 
-#ifndef __PML_SYSCALL_H
-#define __PML_SYSCALL_H
+#include <pml/syslimits.h>
 
-/* System call numbers */
-@MACROS@
-
-#ifndef __ASSEMBLER__
-
-#include <pml/cdefs.h>
-#include <pml/resource.h>
-#include <pml/signal.h>
-#include <pml/stat.h>
-#include <pml/utsname.h>
-
-__BEGIN_DECLS
-
-/* System call functions */
-@PROTOS@
-
-void syscall_init (void);
-long syscall (long num, ...);
-
-__END_DECLS
-
-#endif /* !__ASSEMBLER__ */
+struct utsname
+{
+  char sysname[9];
+  char nodename[HOST_NAME_MAX + 1];
+  char release[9];
+  char version[9];
+  char machine[9];
+};
 
 #endif

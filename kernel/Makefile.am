@@ -25,6 +25,7 @@ kernel_SOURCES =	\
 	process.c	\
 	resource.c	\
 	signal.c	\
+	utsname.c	\
 	wait.c
 if GDB_SCRIPT
 nodist_kernel_SOURCES = gdb-script.c

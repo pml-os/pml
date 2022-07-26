@@ -22,6 +22,18 @@
 #include <pml/cdefs.h>
 #include <pml/types.h>
 
+#define __STR(x)                #x
+
+/*!
+ * Converts a macro value to a string. The name of the macro is not
+ * stringified, making this function different from the # preprocessor token.
+ *
+ * @param x the macro to convert
+ * @return the stringified macro value
+ */
+
+#define STR(x)                  __STR (x)
+
 /*!
  * Determines whether an integer or pointer value is aligned.
  *

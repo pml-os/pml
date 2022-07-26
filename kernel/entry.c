@@ -50,7 +50,7 @@ try_execve (const char *path, char *const *argv, char *const *envp)
 void
 splash (void)
 {
-  printf ("\n\nWelcome to PML 0.1\nCopyright (C) 2021 XNSC\n"
+  printf ("\n\nWelcome to PML " VERSION "\nCopyright (C) 2021 XNSC\n"
 	  "System time: %ld\n", real_time);
 }
 

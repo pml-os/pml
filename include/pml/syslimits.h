@@ -33,6 +33,7 @@
 #define PATH_MAX                4096    /*!< Max bytes in path name */
 #define PIPE_BUF                512     /*!< Max bytes for atomic pipe writes */
 #define IOV_MAX                 1024    /*!< Max elements in I/O vector */
+#define HOST_NAME_MAX           64      /*!< Max length of host name */
 #define LINE_MAX                MAX_INPUT
 
 #endif

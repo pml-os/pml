@@ -221,4 +221,13 @@ params = pid_t pid, int sig
 [killpg]
 params = pid_t pgrp, int sig
 
+[gethostname]
+params = char *name, size_t len
+
+[sethostname]
+params = const char *name, size_t len
+
+[uname]
+params = struct utsname *buffer
+
 # End of system calls list

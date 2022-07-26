@@ -56,6 +56,7 @@ pmlinclude_HEADERS =	\
 	time.h		\
 	tty.h		\
 	types.h		\
+	utsname.h	\
 	vfs.h		\
 	vgatext.h	\
 	wait.h
