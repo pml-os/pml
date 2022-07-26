@@ -27,8 +27,8 @@
 	.global signal_trampoline
 ASM_FUNC_BEGIN (signal_trampoline):
 	xor	%ebp, %ebp
-	push	%rsi
-	call	*%rdi
+	push	%r8
+	call	*%rcx
 	mov	$SIG_SETMASK, %edi
 	pop	%rsi
 	xor	%edx, %edx
@@ -41,8 +41,8 @@ ASM_FUNC_END (signal_trampoline)
 	.global signal_trampoline_syscall
 ASM_FUNC_BEGIN (signal_trampoline_syscall):
 	xor	%ebp, %ebp
-	push	%rsi
-	call	*%rdi
+	push	%r8
+	call	*%rcx
 	pop	%rdi
 	int	$INT_SIGRETURN
 	ret

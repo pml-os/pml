@@ -110,9 +110,13 @@ ASM_FUNC_BEGIN (run_signal):
 	/* Jump to signal handler */
 	sub	$16, %rsp
 	mov	%rsp, %rdi
+	lea	8(%rsp), %rsi
 	call	poll_signal_handler
-	mov	%rax, %rdi
-	mov	(%rsp), %rsi
+	mov	(%rsp), %edi
+	movabs	$SIGINFO_VMA, %rsi
+	xor	%edx, %edx
+	mov	%rax, %rcx
+	mov	8(%rsp), %r8
 	pushq	$0x1b
 	push	%rbx
 	pushf
@@ -144,9 +148,13 @@ ASM_FUNC_BEGIN (run_signal):
 	/* Jump to signal handler */
 	sub	$16, %rsp
 	mov	%rsp, %rdi
+	lea	8(%rsp), %rsi
 	call	poll_signal_handler
-	mov	%rax, %rdi
-	mov	(%rsp), %rsi
+	mov	(%rsp), %edi
+	movabs	$SIGINFO_VMA, %rsi
+	xor	%edx, %edx
+	mov	%rax, %rcx
+	mov	8(%rsp), %r8
 	pushq	$0x1b
 	push	%rbx
 	pushf

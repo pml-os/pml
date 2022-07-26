@@ -253,7 +253,7 @@ void signal_trampoline (void) __noreturn;
 void handle_signal (int sig);
 int poll_signal (void);
 void *signal_handler (void);
-void *poll_signal_handler (sigset_t *mask);
+void *poll_signal_handler (int *sig, sigset_t *mask);
 int slow_syscall (void);
 void update_signal_mask (sigset_t mask);
 void send_signal_thread (struct thread *thread, int sig, const siginfo_t *info);

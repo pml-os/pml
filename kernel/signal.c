@@ -208,9 +208,10 @@ signal_handler (void)
  */
 
 void *
-poll_signal_handler (sigset_t *mask)
+poll_signal_handler (int *sig, sigset_t *mask)
 {
   void *addr = THIS_THREAD->handler;
+  *sig = THIS_THREAD->hsig;
   *mask = THIS_THREAD->sigblocked;
   THIS_THREAD->sigblocked |= THIS_THREAD->hmask;
   if (!(THIS_THREAD->hflags & SA_NODEFER))
@@ -448,8 +449,15 @@ sys_kill (pid_t pid, int sig)
 {
   struct process *process;
   siginfo_t info;
-  if (sig <= 0 || sig > NSIG)
+  if (sig < 0 || sig > NSIG)
     RETV_ERROR (EINVAL, -1);
+  else if (!sig)
+    {
+      if (lookup_pid (pid))
+	return 0;
+      else
+	RETV_ERROR (ESRCH, -1);
+    }
   if (pid == -1)
     {
       /* Send signal to all non-system processes */
