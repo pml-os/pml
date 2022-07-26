@@ -474,7 +474,9 @@ sys_kill (pid_t pid, int sig)
 	}
       return 0;
     }
-  else if (pid <= 0)
+  else if (!pid)
+    return sys_killpg (THIS_PROCESS->pgid, sig);
+  else if (pid < 0)
     return sys_killpg (-pid, sig);
 
   process = lookup_pid (pid);
