@@ -19,6 +19,7 @@ nodist_pmlinclude_HEADERS = \
 	interrupt.h	\
 	memory.h	\
 	serial.h	\
+	strerror.h	\
 	syscall.h	\
 	thread.h
 
@@ -63,6 +64,10 @@ pmlinclude_HEADERS =	\
 EXTRA_DIST = \
 	x86_64 $(arch_x86_64_headers) \
 	gensyscalls.py
+
+strerror.h: errno.h genstrerror.py strerror.h.in
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/genstrerror.py $(srcdir)/errno.h \
+	    $(srcdir)/strerror.h.in
 
 syscall.h: $(top_srcdir)/$(ARCH_DIR)/syscalls.lst gensyscalls.py syscall.h.in
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/gensyscalls.py \
