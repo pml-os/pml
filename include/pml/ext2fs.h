@@ -1403,6 +1403,8 @@ ssize_t ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t ext2_write (struct vnode *vp, const void *buffer, size_t len,
 		    off_t offset);
 int ext2_sync (struct vnode *vp);
+int ext2_chmod (struct vnode *vp, mode_t mode);
+int ext2_chown (struct vnode *vp, uid_t uid, gid_t gid);
 int ext2_create (struct vnode **result, struct vnode *dir, const char *name,
 		 mode_t mode, dev_t rdev);
 int ext2_mkdir (struct vnode **result, struct vnode *dir, const char *name,
@@ -1415,6 +1417,8 @@ int ext2_symlink (struct vnode *dir, const char *name, const char *target);
 off_t ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t ext2_readlink (struct vnode *vp, char *buffer, size_t len);
 int ext2_truncate (struct vnode *vp, off_t len);
+int ext2_utime (struct vnode *vp, const struct timespec *access,
+		const struct timespec *modify);
 int ext2_fill (struct vnode *vp);
 void ext2_dealloc (struct vnode *vp);
 

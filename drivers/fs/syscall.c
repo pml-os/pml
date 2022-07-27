@@ -14,8 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
-/*! @file */
-
 #include <pml/fcntl.h>
 #include <pml/syscall.h>
 #include <errno.h>
@@ -25,15 +23,25 @@
 static void sync_recurse_vnode (struct vnode *vp);
 static void unmark_sync_proc (struct vnode *vp);
 
-/*!
- * Unified function for stat(2) and lstat(2) with an additional argument
- * for whether to follow symbolic links.
- *
- * @param path the path to the file to stat
- * @param st buffer to store file information
- * @param follow_links whether to follow symbolic links
- * @return zero on success
- */
+static int
+xaccess (struct vnode *vp, int mode, int real)
+{
+  if (mode == F_OK)
+    return 0; /* The file exists at this point */
+  else if (mode == (mode & (R_OK | W_OK | X_OK)))
+    {
+      if ((mode & R_OK) && !vfs_can_read (vp, real))
+	RETV_ERROR (EACCES, -1);
+      if ((mode & W_OK)
+	  && ((vp->mount->flags & MS_RDONLY) || !vfs_can_write (vp, real)))
+	RETV_ERROR (EACCES, -1);
+      if ((mode & X_OK) && !vfs_can_exec (vp, real))
+	RETV_ERROR (EACCES, -1);
+    }
+  else
+    RETV_ERROR (EINVAL, -1);
+  return 0;
+}
 
 static int
 xstat (const char *path, struct stat *st, int follow_links)
@@ -43,6 +51,72 @@ xstat (const char *path, struct stat *st, int follow_links)
   if (!vp)
     return -1;
   ret = vfs_getattr (st, vp);
+  UNREF_OBJECT (vp);
+  return ret;
+}
+
+static int
+xrename (struct vnode *old_dir, const char *old_name, struct vnode *new_dir,
+	 const char *new_name)
+{
+  struct vnode *vp;
+  int ret = vfs_lookup (&vp, old_dir, old_name);
+  if (ret)
+    return ret;
+
+  if (vp->mount != old_dir->mount)
+    GOTO_ERROR (EBUSY, err0); /* Don't allow moving a mount point */
+  if (old_dir->mount != new_dir->mount)
+    GOTO_ERROR (EXDEV, err0); /* Don't allow renaming across filesystems */
+
+  UNREF_OBJECT (vp);
+  return vfs_rename (old_dir, old_name, new_dir, new_name);
+
+ err0:
+  UNREF_OBJECT (vp);
+  return -1;
+}
+
+static int
+xlink (struct vnode *vp, struct vnode *dir, const char *name)
+{
+  struct vnode *scratch;
+  int ret;
+  if (vp->mount != dir->mount)
+    RETV_ERROR (EXDEV, -1);
+
+  ret = vfs_lookup (&scratch, dir, name);
+  if (!ret)
+    {
+      UNREF_OBJECT (scratch);
+      RETV_ERROR (EEXIST, -1);
+    }
+  else if (errno != ENOENT)
+    RETV_ERROR (EEXIST, -1);
+
+  return vfs_link (dir, vp, name);
+}
+
+static int
+xchmod (const char *path, mode_t mode, int follow_links)
+{
+  struct vnode *vp = vnode_namei (path, follow_links ? 0 : -1);
+  int ret;
+  if (!vp)
+    return -1;
+  ret = vfs_chmod (vp, mode);
+  UNREF_OBJECT (vp);
+  return ret;
+}
+
+static int
+xchown (const char *path, uid_t uid, gid_t gid, int follow_links)
+{
+  struct vnode *vp = vnode_namei (path, follow_links ? 0 : -1);
+  int ret;
+  if (!vp)
+    return -1;
+  ret = vfs_chown (vp, uid, gid);
   UNREF_OBJECT (vp);
   return ret;
 }
@@ -116,6 +190,11 @@ sys_open (const char *path, int flags, ...)
 	  int ret;
 	  if (vnode_dir_name (path, &dir, &name))
 	    goto err1;
+	  if (dir->mount->flags & MS_RDONLY)
+	    {
+	      UNREF_OBJECT (dir);
+	      GOTO_ERROR (EROFS, err1);
+	    }
 	  if (!strcmp (name, ".") || !strcmp (name, ".."))
 	    {
 	      UNREF_OBJECT (dir);
@@ -140,6 +219,12 @@ sys_open (const char *path, int flags, ...)
       UNREF_OBJECT (vp);
       GOTO_ERROR (EEXIST, err1);
     }
+  if ((vp->mount->flags & MS_RDONLY) && (((flags & O_ACCMODE) == O_WRONLY)
+					 || ((flags & O_ACCMODE) == O_RDWR)))
+    {
+      UNREF_OBJECT (vp);
+      GOTO_ERROR (EROFS, err1);
+    }
   fill_fd (fd, sysfd, vp, flags);
   return fd;
 
@@ -151,12 +236,82 @@ sys_open (const char *path, int flags, ...)
 }
 
 int
+sys_openat (int dirfd, const char *path, int flags, ...)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  va_list args;
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  va_start (args, flags);
+  ret = sys_open (path, flags, va_arg (args, mode_t));
+  va_end (args);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
 sys_close (int fd)
 {
   if (!file_fd (fd))
     RETV_ERROR (EBADF, -1);
   free_procfd (fd);
   return 0;
+}
+
+int
+sys_access (const char *path, int mode)
+{
+  struct vnode *vp = vnode_namei (path, 0);
+  int ret;
+  if (!vp)
+    return -1;
+  ret = xaccess (vp, mode, 1);
+  UNREF_OBJECT (vp);
+  return ret;
+}
+
+int
+sys_faccessat (int dirfd, const char *path, int mode, int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  struct vnode *vp;
+  int real = !(flags & AT_EACCESS);
+  int links = -!!(flags & AT_SYMLINK_NOFOLLOW);
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  vp = vnode_namei (path, links);
+  if (!vp)
+    {
+      ret = -1;
+      goto end;
+    }
+
+  ret = xaccess (vp, mode, real);
+  UNREF_OBJECT (vp);
+
+ end:
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
 }
 
 ssize_t
@@ -238,14 +393,99 @@ sys_lstat (const char *path, struct stat *st)
 }
 
 int
+sys_mknod (const char *path, mode_t mode, dev_t dev)
+{
+  struct vnode *scratch;
+  struct vnode *dir = NULL;
+  const char *name;
+  int ret;
+  if (vnode_dir_name (path, &dir, &name))
+    return -1;
+  ret = vfs_lookup (&scratch, dir, name);
+  if (!ret)
+    {
+      ret = -1;
+      UNREF_OBJECT (scratch);
+      GOTO_ERROR (EEXIST, end);
+    }
+  else if (errno != ENOENT)
+    GOTO_ERROR (EEXIST, end);
+  ret = vfs_create (NULL, dir, name, mode, dev);
+
+ end:
+  UNREF_OBJECT (dir);
+  return ret;
+}
+
+int
+sys_mknodat (int dirfd, const char *path, mode_t mode, dev_t dev)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = sys_mknod (path, mode, dev);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
 sys_mkdir (const char *path, mode_t mode)
+{
+  struct vnode *dir = NULL;
+  const char *name;
+  int ret;
+  if (vnode_dir_name (path, &dir, &name))
+    return -1;
+  ret = vfs_mkdir (NULL, dir, name, mode);
+  UNREF_OBJECT (dir);
+  return ret;
+}
+
+int
+sys_mkdirat (int dirfd, const char *path, mode_t mode)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = sys_mkdir (path, mode);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
+sys_rmdir (const char *path)
 {
   struct vnode *dir;
   const char *name;
   int ret;
   if (vnode_dir_name (path, &dir, &name))
     return -1;
-  ret = vfs_mkdir (NULL, dir, name, mode);
+  if (!S_ISDIR (dir->mode))
+    {
+      UNREF_OBJECT (dir);
+      RETV_ERROR (ENOTDIR, -1);
+    }
+  ret = vfs_unlink (dir, name);
   UNREF_OBJECT (dir);
   return ret;
 }
@@ -257,7 +497,6 @@ sys_rename (const char *old_path, const char *new_path)
   const char *old_name;
   struct vnode *new_dir = NULL;
   const char *new_name;
-  struct vnode *vp;
   int ret;
 
   ret = vnode_dir_name (old_path, &old_dir, &old_name);
@@ -267,24 +506,61 @@ sys_rename (const char *old_path, const char *new_path)
   if (ret)
     goto end;
 
-  ret = vfs_lookup (&vp, old_dir, old_name);
-  if (ret)
-    goto end;
-
-  if (vp->mount != old_dir->mount)
-    GOTO_ERROR (EBUSY, err0); /* Don't allow moving a mount point */
-  if (old_dir->mount != new_dir->mount)
-    GOTO_ERROR (EXDEV, err0); /* Don't allow renaming across filesystems */
-
-  UNREF_OBJECT (vp);
-  ret = vfs_rename (old_dir, old_name, new_dir, new_name);
-  goto end;
-
- err0:
-  UNREF_OBJECT (vp);
+  ret = xrename (old_dir, old_name, new_dir, new_name);
  end:
   UNREF_OBJECT (old_dir);
   UNREF_OBJECT (new_dir);
+  return ret;
+}
+
+int
+sys_renameat (int old_dirfd, const char *old_path, int new_dirfd,
+	      const char *new_path)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  struct vnode *old_dir = NULL;
+  const char *old_name;
+  struct vnode *new_dir = NULL;
+  const char *new_name;
+  int unref = 0;
+  int ret;
+  if (old_dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (old_dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = vnode_dir_name (old_path, &old_dir, &old_name);
+  if (ret)
+    goto err0;
+  if (unref)
+    {
+      unref = 0;
+      UNREF_OBJECT (THIS_PROCESS->cwd);
+    }
+
+  if (new_dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (new_dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = vnode_dir_name (new_path, &new_dir, &new_name);
+  if (ret)
+    goto err1;
+
+  ret = xrename (old_dir, old_name, new_dir, new_name);
+ err1:
+  UNREF_OBJECT (new_dir);
+ err0:
+  UNREF_OBJECT (old_dir);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
   return ret;
 }
 
@@ -294,23 +570,69 @@ sys_link (const char *old_path, const char *new_path)
   struct vnode *vp = vnode_namei (old_path, 0);
   struct vnode *dir;
   const char *name;
+  int ret;
   if (!vp)
     return -1;
   if (vnode_dir_name (new_path, &dir, &name))
-    goto err0;
-  if (vp->mount != dir->mount)
-    GOTO_ERROR (EXDEV, err1);
-  if (vfs_link (dir, vp, name))
-    goto err1;
+    {
+      UNREF_OBJECT (vp);
+      return -1;
+    }
+  ret = xlink (vp, dir, name);
   UNREF_OBJECT (dir);
   UNREF_OBJECT (vp);
-  return 0;
+  return ret;
+}
 
- err1:
+int
+sys_linkat (int old_dirfd, const char *old_path, int new_dirfd,
+	    const char *new_path, int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  struct vnode *vp;
+  struct vnode *dir;
+  const char *name;
+  int links = !!(flags & AT_SYMLINK_FOLLOW) - 1;
+  int unref = 0;
+  int ret;
+  if (old_dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (old_dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  vp = vnode_namei (old_path, links);
+  if (!vp)
+    goto err0;
+  if (unref)
+    {
+      unref = 0;
+      UNREF_OBJECT (THIS_PROCESS->cwd);
+    }
+
+  if (new_dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (new_dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = vnode_dir_name (new_path, &dir, &name);
+  if (ret)
+    goto err1;
+
+  ret = xlink (vp, dir, name);
   UNREF_OBJECT (dir);
- err0:
+ err1:
   UNREF_OBJECT (vp);
-  return -1;
+ err0:
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
 }
 
 int
@@ -327,6 +649,28 @@ sys_unlink (const char *path)
 }
 
 int
+sys_unlinkat (int dirfd, const char *path, int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int (*func) (const char *) = flags & AT_REMOVEDIR ? sys_rmdir : sys_unlink;
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = func (path);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
 sys_symlink (const char *old_path, const char *new_path)
 {
   struct vnode *dir;
@@ -336,6 +680,27 @@ sys_symlink (const char *old_path, const char *new_path)
     return -1;
   ret = vfs_symlink (dir, name, old_path);
   UNREF_OBJECT (dir);
+  return ret;
+}
+
+int
+sys_symlinkat (const char *old_path, int new_dirfd, const char *new_path)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int unref = 0;
+  int ret;
+  if (new_dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (new_dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = sys_symlink (old_path, new_path);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
   return ret;
 }
 
@@ -351,6 +716,27 @@ sys_readlink (const char *path, char *buffer, size_t len)
   return ret;
 }
 
+ssize_t
+sys_readlinkat (int dirfd, const char *path, char *buffer, size_t len)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int unref = 0;
+  ssize_t ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = sys_readlink (path, buffer, len);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
 int
 sys_truncate (const char *path, off_t len)
 {
@@ -361,6 +747,15 @@ sys_truncate (const char *path, off_t len)
   ret = vfs_truncate (vp, len);
   UNREF_OBJECT (vp);
   return ret;
+}
+
+int
+sys_ftruncate (int fd, off_t len)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_truncate (file->vnode, len);
 }
 
 void
@@ -382,6 +777,125 @@ sys_fsync (int fd)
   if (!file)
     return -1;
   return vfs_sync (file->vnode);
+}
+
+int
+sys_futimens (int fd, const struct timespec times[2])
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_utime (file->vnode, times, times + 1);
+}
+
+int
+sys_utimensat (int dirfd, const char *path, const struct timespec times[2],
+	       int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  struct vnode *vp;
+  int links = -!(flags & AT_SYMLINK_NOFOLLOW);
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  vp = vnode_namei (path, links);
+  if (!vp)
+    goto end;
+
+  ret = vfs_utime (vp, times, times + 1);
+  UNREF_OBJECT (vp);
+ end:
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
+sys_chmod (const char *path, mode_t mode)
+{
+  return xchmod (path, mode, 1);
+}
+
+int
+sys_fchmod (int fd, mode_t mode)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_chmod (file->vnode, mode);
+}
+
+int
+sys_fchmodat (int dirfd, const char *path, mode_t mode, int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int links = !(flags & AT_SYMLINK_NOFOLLOW);
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = xchmod (path, mode, links);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
+sys_chown (const char *path, uid_t uid, gid_t gid)
+{
+  return xchown (path, uid, gid, 1);
+}
+
+int
+sys_fchown (int fd, uid_t uid, gid_t gid)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_chown (file->vnode, uid, gid);
+}
+
+int
+sys_lchown (const char *path, uid_t uid, gid_t gid)
+{
+  return xchown (path, uid, gid, 0);
+}
+
+int
+sys_fchownat (int dirfd, const char *path, uid_t uid, gid_t gid, int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int links = !(flags & AT_SYMLINK_NOFOLLOW);
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = xchown (path, uid, gid, links);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
 }
 
 int

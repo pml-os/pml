@@ -193,6 +193,26 @@ struct vnode_ops
   int (*sync) (struct vnode *vp);
 
   /*!
+   * Changes the permissions of a file.
+   *
+   * @param vp the vnode
+   * @param mode an integer containing the new permissions of the file in
+   * the corresponding bits
+   * @return zero on success
+   */
+  int (*chmod) (struct vnode *vp, mode_t mode);
+
+  /*!
+   * Changes the owner and/or group owner of a file.
+   *
+   * @param vp the vnode
+   * @param uid the new user ID, or -1 to leave the user owner unchanged
+   * @param gid the new group ID, or -1 to leave the group owner unchanged
+   * @return zero on success
+   */
+  int (*chown) (struct vnode *vp, uid_t uid, gid_t gid);
+
+  /*!
    * Creates a new file under a directory and allocates a vnode for it.
    * This function should not be used to create directories, use @ref mkdir
    * instead.
@@ -302,6 +322,17 @@ struct vnode_ops
   int (*truncate) (struct vnode *vp, off_t len);
 
   /*!
+   * Updates the access and modify timestamps of the file.
+   *
+   * @param vp the vnode
+   * @param access the new access time
+   * @param modify the new modify time
+   * @return zero on success
+   */
+  int (*utime) (struct vnode *vp, const struct timespec *access,
+		const struct timespec *modify);
+
+  /*!
    * Fills the fields of the @ref vnode structure by reading information from
    * the on-disk file. A vnode object passed to this function should have
    * its @ref vnode.ino member set to the inode number of the on-disk file.
@@ -385,6 +416,8 @@ ssize_t vfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset);
 ssize_t vfs_write (struct vnode *vp, const void *buffer, size_t len,
 		   off_t offset);
 int vfs_sync (struct vnode *vp);
+int vfs_chmod (struct vnode *vp, mode_t mode);
+int vfs_chown (struct vnode *vp, uid_t uid, gid_t gid);
 int vfs_create (struct vnode **result, struct vnode *dir, const char *name,
 		mode_t mode, dev_t rdev);
 int vfs_mkdir (struct vnode **result, struct vnode *dir, const char *name,
@@ -397,6 +430,8 @@ int vfs_symlink (struct vnode *dir, const char *name, const char *target);
 off_t vfs_readdir (struct vnode *dir, struct dirent *dirent, off_t offset);
 ssize_t vfs_readlink (struct vnode *vp, char *buffer, size_t len);
 int vfs_truncate (struct vnode *vp, off_t len);
+int vfs_utime (struct vnode *vp, const struct timespec *access,
+	       const struct timespec *modify);
 int vfs_fill (struct vnode *vp);
 void vfs_dealloc (struct vnode *vp);
 

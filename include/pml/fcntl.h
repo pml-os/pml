@@ -37,6 +37,17 @@
 #define O_NOFOLLOW              (1 << 10)
 #define O_DIRECTORY             (1 << 11)
 
+#define X_OK                    (1 << 0)
+#define W_OK                    (1 << 1)
+#define R_OK                    (1 << 2)
+#define F_OK                    (1 << 3)
+
+#define AT_FDCWD                (-2)
+#define AT_SYMLINK_FOLLOW       (1 << 0)
+#define AT_SYMLINK_NOFOLLOW     (1 << 1)
+#define AT_EACCESS              (1 << 2)
+#define AT_REMOVEDIR            (1 << 3)
+
 #define SEEK_SET                0
 #define SEEK_CUR                1
 #define SEEK_END                2

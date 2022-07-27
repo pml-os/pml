@@ -144,6 +144,83 @@ vfs_sync (struct vnode *vp)
 }
 
 /*!
+ * Changes the permissions of a file.
+ *
+ * @param vp the vnode
+ * @param mode an integer containing the new permissions of the file in
+ * the corresponding bits
+ * @return zero on success
+ */
+
+int
+vfs_chmod (struct vnode *vp, mode_t mode)
+{
+  int matches_gid = 0;
+  if (THIS_PROCESS->euid && THIS_PROCESS->euid != vp->uid)
+    RETV_ERROR (EPERM, -1);
+  if (THIS_PROCESS->egid == vp->gid)
+    matches_gid = 1;
+  else
+    {
+      size_t i;
+      for (i = 0; i < THIS_PROCESS->nsup_gids; i++)
+	{
+	  if (THIS_PROCESS->sup_gids[i] == vp->gid)
+	    {
+	      matches_gid = 1;
+	      break;
+	    }
+	}
+    }
+  mode &= 07777;
+  if (!matches_gid)
+    mode &= ~S_ISGID;
+  if (vp->ops->chmod)
+    return vp->ops->chmod (vp, mode);
+  else
+    RETV_ERROR (ENOTSUP, -1);
+}
+
+/*!
+ * Changes the owner and/or group owner of a file.
+ *
+ * @param vp the vnode
+ * @param uid the new user ID, or -1 to leave the user owner unchanged
+ * @param gid the new group ID, or -1 to leave the group owner unchanged
+ * @return zero on success
+ */
+
+int
+vfs_chown (struct vnode *vp, uid_t uid, gid_t gid)
+{
+  if (uid != (uid_t) -1 && THIS_PROCESS->euid && THIS_PROCESS->euid != uid)
+    RETV_ERROR (EPERM, -1);
+  if (gid != (gid_t) -1 && THIS_PROCESS->euid)
+    {
+      size_t i;
+      for (i = 0; i < THIS_PROCESS->nsup_gids; i++)
+	{
+	  if (THIS_PROCESS->sup_gids[i] == gid)
+	    goto found;
+	}
+      RETV_ERROR (EPERM, -1);
+    }
+ found:
+  if (vp->ops->chown)
+    {
+      mode_t mode = vp->mode;
+      int ret;
+      vp->mode &= ~(S_ISUID | S_ISGID);
+      ret = vp->ops->chown (vp, uid, gid);
+      if (ret)
+	vp->mode = mode;
+      return ret;
+    }
+  else
+    RETV_ERROR (ENOTSUP, -1);
+}
+
+/*!
  * Creates a new file under a directory and allocates a vnode for it.
  * This function should not be used to create directories, use vfs_mkdir()
  * instead.
@@ -254,8 +331,6 @@ vfs_unlink (struct vnode *dir, const char *name)
 {
   if (!vfs_can_write (dir, 0))
     return -1;
-  if (!S_ISDIR (dir->mode))
-    RETV_ERROR (ENOTDIR, -1);
   if (dir->ops->unlink)
     return dir->ops->unlink (dir, name);
   else
@@ -358,6 +433,28 @@ vfs_truncate (struct vnode *vp, off_t len)
     RETV_ERROR (EINVAL, -1);
   if (vp->ops->truncate)
     return vp->ops->truncate (vp, len);
+  else
+    RETV_ERROR (ENOTSUP, -1);
+}
+
+/*!
+ * Updates the access and modify timestamps of the file.
+ *
+ * @param vp the vnode
+ * @param access the new access time
+ * @param modify the new modify time
+ * @return zero on success
+ */
+
+int
+vfs_utime (struct vnode *vp, const struct timespec *access,
+	   const struct timespec *modify)
+{
+  if (!vfs_can_write (vp, 0) && THIS_PROCESS->euid
+      && THIS_PROCESS->euid != vp->uid)
+    return -1;
+  if (vp->ops->utime)
+    return vp->ops->utime (vp, access, modify);
   else
     RETV_ERROR (ENOTSUP, -1);
 }

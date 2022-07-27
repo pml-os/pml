@@ -106,8 +106,17 @@ params = mode_t mask
 [open]
 params = const char *path, int flags, ...
 
+[openat]
+params = int dirfd, const char *path, int flags, ...
+
 [close]
 params = int fd
+
+[access]
+params = const char *path, int mode
+
+[faccessat]
+params = int dirfd, const char *path, int mode, int flags
 
 [read]
 return_type = ssize_t
@@ -130,33 +139,93 @@ params = int fd, struct stat *st
 [lstat]
 params = const char *path, struct stat *st
 
+[mknod]
+params = const char *path, mode_t mode, dev_t dev
+
+[mknodat]
+params = int dirfd, const char *path, mode_t mode, dev_t dev
+
 [mkdir]
 params = const char *path, mode_t mode
+
+[mkdirat]
+params = int dirfd, const char *path, mode_t mode
+
+[rmdir]
+params = const char *path
 
 [rename]
 params = const char *old_path, const char *new_path
 
+[renameat]
+params = int old_dirfd, const char *old_path, int new_dirfd,
+       	 const char *new_path
+
 [link]
 params = const char *old_path, const char *new_path
+
+[linkat]
+params = int old_dirfd, const char *old_path, int new_dirfd,
+       	 const char *new_path, int flags
 
 [unlink]
 params = const char *path
 
+[unlinkat]
+params = int dirfd, const char *path, int flags
+
 [symlink]
 params = const char *old_path, const char *new_path
+
+[symlinkat]
+params = const char *old_path, int new_dirfd, const char *new_path
 
 [readlink]
 return_type = ssize_t
 params = const char *path, char *buffer, size_t len
 
+[readlinkat]
+return_type = ssize_t
+params = int dirfd, const char *path, char *buffer, size_t len
+
 [truncate]
 params = const char *path, off_t len
+
+[ftruncate]
+params = int fd, off_t len
 
 [sync]
 return_type = void
 
 [fsync]
 params = int fd
+
+[futimens]
+params = int fd, const struct timespec times[2]
+
+[utimensat]
+params = int dirfd, const char *path, const struct timespec times[2], int flags
+
+[chmod]
+params = const char *path, mode_t mode
+
+[fchmod]
+params = int fd, mode_t mode
+
+[fchmodat]
+params = int dirfd, const char *path, mode_t mode, int flags
+
+[chown]
+params = const char *path, uid_t uid, gid_t gid
+
+[fchown]
+params = int fd, uid_t uid, gid_t gid
+
+[lchown]
+params = const char *path, uid_t uid, gid_t gid
+
+[fchownat]
+params = int dirfd, const char *path, uid_t uid, gid_t gid, int flags
 
 [chdir]
 params = const char *path

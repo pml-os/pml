@@ -34,6 +34,8 @@ const struct vnode_ops ext2_vnode_ops = {
   .read = ext2_read,
   .write = ext2_write,
   .sync = ext2_sync,
+  .chmod = ext2_chmod,
+  .chown = ext2_chown,
   .create = ext2_create,
   .mkdir = ext2_mkdir,
   .rename = ext2_rename,
@@ -43,6 +45,7 @@ const struct vnode_ops ext2_vnode_ops = {
   .readdir = ext2_readdir,
   .readlink = ext2_readlink,
   .truncate = ext2_truncate,
+  .utime = ext2_utime,
   .fill = ext2_fill,
   .dealloc = ext2_dealloc
 };
@@ -197,6 +200,44 @@ ext2_sync (struct vnode *vp)
     return ret;
   return ext2_update_inode (fs, file->ino, &file->inode,
 			    sizeof (struct ext2_inode));
+}
+
+int
+ext2_chmod (struct vnode *vp, mode_t mode)
+{
+  struct ext2_fs *fs = vp->mount->data;
+  struct ext2_file *file = vp->data;
+  int ret;
+  mode_t old = vp->mode;
+  mode = (vp->mode & S_IFMT) | mode;
+  vp->mode = file->inode.i_mode = mode;
+  ret = ext2_update_inode (fs, file->ino, &file->inode,
+			   sizeof (struct ext2_inode));
+  if (ret)
+    vp->mode = file->inode.i_mode = old;
+  return ret;
+}
+
+int
+ext2_chown (struct vnode *vp, uid_t uid, gid_t gid)
+{
+  struct ext2_fs *fs = vp->mount->data;
+  struct ext2_file *file = vp->data;
+  int ret;
+  uid_t old_uid = vp->uid;
+  gid_t old_gid = vp->gid;
+  if (uid != (uid_t) -1)
+    vp->uid = file->inode.i_uid = uid;
+  if (gid != (gid_t) -1)
+    vp->gid = file->inode.i_gid = gid;
+  ret = ext2_update_inode (fs, file->ino, &file->inode,
+			   sizeof (struct ext2_inode));
+  if (ret)
+    {
+      vp->uid = file->inode.i_uid = old_uid;
+      vp->gid = file->inode.i_gid = old_gid;
+    }
+  return ret;
 }
 
 int
@@ -509,6 +550,31 @@ ext2_truncate (struct vnode *vp, off_t len)
     return ret;
   vp->size = len;
   return 0;
+}
+
+int
+ext2_utime (struct vnode *vp, const struct timespec *access,
+	    const struct timespec *modify)
+{
+  struct ext2_fs *fs = vp->mount->data;
+  struct ext2_file *file = vp->data;
+  struct timespec old_atime = vp->atime;
+  struct timespec old_mtime = vp->mtime;
+  int ret;
+  vp->atime = *access;
+  vp->mtime = *modify;
+  file->inode.i_atime = access->tv_sec;
+  file->inode.i_mtime = modify->tv_sec;
+  ret = ext2_update_inode (fs, file->ino, &file->inode,
+			   sizeof (struct ext2_inode));
+  if (ret)
+    {
+      vp->atime = old_atime;
+      vp->mtime = old_mtime;
+      file->inode.i_atime = vp->atime.tv_sec;
+      file->inode.i_mtime = vp->mtime.tv_sec;
+    }
+  return ret;
 }
 
 int

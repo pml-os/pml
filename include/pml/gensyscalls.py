@@ -16,7 +16,7 @@ protos = ''
 number = 0
 for syscall in config.sections():
     return_type = config[syscall]['return_type']
-    params = config[syscall]['params']
+    params = config[syscall]['params'].replace('\n', ' ')
     if config[syscall]['attr']:
         attr = ' ' + config[syscall]['attr']
     else:
