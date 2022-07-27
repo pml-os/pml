@@ -45,6 +45,7 @@ pmlinclude_HEADERS =	\
 	mman.h		\
 	object.h	\
 	panic.h		\
+	path.h		\
 	pci.h		\
 	pit.h		\
 	process.h	\

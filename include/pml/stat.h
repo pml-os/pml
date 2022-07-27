@@ -55,6 +55,7 @@
 #define S_ISUID               04000     /*!< Change user ID to owner */
 #define S_ISGID               02000     /*!< Change group ID to owner */
 #define S_ISVTX               01000     /*!< Sticky bit */
+#define S_ISTXT               S_ISVTX
 
 #define S_ISBLK(x)            (((x) & S_IFMT) == S_IFBLK)
 #define S_ISCHR(x)            (((x) & S_IFMT) == S_IFCHR)

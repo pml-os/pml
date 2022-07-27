@@ -159,6 +159,12 @@ unmark_sync_proc (struct vnode *vp)
   strmap_iterate (vp->children, unmark_children, vp->mount);
 }
 
+int
+sys_chroot (const char *path)
+{
+  RETV_ERROR (ENOTSUP, -1);
+}
+
 mode_t
 sys_umask (mode_t mode)
 {
@@ -399,6 +405,14 @@ sys_mknod (const char *path, mode_t mode, dev_t dev)
   struct vnode *dir = NULL;
   const char *name;
   int ret;
+  if (!S_ISREG (mode)
+      && !S_ISBLK (mode)
+      && !S_ISCHR (mode)
+      && !S_ISSOCK (mode)
+      && !S_ISFIFO (mode))
+    RETV_ERROR (EINVAL, -1);
+  else if ((S_ISBLK (mode) || S_ISCHR (mode)) && THIS_PROCESS->euid)
+    RETV_ERROR (EPERM, -1);
   if (vnode_dir_name (path, &dir, &name))
     return -1;
   ret = vfs_lookup (&scratch, dir, name);

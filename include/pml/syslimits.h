@@ -138,4 +138,8 @@
 
 #define FILESIZEBITS                        64
 
+#ifndef SSIZE_MAX
+#define SSIZE_MAX                           LONG_MAX
+#endif
+
 #endif

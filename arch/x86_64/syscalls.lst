@@ -99,6 +99,9 @@ params = void *addr
 return_type = void *
 params = ptrdiff_t incr
 
+[chroot]
+params = const char *path
+
 [umask]
 return_type = mode_t
 params = mode_t mask
