@@ -302,4 +302,10 @@ params = const char *name, size_t len
 [uname]
 params = struct utsname *buffer
 
+[gettimeofday]
+params = struct timeval *tv, struct timezone *tz
+
+[settimeofday]
+params = const struct timeval *tv, const struct timezone *tz
+
 # End of system calls list

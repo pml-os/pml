@@ -15,6 +15,7 @@
    along with PML. If not, see <https://www.gnu.org/licenses/>. */
 
 #include <pml/hpet.h>
+#include <errno.h>
 #include <stdlib.h>
 
 time_t real_time;
@@ -26,4 +27,28 @@ time (time_t *t)
   if (t)
     *t = tt;
   return tt;
+}
+
+int
+sys_gettimeofday (struct timeval *tv, struct timezone *tz)
+{
+  clock_t us = hpet_nanotime () / 1000;
+  if (!tv)
+    return 0;
+  tv->tv_sec = real_time + us / 1000000;
+  tv->tv_usec = us % 1000000;
+  return 0;
+}
+
+int
+sys_settimeofday (const struct timeval *tv, const struct timezone *tz)
+{
+  if (THIS_PROCESS->euid)
+    RETV_ERROR (EPERM, -1);
+  if (!tv)
+    return 0;
+  if (tv->tv_sec < 0 || tv->tv_usec < 0 || tv->tv_usec >= 1000000)
+    RETV_ERROR (EINVAL, -1);
+  real_time = tv->tv_sec - hpet_nanotime () / 1000000000;
+  return 0;
 }

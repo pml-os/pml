@@ -40,4 +40,12 @@ struct timeval
   suseconds_t tv_usec;          /*!< Additional microseconds elapsed */
 };
 
+/*! Represents a timezone. */
+
+struct timezone
+{
+  int tz_minuteswest;           /*!< Minutes west of Greenwich */
+  int tz_dsttime;               /*!< Type of DST correction */
+};
+
 #endif
