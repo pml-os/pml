@@ -450,9 +450,45 @@ int
 vfs_utime (struct vnode *vp, const struct timespec *access,
 	   const struct timespec *modify)
 {
-  if (!vfs_can_write (vp, 0) && THIS_PROCESS->euid
-      && THIS_PROCESS->euid != vp->uid)
-    return -1;
+  struct timespec actime;
+  struct timespec modtime;
+  if (!access || (access->tv_nsec == UTIME_NOW && modify->tv_nsec == UTIME_NOW))
+    {
+      if (!vfs_can_write (vp, 0) && THIS_PROCESS->euid
+	  && THIS_PROCESS->euid != vp->uid)
+	RETV_ERROR (EACCES, -1);
+      actime.tv_sec = modtime.tv_sec = time (NULL);
+      actime.tv_nsec = modtime.tv_nsec = 0;
+      access = &actime;
+      modify = &modtime;
+    }
+  else if (access->tv_nsec != UTIME_OMIT && modify->tv_nsec != UTIME_OMIT)
+    {
+      if (THIS_PROCESS->euid && THIS_PROCESS->euid != vp->uid)
+	RETV_ERROR (EPERM, -1);
+    }
+  switch (access->tv_nsec)
+    {
+    case UTIME_NOW:
+      actime.tv_sec = time (NULL);
+      actime.tv_nsec = 0;
+      access = &actime;
+      break;
+    case UTIME_OMIT:
+      access = NULL;
+      break;
+    }
+  switch (modify->tv_nsec)
+    {
+    case UTIME_NOW:
+      modtime.tv_sec = time (NULL);
+      modtime.tv_nsec = 0;
+      modify = &modtime;
+      break;
+    case UTIME_OMIT:
+      modify = NULL;
+      break;
+    }
   if (vp->ops->utime)
     return vp->ops->utime (vp, access, modify);
   else

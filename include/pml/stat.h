@@ -64,6 +64,9 @@
 #define S_ISLNK(x)            (((x) & S_IFMT) == S_IFLNK)
 #define S_ISSOCK(x)           (((x) & S_IFMT) == S_IFSOCK)
 
+#define UTIME_NOW             1000000000
+#define UTIME_OMIT            1000000001
+
 struct stat
 {
   mode_t st_mode;               /*!< File type and permissions */

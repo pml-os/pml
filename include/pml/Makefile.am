@@ -51,6 +51,7 @@ pmlinclude_HEADERS =	\
 	resource.h	\
 	signal.h	\
 	stat.h		\
+	sysconf.h	\
 	syslimits.h	\
 	termios.h	\
 	time.h		\

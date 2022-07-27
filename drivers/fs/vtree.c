@@ -89,7 +89,7 @@ vnode_namei (const char *path, int link_count)
   char *end;
   if (UNLIKELY (!p))
     return NULL;
-  if (link_count >= LINK_MAX)
+  if (link_count >= SYMLOOP_MAX)
     RETV_ERROR (ELOOP, NULL);
   if (*ptr == '/')
     {

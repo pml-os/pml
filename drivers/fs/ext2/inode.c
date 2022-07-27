@@ -561,10 +561,16 @@ ext2_utime (struct vnode *vp, const struct timespec *access,
   struct timespec old_atime = vp->atime;
   struct timespec old_mtime = vp->mtime;
   int ret;
-  vp->atime = *access;
-  vp->mtime = *modify;
-  file->inode.i_atime = access->tv_sec;
-  file->inode.i_mtime = modify->tv_sec;
+  if (access)
+    {
+      vp->atime = *access;
+      file->inode.i_atime = access->tv_sec;
+    }
+  if (modify)
+    {
+      vp->mtime = *modify;
+      file->inode.i_mtime = modify->tv_sec;
+    }
   ret = ext2_update_inode (fs, file->ino, &file->inode,
 			   sizeof (struct ext2_inode));
   if (ret)
