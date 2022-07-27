@@ -526,8 +526,8 @@ vm_init (void)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
   kernel_stack_pdt[511] = ((uintptr_t) kernel_stack_pt - KERNEL_VMA)
     | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
-  for (i = 0; i < 4; i++)
-    kernel_stack_pt[i + 508] =
+  for (i = 0; i < 256; i++)
+    kernel_stack_pt[i + 256] =
       ((uintptr_t) &boot_stack + i * PAGE_SIZE - KERNEL_VMA)
       | PAGE_FLAG_PRESENT | PAGE_FLAG_RW | PAGE_FLAG_USER;
 

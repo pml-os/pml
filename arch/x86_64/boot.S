@@ -202,5 +202,5 @@ ASM_FUNC_END (high_start)
 	.align PAGE_SIZE
 	.global boot_stack
 boot_stack:
-	.skip 16384
+	.skip 0x100000
 boot_stack_top:

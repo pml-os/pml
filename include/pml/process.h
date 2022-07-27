@@ -33,7 +33,7 @@
 /*! Default maximum size of process data segment */
 #define DATA_SEGMENT_MAX        0x10000000000
 /*! Size of per-process kernel-mode stack */
-#define KERNEL_STACK_SIZE       16384
+#define KERNEL_STACK_SIZE       0x100000
 
 /*! Expands to a pointer to the currently running process */
 #define THIS_PROCESS (process_queue.queue[process_queue.front])
