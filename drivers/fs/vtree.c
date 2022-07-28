@@ -70,6 +70,20 @@ vnode_lookup_child (struct vnode *dir, const char *name)
 }
 
 /*!
+ * Removes a vnode as a child of a parent vnode.
+ *
+ * @param dir the parent vnode
+ * @param name name of the entry of the child vnode
+ */
+
+void
+vnode_remove_child (struct vnode *dir, const char *name)
+{
+  /* XXX Unref vnode? */
+  strmap_remove (dir->children, name);
+}
+
+/*!
  * Resolves a path to a vnode. The returned object should be passed to
  * UNREF_OBJECT() when no longer needed.
  *

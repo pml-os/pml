@@ -399,7 +399,8 @@ ext2_link (struct vnode *dir, struct vnode *vp, const char *name)
     return ret;
   vp->nlink++;
   file->inode.i_links_count++;
-  return 0;
+  return ext2_update_inode (dir->mount->data, file->ino, &file->inode,
+			    sizeof (struct ext2_inode));
 }
 
 int

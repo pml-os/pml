@@ -460,10 +460,10 @@ strmap_remove (struct strmap *strmap, const char *key)
 		prev->next = bucket->next;
 	      else
 		strmap->buckets[i] = bucket->next;
+	      free (bucket->key);
+	      free (bucket);
 	      return 0;
 	    }
-	  free (bucket->key);
-	  free (bucket);
 	  prev = bucket;
 	}
     }

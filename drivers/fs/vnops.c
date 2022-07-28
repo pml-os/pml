@@ -291,7 +291,13 @@ vfs_rename (struct vnode *olddir, const char *oldname, struct vnode *newdir,
   if (!vfs_can_write (olddir, 0) || !vfs_can_write (newdir, 0))
     return -1;
   if (olddir->ops->rename)
-    return olddir->ops->rename (olddir, oldname, newdir, newname);
+    {
+      int ret = olddir->ops->rename (olddir, oldname, newdir, newname);
+      if (ret)
+	return ret;
+      vnode_remove_child (olddir, oldname);
+      return 0;
+    }
   else
     RETV_ERROR (ENOTSUP, -1);
 }
@@ -332,7 +338,13 @@ vfs_unlink (struct vnode *dir, const char *name)
   if (!vfs_can_write (dir, 0))
     return -1;
   if (dir->ops->unlink)
-    return dir->ops->unlink (dir, name);
+    {
+      int ret = dir->ops->unlink (dir, name);
+      if (ret)
+	return ret;
+      vnode_remove_child (dir, name);
+      return 0;
+    }
   else
     RETV_ERROR (ENOTSUP, -1);
 }

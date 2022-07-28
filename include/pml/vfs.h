@@ -460,6 +460,7 @@ void vnode_place_cache (struct vnode *vp);
 struct vnode *vnode_lookup_cache (struct mount *mp, ino_t ino);
 void vnode_remove_cache (struct vnode *vp);
 struct vnode *vnode_lookup_child (struct vnode *dir, const char *name);
+void vnode_remove_child (struct vnode *dir, const char *name);
 struct vnode *vnode_namei (const char *path, int link_count);
 int vnode_dir_name (const char *path, struct vnode **dir, const char **name);
 struct vnode *vnode_find_mount_point (struct vnode *vp, const char *name);
