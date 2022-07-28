@@ -31,35 +31,7 @@
 
 #include <pml/ata.h>
 #include <pml/map.h>
-
-/*!
- * Creates a single value representing a device's major and minor numbers.
- *
- * @param major major number of device
- * @param minor minor number of device
- * @return device number as a @ref dev_t value
- */
-
-#define makedev(major, minor)					\
-  ((dev_t) ((((major) & 0xffff) << 16) | ((minor) & 0xffff)))
-
-/*!
- * Determines the major number of a device ID.
- *
- * @param dev the device ID
- * @return the major number
- */
-
-#define major(dev) (((dev) >> 16) & 0xffff)
-
-/*!
- * Determines the minor number of a device ID.
- *
- * @param dev the device ID
- * @return the minor number
- */
-
-#define minor(dev) ((dev) & 0xffff)
+#include <pml/sysmacros.h>
 
 #define MBR_MAGIC               0xaa55  /*!< Magic number of MBR */
 
