@@ -18,21 +18,29 @@
 #include <pml/memory.h>
 
 	.macro chkerr
+	movabs	$syscall_error_ok, %rcx
+	mov	(%rcx), %ebx
+	test	%ebx, %ebx
+	jz	1f
+	movl	$0, (%rcx)
+	jmp	3f
+
+1:
 	/* Check for an error. Since the function could return either
 	   a 32-bit or 64-bit version of -1 for an error, check both. */
 	cmp	$-1, %rax
-	je	1f
+	je	2f
 	mov	%rax, %r10
 	shr	$32, %r10
 	test	%r10d, %r10d
-	jnz	2f
+	jnz	3f
 	cmp	$-1, %eax
-	jne	2f
+	jne	3f
 
-1:
+2:
 	or	$0x0001, %r11
 	mov	%r12d, %eax
-2:
+3:
 	pop	%r12
 	.endm
 

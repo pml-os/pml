@@ -20,6 +20,15 @@
 #include <pml/syscall.h>
 
 /*!
+ * This value is nonzero if -1 should be considered as a successful return
+ * value. Most system calls return -1 on failure, however some can also
+ * return -1 on success. This value instructs the system call handler
+ * to not treat the return value as an error in those cases.
+ */
+
+int syscall_error_ok;
+
+/*!
  * Initializes system calls by setting the values of the appropriate MSRs.
  */
 

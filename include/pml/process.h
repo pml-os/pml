@@ -61,6 +61,13 @@
 #define SLOW_SYSCALL_END        (THIS_THREAD->slow_syscall = 0)
 
 /*!
+ * Marks the beginning of a region where a return value of -1 from a system
+ * call should be considered as successful.
+ */
+
+#define SYSCALL_ERROR_OK        (syscall_error_ok = 1)
+
+/*!
  * Represents an entry in the system file descriptor table. This structure
  * stores the underlying vnode corresponding to an open file as well as other
  * info exposed through the syscall API like file offsets, access mode, etc.
@@ -219,6 +226,7 @@ __BEGIN_DECLS
 extern struct process_queue process_queue;
 extern lock_t thread_switch_lock;
 extern struct fd *system_fd_table;
+extern int syscall_error_ok;
 
 void init_pid_allocator (void);
 pid_t alloc_pid (void);

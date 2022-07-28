@@ -11,6 +11,12 @@ return_type = pid_t
 [vfork]
 return_type = pid_t
 
+[getpriority]
+params = int which, id_t who
+
+[setpriority]
+params = int which, id_t who, int prio
+
 [clone]
 return_type = pid_t
 params = int (*func) (void *), void *arg
