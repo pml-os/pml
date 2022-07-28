@@ -16,6 +16,8 @@
 
 /*! @file */
 
+#include <pml/hpet.h>
+#include <pml/random.h>
 #include <pml/kbd.h>
 #include <stdio.h>
 
@@ -52,9 +54,17 @@ static unsigned char kbd_pressed[128];
 /*! Set if the 0xe0 scancode was just read */
 static int key_extended;
 
+/*! Timestamp of the last key pressed, used to add entropy */
+static clock_t last_key;
+
 void
 kbd_recv_key (int scancode)
 {
+  clock_t ticks = hpet_nanotime ();
+  clock_t data = ticks - last_key;
+  add_entropy (&data, sizeof (clock_t));
+  last_key = ticks;
+
   if (key_extended)
     {
       /* Currently we ignore all extended scancodes */

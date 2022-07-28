@@ -13,6 +13,7 @@ libdrivers_a_SOURCES =	\
 	pcspk.c		\
 	pit.c		\
 	ps2kbd.c	\
+	random.c	\
 	tty.c		\
 	ttydev.c	\
 	vgatext.c

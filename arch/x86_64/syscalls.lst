@@ -161,6 +161,9 @@ params = int fd, struct stat *st
 [lstat]
 params = const char *path, struct stat *st
 
+[fstatat]
+params = int dirfd, const char *path, struct stat *st, int flags
+
 [mknod]
 params = const char *path, mode_t mode, dev_t dev
 
@@ -326,5 +329,9 @@ params = struct timeval *tv, struct timezone *tz
 
 [settimeofday]
 params = const struct timeval *tv, const struct timezone *tz
+
+[getrandom]
+return_type = ssize_t
+params = void *buffer, size_t len, unsigned int flags
 
 # End of system calls list

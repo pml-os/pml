@@ -456,6 +456,28 @@ sys_lstat (const char *path, struct stat *st)
 }
 
 int
+sys_fstatat (int dirfd, const char *path, struct stat *st, int flags)
+{
+  struct vnode *cwd = THIS_PROCESS->cwd;
+  int links = !(flags & AT_SYMLINK_NOFOLLOW);
+  int unref = 0;
+  int ret;
+  if (dirfd != AT_FDCWD)
+    {
+      struct fd *file = file_fd (dirfd);
+      if (!file)
+	return -1;
+      REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
+      unref = 1;
+    }
+  ret = xstat (path, st, links);
+  if (unref)
+    UNREF_OBJECT (THIS_PROCESS->cwd);
+  THIS_PROCESS->cwd = cwd;
+  return ret;
+}
+
+int
 sys_mknod (const char *path, mode_t mode, dev_t dev)
 {
   struct vnode *scratch;

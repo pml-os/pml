@@ -18,6 +18,7 @@
 
 #include <pml/device.h>
 #include <pml/panic.h>
+#include <pml/random.h>
 #include <pml/syscall.h>
 #include <pml/tty.h>
 #include <pml/vfs.h>
@@ -111,6 +112,7 @@ kentry (void)
   tty_device_init ();
   mount_root ();
   init_pid_allocator ();
+  random_init ();
   sched_yield ();
 
   splash ();

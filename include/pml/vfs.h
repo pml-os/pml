@@ -28,6 +28,7 @@
 #include <pml/fcntl.h>
 #include <pml/object.h>
 #include <pml/map.h>
+#include <pml/mount.h>
 #include <pml/stat.h>
 #include <pml/statvfs.h>
 
@@ -41,10 +42,6 @@
 
 #define VN_FLAG_NO_BLOCK        (1 << 0)    /*!< Prevent I/O from blocking */
 #define VN_FLAG_SYNC_PROC       (1 << 1)    /*!< Already processed by sync */
-
-/* Mount flags */
-
-#define MS_RDONLY               (1 << 0)    /*!< Filesystem is read-only */
 
 /*! Represents a block number in a filesystem. */
 typedef unsigned long block_t;

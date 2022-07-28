@@ -43,12 +43,14 @@ pmlinclude_HEADERS =	\
 	lock.h		\
 	map.h		\
 	mman.h		\
+	mount.h		\
 	object.h	\
 	panic.h		\
 	path.h		\
 	pci.h		\
 	pit.h		\
 	process.h	\
+	random.h	\
 	resource.h	\
 	signal.h	\
 	stat.h		\
