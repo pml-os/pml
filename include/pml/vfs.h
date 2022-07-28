@@ -29,6 +29,7 @@
 #include <pml/object.h>
 #include <pml/map.h>
 #include <pml/stat.h>
+#include <pml/statvfs.h>
 
 /*! Constant with all permission bits set */
 #define FULL_PERM               (S_IRWXU | S_IRWXG | S_IRWXO)
@@ -75,10 +76,10 @@ struct mount_ops
    * is called when a filesystem is mounted.
    *
    * @param mp the mount structure
-   * @param flags mount options
+   * @param data user-specified data
    * @param zero on success
    */
-  int (*mount) (struct mount *mp, unsigned int flags);
+  int (*mount) (struct mount *mp, const void *data);
 
   /*!
    * Performs any deallocation needed by a filesystem backend when unmounting
@@ -105,6 +106,15 @@ struct mount_ops
    * @param mp the mount structure
    */
   void (*flush) (struct mount *mp);
+
+  /*!
+   * Obtains information about the mounted filesystem.
+   *
+   * @param mp the mount structure
+   * @param st the statvfs structure
+   * @return zero on success
+   */
+  int (*statvfs) (struct mount *mp, struct statvfs *st);
 };
 
 /*!
@@ -406,9 +416,10 @@ int vfs_can_write (struct vnode *vp, int real);
 int vfs_can_exec (struct vnode *vp, int real);
 int vfs_can_seek (struct vnode *vp);
 
-int vfs_mount (struct mount *mp, unsigned int flags);
+int vfs_mount (struct mount *mp, const void *data);
 int vfs_unmount (struct mount *mp, unsigned int flags);
 void vfs_flush (struct mount *mp);
+int vfs_statvfs (struct mount *mp, struct statvfs *st);
 
 int vfs_lookup (struct vnode **result, struct vnode *dir, const char *name);
 int vfs_getattr (struct stat *stat, struct vnode *vp);
@@ -440,7 +451,9 @@ void mount_root (void);
 int register_filesystem (const char *name, const struct mount_ops *ops);
 struct mount *mount_filesystem (const char *type, dev_t device,
 				unsigned int flags, struct vnode *parent,
-				const char *name);
+				const char *name, const void *data);
+void clear_mount (struct mount *mp);
+int unmount_filesystem (struct mount *mp, unsigned int flags);
 const char *guess_filesystem_type (struct vnode *vp);
 
 struct vnode *vnode_alloc (void);

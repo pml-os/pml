@@ -160,6 +160,63 @@ unmark_sync_proc (struct vnode *vp)
 }
 
 int
+sys_mount (const char *source, const char *target, const char *fstype,
+	   unsigned long flags, const void *data)
+{
+  struct vnode *vp;
+  struct vnode *parent;
+  const char *name;
+  if (vnode_dir_name (target, &parent, &name))
+    return -1;
+  vp = vnode_namei (source, -1);
+  if (!vp)
+    goto err0;
+  if (vp->mount != devfs || (!S_ISBLK (vp->mode) && !S_ISCHR (vp->mode)))
+    goto err1;
+  if (!mount_filesystem (fstype, vp->rdev, flags, parent, name, data))
+    return 0;
+
+ err1:
+  UNREF_OBJECT (vp);
+ err0:
+  UNREF_OBJECT (parent);
+  return -1;
+}
+
+int
+sys_umount (const char *target)
+{
+  struct vnode *vp = vnode_namei (target, -1);
+  int ret;
+  if (!vp)
+    return -1;
+  ret = unmount_filesystem (vp->mount, 0);
+  UNREF_OBJECT (vp);
+  return ret;
+}
+
+int
+sys_statvfs (const char *path, struct statvfs *st)
+{
+  struct vnode *vp = vnode_namei (path, 0);
+  int ret;
+  if (!vp)
+    return -1;
+  ret = vfs_statvfs (vp->mount, st);
+  UNREF_OBJECT (vp);
+  return ret;
+}
+
+int
+sys_fstatvfs (int fd, struct statvfs *st)
+{
+  struct fd *file = file_fd (fd);
+  if (!file)
+    return -1;
+  return vfs_statvfs (file->vnode->mount, st);
+}
+
+int
 sys_chroot (const char *path)
 {
   RETV_ERROR (ENOTSUP, -1);

@@ -44,7 +44,7 @@ const struct vnode_ops devfs_vnode_ops = {
 };
 
 int
-devfs_mount (struct mount *mp, unsigned int flags)
+devfs_mount (struct mount *mp, const void *data)
 {
   mp->root_vnode = vnode_alloc ();
   if (UNLIKELY (!mp->root_vnode))

@@ -1393,10 +1393,11 @@ void ext3_extent_free (struct ext3_extent_handle *handle);
 
 /* VFS layer functions */
 
-int ext2_mount (struct mount *mp, unsigned int flags);
+int ext2_mount (struct mount *mp, const void *data);
 int ext2_unmount (struct mount *mp, unsigned int flags);
 int ext2_check (struct vnode *vp);
 void ext2_flush (struct mount *mp);
+int ext2_statvfs (struct mount *mp, struct statvfs *st);
 
 int ext2_lookup (struct vnode **result, struct vnode *dir, const char *name);
 ssize_t ext2_read (struct vnode *vp, void *buffer, size_t len, off_t offset);

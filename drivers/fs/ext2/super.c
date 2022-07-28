@@ -237,7 +237,7 @@ ext2_openfs (struct block_device *device, struct ext2_fs *fs)
 }
 
 int
-ext2_mount (struct mount *mp, unsigned int flags)
+ext2_mount (struct mount *mp, const void *data)
 {
   struct ext2_fs *fs;
   struct block_device *device;
@@ -254,7 +254,7 @@ ext2_mount (struct mount *mp, unsigned int flags)
   fs = calloc (1, sizeof (struct ext2_fs));
   if (UNLIKELY (!fs))
     RETV_ERROR (ENOMEM, -1);
-  fs->mflags = flags;
+  fs->mflags = mp->flags;
   ret = ext2_openfs (device, fs);
   if (ret)
     {

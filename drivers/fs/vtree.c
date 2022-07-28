@@ -204,6 +204,11 @@ vnode_dir_name (const char *path, struct vnode **dir, const char **name)
       vp = vnode_namei (ptr, 0);
       if (!vp)
 	goto err0;
+      if (!S_ISDIR (vp->mode))
+	{
+	  UNREF_OBJECT (vp);
+	  goto err0;
+	}
       *name = path + 1 + (end - ptr);
     }
   *dir = vp;

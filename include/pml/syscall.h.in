@@ -28,6 +28,7 @@
 #include <pml/resource.h>
 #include <pml/signal.h>
 #include <pml/stat.h>
+#include <pml/statvfs.h>
 #include <pml/utsname.h>
 
 __BEGIN_DECLS

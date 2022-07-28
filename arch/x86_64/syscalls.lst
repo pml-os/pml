@@ -99,6 +99,19 @@ params = void *addr
 return_type = void *
 params = ptrdiff_t incr
 
+[mount]
+params = const char *source, const char *target, const char *fstype,
+       	 unsigned long flags, const void *data
+
+[umount]
+params = const char *target
+
+[statvfs]
+params = const char *path, struct statvfs *st
+
+[fstatvfs]
+params = int fd, struct statvfs *st
+
 [chroot]
 params = const char *path
 

@@ -85,7 +85,7 @@ init_vfs (void)
   /* Mount devfs on /dev */
   if (register_filesystem ("devfs", &devfs_mount_ops))
     panic ("Failed to register devfs");
-  devfs = mount_filesystem ("devfs", 0, 0, root_vnode, "dev");
+  devfs = mount_filesystem ("devfs", 0, 0, root_vnode, "dev", NULL);
   if (UNLIKELY (!devfs))
     goto err0;
 
@@ -119,7 +119,7 @@ mount_root (void)
   fs_type = guess_filesystem_type (vp);
   if (UNLIKELY (!fs_type))
     goto err0;
-  mp = mount_filesystem (fs_type, vp->ino, 0, NULL, NULL);
+  mp = mount_filesystem (fs_type, vp->ino, 0, NULL, NULL, NULL);
   if (UNLIKELY (!mp))
     goto err0;
   if (vnode_add_child (mp->root_vnode, devfs->root_vnode, "dev"))
@@ -179,7 +179,7 @@ register_filesystem (const char *name, const struct mount_ops *ops)
 
 struct mount *
 mount_filesystem (const char *type, dev_t device, unsigned int flags,
-		  struct vnode *parent, const char *name)
+		  struct vnode *parent, const char *name, const void *data)
 {
   struct mount **table;
   struct mount *mp;
@@ -201,7 +201,7 @@ mount_filesystem (const char *type, dev_t device, unsigned int flags,
 	      UNREF_OBJECT (mp);
 	      return NULL;
 	    }
-	  if (vfs_mount (mp, flags))
+	  if (vfs_mount (mp, data))
 	    {
 	      UNREF_OBJECT (mp);
 	      return NULL;
@@ -246,19 +246,59 @@ mount_filesystem (const char *type, dev_t device, unsigned int flags,
 }
 
 /*!
- * Performs any initialization required by as filesystem backend. This function
- * is called when a filesystem is mounted.
+ * Removes a mount structure from the mount table and frees it.
  *
  * @param mp the mount structure
- * @param flags mount options
+ */
+
+void
+clear_mount (struct mount *mp)
+{
+  size_t i;
+  for (i = 0; i < mount_count; i++)
+    {
+      if (mount_table[i] == mp)
+	{
+	  memmove (mount_table + i, mount_table + i + 1,
+		   sizeof (struct mount *) * (--mount_count - i));
+	  break;
+	}
+    }
+  UNREF_OBJECT (mp);
+}
+
+/*!
+ * Unmounts a filesystem and removes it from the mount table.
+ *
+ * @param mp the mount structure
+ * @param flags flags for unmounting
  * @return zero on success
  */
 
 int
-vfs_mount (struct mount *mp, unsigned int flags)
+unmount_filesystem (struct mount *mp, unsigned int flags)
+{
+  int ret = vfs_unmount (mp, flags);
+  if (ret)
+    return ret;
+  clear_mount (mp);
+  return 0;
+}
+
+/*!
+ * Performs any initialization required by as filesystem backend. This function
+ * is called when a filesystem is mounted.
+ *
+ * @param mp the mount structure
+ * @param data user-specified data
+ * @return zero on success
+ */
+
+int
+vfs_mount (struct mount *mp, const void *data)
 {
   if (mp->ops->mount)
-    return mp->ops->mount (mp, flags);
+    return mp->ops->mount (mp, data);
   else
     return 0;
 }
@@ -293,6 +333,23 @@ vfs_flush (struct mount *mp)
 {
   if (mp->ops->flush)
     mp->ops->flush (mp);
+}
+
+/*!
+ * Obtains information about the mounted filesystem.
+ *
+ * @param mp the mount structure
+ * @param st the statvfs structure
+ * @return zero on success
+ */
+
+int
+vfs_statvfs (struct mount *mp, struct statvfs *st)
+{
+  if (mp->ops->statvfs)
+    return mp->ops->statvfs (mp, st);
+  else
+    RETV_ERROR (ENOTSUP, -1);
 }
 
 /*!
