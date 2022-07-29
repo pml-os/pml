@@ -27,6 +27,8 @@ struct ext2_readdir_priv
 {
   struct dirent *dirent;
   off_t offset;
+  off_t next_offset;
+  int done;
 };
 
 const struct vnode_ops ext2_vnode_ops = {
@@ -55,6 +57,11 @@ ext2_readdir_iter (struct vnode *dir, int entry, struct ext2_dirent *dirent,
 		   int offset, blksize_t blksize, char *buffer, void *private)
 {
   struct ext2_readdir_priv *r = private;
+  if (r->done)
+    {
+      r->next_offset = offset;
+      return DIRENT_ABORT;
+    }
   if (offset < r->offset)
     return 0;
   r->offset = offset;
@@ -63,7 +70,8 @@ ext2_readdir_iter (struct vnode *dir, int entry, struct ext2_dirent *dirent,
   r->dirent->d_type = ext2_dir_type (DTTOIF (dirent->d_name_len >> 8));
   strcpy (r->dirent->d_name, dirent->d_name);
   r->dirent->d_reclen = dirent_rec_len (r->dirent->d_namlen);
-  return DIRENT_ABORT;
+  r->done = 1;
+  return 0;
 }
 
 int
@@ -515,7 +523,14 @@ ext2_readdir (struct vnode *dir, struct dirent *dirent, off_t offset)
   struct ext2_readdir_priv r;
   r.dirent = dirent;
   r.offset = offset;
-  return ext2_dir_iterate (fs, dir, 0, NULL, ext2_readdir_iter, &r);
+  r.next_offset = 0;
+  r.done = 0;
+  if (ext2_dir_iterate (fs, dir, 0, NULL, ext2_readdir_iter, &r))
+    return -1;
+  if (r.done && !r.next_offset)
+    return r.offset + 1;
+  else
+    return r.next_offset;
 }
 
 ssize_t

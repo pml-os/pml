@@ -997,6 +997,11 @@ sys_chdir (const char *path)
   struct vnode *vp = vnode_namei (path, 0);
   if (!vp)
     return -1;
+  if (!S_ISDIR (vp->mode))
+    {
+      UNREF_OBJECT (vp);
+      RETV_ERROR (ENOTDIR, -1);
+    }
   UNREF_OBJECT (THIS_PROCESS->cwd);
   THIS_PROCESS->cwd = vp;
   return 0;
@@ -1008,6 +1013,8 @@ sys_fchdir (int fd)
   struct fd *file = file_fd (fd);
   if (!file)
     return -1;
+  if (!S_ISDIR (file->vnode->mode))
+    RETV_ERROR (ENOTDIR, -1);
   UNREF_OBJECT (THIS_PROCESS->cwd);
   REF_ASSIGN (THIS_PROCESS->cwd, file->vnode);
   return 0;
@@ -1033,7 +1040,10 @@ sys_getdents (int fd, void *dirp, size_t len)
 	  return -1;
 	}
       else if (!file->offset)
-	break;
+	{
+	  file->offset = prev;
+	  break;
+	}
       rec_len =
 	offsetof (struct dirent, d_name) + ALIGN_UP (dirent.d_namlen + 1, 8);
       if (written + rec_len > len)
@@ -1047,9 +1057,9 @@ sys_getdents (int fd, void *dirp, size_t len)
       ptr->d_type = dirent.d_type;
       strncpy (ptr->d_name, dirent.d_name, ptr->d_namlen);
       ptr->d_name[ptr->d_namlen] = '\0';
+      written += ptr->d_reclen;
       ptr = (struct dirent *) ((void *) ptr + ptr->d_reclen);
       prev = file->offset;
-      written += ptr->d_reclen;
     }
   return written;
 }

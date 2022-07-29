@@ -729,13 +729,13 @@ struct ext4_mmp_block
 
 struct ext2_file
 {
-  struct ext2_inode inode;
-  ino_t ino;
-  uint64_t pos;
-  block_t block;
-  block_t physblock;
-  int flags;
-  char *buffer;
+  struct ext2_inode inode;      /*!< Copy of disk inode structure */
+  ino_t ino;                    /*!< File inode number */
+  uint64_t pos;                 /*!< File offset of buffer */
+  block_t block;                /*!< Logical block of buffer */
+  block_t physblock;            /*!< Physical block of buffer */
+  int flags;                    /*!< File flags */
+  char *buffer;                 /*!< Buffer containing file data */
 };
 
 /*! Structure for saving information about a file lookup */
