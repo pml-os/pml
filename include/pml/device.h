@@ -115,6 +115,7 @@ struct char_device
    * <tr><td>2</td><td>Input was flushed</td></tr>
    * <tr><td>0</td><td>Couldn't read at this time and not blocking</td></tr>
    * <tr><td>-1</td><td>Read error</td></tr>
+   * <tr><td>-2</td><td>End of file reached</td></tr>
    * </table>
    */
   ssize_t (*read) (struct char_device *dev, unsigned char *c, int block);

@@ -39,7 +39,7 @@ tty_device_read (struct char_device *dev, unsigned char *c, int block)
       if (tty->input.start == tty->input.end)
 	{
 	  tty->flags &= ~TTY_FLAG_FLUSH;
-	  return 0;
+	  return -2;
 	}
       *c = tty->input.buffer[tty->input.start];
       if (++tty->input.start == tty->input.end)

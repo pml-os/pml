@@ -142,6 +142,9 @@ devfs_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 		RETV_ERROR (EAGAIN, -1);
 	      else
 		return i;
+	    case -2:
+	      spinlock_release (&lock);
+	      return 0;
 	    default:
 	      spinlock_release (&lock);
 	      return -1;
