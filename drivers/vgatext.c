@@ -81,11 +81,16 @@ int
 vga_text_erase_char (struct tty *tty)
 {
   if (tty->x)
+    tty->x--;
+  else if (tty->y && tty->input.start != tty->input.end)
     {
-      tty->x--;
-      vga_text_write_char (tty, tty->x, tty->y, ' ');
-      vga_text_update_cursor (tty);
+      tty->x = tty->width - 1;
+      tty->y--;
     }
+  else
+    return 0;
+  vga_text_write_char (tty, tty->x, tty->y, ' ');
+  vga_text_update_cursor (tty);
   return 0;
 }
 
@@ -93,10 +98,17 @@ int
 vga_text_erase_line (struct tty *tty, size_t len)
 {
   size_t i;
-  if (len > tty->x)
-    len = tty->x;
-  for (i = 0; i < len; i++)
-    vga_text_write_char (tty, --tty->x, tty->y, ' ');
+  while (1)
+    {
+      size_t to_erase = len > tty->x ? tty->x : len;
+      for (i = 0; i < to_erase; i++)
+	vga_text_write_char (tty, --tty->x, tty->y, ' ');
+      len -= to_erase;
+      if (!len || !tty->y)
+	break;
+      tty->y--;
+      tty->x = tty->width;
+    }
   vga_text_update_cursor (tty);
   return 0;
 }

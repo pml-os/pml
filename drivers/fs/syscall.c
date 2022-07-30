@@ -889,7 +889,7 @@ sys_utimensat (int dirfd, const char *path, const struct timespec times[2],
   struct vnode *vp;
   int links = -!(flags & AT_SYMLINK_NOFOLLOW);
   int unref = 0;
-  int ret;
+  int ret = -1;
   if (dirfd != AT_FDCWD)
     {
       struct fd *file = file_fd (dirfd);
