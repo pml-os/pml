@@ -416,8 +416,11 @@ sys_nanosleep (const struct timespec *req, struct timespec *rem)
   while (now < target)
     {
       clock_t left = target - now;
-      rem->tv_sec = left / 1000000000;
-      rem->tv_nsec = left % 1000000000;
+      if (rem)
+	{
+	  rem->tv_sec = left / 1000000000;
+	  rem->tv_nsec = left % 1000000000;
+	}
       sched_yield ();
       now = hpet_nanotime ();
     }
