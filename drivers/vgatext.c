@@ -16,6 +16,7 @@
 
 #include <pml/io.h>
 #include <pml/vgatext.h>
+#include <pml/vt100.h>
 #include <string.h>
 
 static uint16_t *vga_text_buffer = (uint16_t *) VGA_TEXT_BUFFER;
@@ -25,6 +26,7 @@ const struct tty_output vga_text_output = {
   .write_char = vga_text_write_char,
   .clear = vga_text_clear,
   .update_cursor = vga_text_update_cursor,
+  .update_screen = vga_text_update_screen,
   .scroll_down = vga_text_scroll_down,
   .erase_char = vga_text_erase_char,
   .erase_line = vga_text_erase_line
@@ -48,15 +50,13 @@ vga_text_clear (struct tty *tty)
   size_t i;
   for (i = 0; i < VGA_TEXT_SCREEN_SIZE; i++)
     buffer[i] = vga_text_entry (' ', tty->color);
-  if (tty == current_tty)
-    memcpy (vga_text_buffer, tty->screen, VGA_TEXT_SCREEN_SIZE * 2);
-  return 0;
+  return vga_text_update_screen (tty);
 }
 
 int
 vga_text_update_cursor (struct tty *tty)
 {
-  uint16_t pos = vga_text_index (tty->x, tty->y);
+  uint16_t pos = vga_text_index (tty->x, tty->y + 1);
   outb (0x0f, VGA_PORT_INDEX);
   outb (pos & 0xff, VGA_PORT_DATA);
   outb (0x0e, VGA_PORT_INDEX);
@@ -65,16 +65,22 @@ vga_text_update_cursor (struct tty *tty)
 }
 
 int
-vga_text_scroll_down (struct tty *tty)
+vga_text_update_screen (struct tty *tty)
 {
-  size_t i;
-  memmove (current_tty->screen, current_tty->screen + VGA_TEXT_SCREEN_WIDTH * 2,
-	   (VGA_TEXT_SCREEN_SIZE - VGA_TEXT_SCREEN_WIDTH) * 2);
-  for (i = 0; i < VGA_TEXT_SCREEN_WIDTH; i++)
-    tty->output->write_char (tty, i, VGA_TEXT_SCREEN_HEIGHT - 1, ' ');
   if (tty == current_tty)
     memcpy (vga_text_buffer, tty->screen, VGA_TEXT_SCREEN_SIZE * 2);
   return 0;
+}
+
+int
+vga_text_scroll_down (struct tty *tty)
+{
+  size_t i;
+  memmove (current_tty->screen, current_tty->screen + current_tty->width * 2,
+	   current_tty->width * (current_tty->height - 1) * 2);
+  for (i = 0; i < current_tty->width; i++)
+    tty->output->write_char (tty, i, VGA_TEXT_SCREEN_HEIGHT - 1, ' ');
+  return vga_text_update_screen (tty);
 }
 
 int
@@ -116,6 +122,11 @@ vga_text_erase_line (struct tty *tty, size_t len)
 void
 vga_text_init (void)
 {
+  /* Enable text mode cursor */
+  outb (0x0a, VGA_PORT_INDEX);
+  outb (inb (VGA_PORT_DATA) & ~0x20, VGA_PORT_DATA);
+
+  /* Setup TTY parameters */
   current_tty->color = VGA_TEXT_DEFAULT_COLOR;
   current_tty->width = VGA_TEXT_SCREEN_WIDTH;
   current_tty->height = VGA_TEXT_SCREEN_HEIGHT;
@@ -142,4 +153,5 @@ vga_text_init (void)
   current_tty->termios.c_cc[VWERASE] = '\27';
   current_tty->termios.c_cc[VLNEXT] = '\26';
   current_tty->termios.c_cc[VEOL2] = 0xff;
+  current_tty->emu_handle = vt100_emu_handle; /* Default terminal is VT100 */
 }

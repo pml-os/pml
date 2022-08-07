@@ -16,4 +16,5 @@ libdrivers_a_SOURCES =	\
 	random.c	\
 	tty.c		\
 	ttydev.c	\
-	vgatext.c
+	vgatext.c	\
+	vt100.c

@@ -64,6 +64,7 @@ pmlinclude_HEADERS =	\
 	utsname.h	\
 	vfs.h		\
 	vgatext.h	\
+	vt100.h		\
 	wait.h
 	$(arch_headers)
 

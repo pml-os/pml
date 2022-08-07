@@ -34,6 +34,8 @@
 #define TTY_FLAG_LITERAL_INPUT  (1 << 0)    /*!< Next char is literal */
 #define TTY_FLAG_FLUSH          (1 << 1)    /*!< Flush input buffer */
 #define TTY_FLAG_EXCL           (1 << 2)    /*!< Exclusive mode */
+#define TTY_FLAG_ALT_KEYPAD     (1 << 3)    /*!< Alt keypad mode */
+#define TTY_FLAG_REVERSE_VIDEO  (1 << 4)    /*!< Reverse video mode */
 
 struct tty;
 
@@ -47,6 +49,8 @@ struct tty_output
   int (*clear) (struct tty *);
   /*! Updates the position of the cursor, if supported */
   int (*update_cursor) (struct tty *);
+  /*! Updates the contents of the screen */
+  int (*update_screen) (struct tty *);
   /*! Scrolls down one line */
   int (*scroll_down) (struct tty *);
   /*! Erases the character behind the cursor */
@@ -83,6 +87,11 @@ struct tty
   struct tty_input input;           /*!< Terminal input buffer */
   const struct tty_output *output;  /*!< Output function vector */
   struct termios termios;           /*!< Termios structure */
+  int state;                        /*!< Terminal emulator-specific state */
+  unsigned char state_buf[8];       /*!< Terminal emulator-specific data */
+  size_t state_curr;                /*!< Index to emulator-specific data */
+  /*! Terminal emulator-specific handle function for writing characters */
+  int (*emu_handle) (struct tty *, unsigned char);
 };
 
 __BEGIN_DECLS
@@ -104,6 +113,9 @@ void tty_reprint_input (struct tty *tty);
 void tty_recv (struct tty *tty, unsigned char c);
 void tty_input_byte (struct tty *tty, unsigned char c);
 void tty_output_byte (struct tty *tty, unsigned char c, size_t len);
+void tty_reset_state (struct tty *tty);
+void tty_add_digit_char (struct tty *tty, unsigned char c);
+void tty_set_alt_keypad (struct tty *tty, int on);
 
 __END_DECLS
 

@@ -338,6 +338,8 @@ tty_output_byte (struct tty *tty, unsigned char c, size_t len)
       tty_putchar (tty, c);
       break;
     default:
+      if (tty->emu_handle && !tty->emu_handle (tty, c))
+	return;
       if (iscntrl (c) && (tp->c_lflag & ECHOCTL))
 	{
 	  if (!CHAR_MATCH (c, tp, VEOF) || tty->x)
@@ -349,4 +351,29 @@ tty_output_byte (struct tty *tty, unsigned char c, size_t len)
       else
 	tty_putchar (tty, c);
     }
+}
+
+void
+tty_reset_state (struct tty *tty)
+{
+  tty->state = 0;
+  memset (tty->state_buf, 0, sizeof (tty->state_buf));
+  tty->state_curr = 0;
+}
+
+void
+tty_add_digit_char (struct tty *tty, unsigned char c)
+{
+  tty->state_buf[tty->state_curr] =
+    tty->state_buf[tty->state_curr] * 10 + c - '0';
+}
+
+void
+tty_set_alt_keypad (struct tty *tty, int on)
+{
+  if (on)
+    tty->flags |= TTY_FLAG_ALT_KEYPAD;
+  else
+    tty->flags &= ~TTY_FLAG_ALT_KEYPAD;
+  tty_reset_state (tty);
 }
