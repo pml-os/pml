@@ -37,6 +37,10 @@
 #define TTY_FLAG_ALT_KEYPAD     (1 << 3)    /*!< Alt keypad mode */
 #define TTY_FLAG_REVERSE_VIDEO  (1 << 4)    /*!< Reverse video mode */
 
+#define TTY_TC_CHAR             0           /*!< Printable character */
+#define TTY_TC_TAB              1           /*!< Tab character */
+#define TTY_TC_CONTROL          2           /*!< Printed control sequence */
+
 struct tty;
 
 /*! Vector of functions used by a TTY output backend. */
@@ -45,6 +49,10 @@ struct tty_output
 {
   /*! Writes a character to the TTY at a specific location */
   int (*write_char) (struct tty *, size_t, size_t, unsigned char);
+  /*! Writes a tab to the TTY at the current cursor location */
+  int (*write_tab) (struct tty *);
+  /*! Writes a control character to the TTY at the current cursor location */
+  int (*write_control) (struct tty *, unsigned char);
   /*! Clears the TTY screen */
   int (*clear) (struct tty *);
   /*! Updates the position of the cursor, if supported */
@@ -81,6 +89,7 @@ struct tty
   size_t x;                         /*!< Current column number */
   size_t y;                         /*!< Current row number */
   void *screen;                     /*!< Buffer containing contents of screen */
+  void *tabs;                       /*!< Buffer containing tab locations */
   int flags;                        /*!< Terminal flags */
   pid_t pgid;                       /*!< Process group ID of foreground */
   pid_t sid;     /*!< Session ID of TTY, or -1 if not controlling any session */

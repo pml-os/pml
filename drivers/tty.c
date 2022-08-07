@@ -62,7 +62,7 @@ tty_putchar (struct tty *tty, int c)
       tty->output->update_cursor (tty);
       return c;
     case '\t':
-      tty->x |= 7;
+      tty->output->write_tab (tty);
       break;
     default:
       if (tty->output->write_char (tty, tty->x, tty->y, c))
@@ -343,10 +343,7 @@ tty_output_byte (struct tty *tty, unsigned char c, size_t len)
       if (iscntrl (c) && (tp->c_lflag & ECHOCTL))
 	{
 	  if (!CHAR_MATCH (c, tp, VEOF) || tty->x)
-	    {
-	      tty_putchar (tty, '^');
-	      tty_putchar (tty, c + 0x40);
-	    }
+	    tty->output->write_control (tty, c);
 	}
       else
 	tty_putchar (tty, c);

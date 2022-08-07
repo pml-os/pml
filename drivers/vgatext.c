@@ -21,9 +21,18 @@
 
 static uint16_t *vga_text_buffer = (uint16_t *) VGA_TEXT_BUFFER;
 static uint16_t kernel_tty_screen[VGA_TEXT_SCREEN_SIZE];
+static char kernel_tty_tabs[VGA_TEXT_SCREEN_SIZE];
+
+static unsigned int vga_erase_max_chars[] = {
+  [TTY_TC_CHAR] = 1,
+  [TTY_TC_TAB] = 8,
+  [TTY_TC_CONTROL] = 2
+};
 
 const struct tty_output vga_text_output = {
   .write_char = vga_text_write_char,
+  .write_tab = vga_text_write_tab,
+  .write_control = vga_text_write_control,
   .clear = vga_text_clear,
   .update_cursor = vga_text_update_cursor,
   .update_screen = vga_text_update_screen,
@@ -32,14 +41,72 @@ const struct tty_output vga_text_output = {
   .erase_line = vga_text_erase_line
 };
 
-int
-vga_text_write_char (struct tty *tty, size_t x, size_t y, unsigned char c)
+static int
+vga_text_write_one (struct tty *tty, size_t x, size_t y, unsigned char c)
 {
   unsigned int index = vga_text_index (x, y);
   uint16_t entry = vga_text_entry (c, tty->color);
   ((uint16_t *) tty->screen)[index] = entry;
   if (tty == current_tty)
     vga_text_buffer[index] = entry;
+  return 0;
+}
+
+static int
+vga_text_erase_one (struct tty *tty)
+{
+  if (!tty->x--)
+    {
+      if (tty->y)
+	{
+	  tty->x = tty->width - 1;
+	  tty->y--;
+	}
+      else
+	{
+	  tty->x++;
+	  return -1;
+	}
+    }
+  vga_text_write_one (tty, tty->x, tty->y, ' ');
+  return 0;
+}
+
+int
+vga_text_write_char (struct tty *tty, size_t x, size_t y, unsigned char c)
+{
+  unsigned int index = vga_text_index (x, y);
+  vga_text_write_one (tty, x, y, c);
+  ((char *) tty->tabs)[index] = TTY_TC_CHAR;
+  return 0;
+}
+
+int
+vga_text_write_tab (struct tty *tty)
+{
+  unsigned int index = vga_text_index (tty->x, tty->y);
+  uint16_t entry = vga_text_entry (' ', tty->color);
+  size_t i;
+  for (i = tty->x; i <= (tty->x | 7); i++, index++)
+    {
+      ((uint16_t *) tty->screen)[index] = entry;
+      if (tty == current_tty)
+	vga_text_buffer[index] = entry;
+      ((char *) tty->tabs)[index] = TTY_TC_TAB;
+    }
+  tty->x |= 7;
+  return 0;
+}
+
+int
+vga_text_write_control (struct tty *tty, unsigned char c)
+{
+  unsigned int index;
+  char *tabs = tty->tabs;
+  tty_putchar (tty, '^');
+  tty_putchar (tty, c + 0x40);
+  index = vga_text_index (tty->x, tty->y);
+  tabs[index - 2] = tabs[index - 1] = TTY_TC_CONTROL;
   return 0;
 }
 
@@ -78,24 +145,34 @@ vga_text_scroll_down (struct tty *tty)
   size_t i;
   memmove (current_tty->screen, current_tty->screen + current_tty->width * 2,
 	   current_tty->width * (current_tty->height - 1) * 2);
+  memmove (current_tty->tabs, current_tty->tabs + current_tty->width,
+	   current_tty->width * (current_tty->height - 1));
   for (i = 0; i < current_tty->width; i++)
-    tty->output->write_char (tty, i, VGA_TEXT_SCREEN_HEIGHT - 1, ' ');
+    tty->output->write_char (tty, i, current_tty->height - 1, ' ');
+  memset (current_tty->tabs + current_tty->width * (current_tty->height - 1),
+	  TTY_TC_CHAR, current_tty->width);
   return vga_text_update_screen (tty);
 }
 
 int
 vga_text_erase_char (struct tty *tty)
 {
-  if (tty->x)
-    tty->x--;
-  else if (tty->y && tty->input.start != tty->input.end)
-    {
-      tty->x = tty->width - 1;
-      tty->y--;
-    }
-  else
+  unsigned int index;
+  unsigned int i = 1;
+  char tab;
+  char *tabs = tty->tabs;
+  if (vga_text_erase_one (tty))
     return 0;
-  vga_text_write_char (tty, tty->x, tty->y, ' ');
+  index = vga_text_index (tty->x, tty->y);
+  tab = tabs[index];
+  while (index && i < vga_erase_max_chars[(int) tab] && tabs[index - 1] == tab)
+    {
+      tabs[index - 1] = TTY_TC_CHAR;
+      if (vga_text_erase_one (tty))
+        break;
+      index--;
+      i++;
+    }
   vga_text_update_cursor (tty);
   return 0;
 }
@@ -131,6 +208,7 @@ vga_text_init (void)
   current_tty->width = VGA_TEXT_SCREEN_WIDTH;
   current_tty->height = VGA_TEXT_SCREEN_HEIGHT;
   current_tty->screen = kernel_tty_screen;
+  current_tty->tabs = kernel_tty_tabs;
   current_tty->output = &vga_text_output;
   current_tty->output->clear (current_tty);
   current_tty->termios.c_iflag = VGA_TEXT_DEFAULT_IFLAG;

@@ -94,6 +94,8 @@ __BEGIN_DECLS
 extern const struct tty_output vga_text_output;
 
 int vga_text_write_char (struct tty *tty, size_t x, size_t y, unsigned char c);
+int vga_text_write_tab (struct tty *tty);
+int vga_text_write_control (struct tty *tty, unsigned char c);
 int vga_text_clear (struct tty *tty);
 int vga_text_update_cursor (struct tty *tty);
 int vga_text_update_screen (struct tty *tty);
