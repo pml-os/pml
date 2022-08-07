@@ -23,7 +23,7 @@
  *
  * Device numbering namespace: <table>
  * <tr><th>Major</th><th>Minor</th><th>Description</th></tr>
- * <tr><td>0</td><td>0</td><td>Console device</td></tr>
+ * <tr><td>0</td><td>1</td><td>Console device</td></tr>
  * <tr><td>1-4</td><td>0</td><td>IDE devices</td></tr>
  * <tr><td>1-4</td><td>1-4</td><td>IDE device partitions</td></tr>
  * </table>

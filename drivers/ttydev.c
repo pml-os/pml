@@ -117,7 +117,7 @@ void
 tty_device_init (void)
 {
   struct char_device *device =
-    (struct char_device *) device_add ("console", 0, 0, DEVICE_TYPE_CHAR);
+    (struct char_device *) device_add ("console", 0, 1, DEVICE_TYPE_CHAR);
   if (LIKELY (device))
     {
       device->device.data = current_tty;
