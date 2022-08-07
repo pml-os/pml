@@ -147,10 +147,12 @@ pipe_read (struct vnode *vp, void *buffer, size_t len, off_t offset)
 {
   struct pipe *pipe = vp->data;
   size_t real_len;
-  if (pipe->widowed)
-    return 0;
   while (pipe->start == pipe->end)
-    sched_yield ();
+    {
+      if (pipe->widowed)
+	return 0;
+      sched_yield ();
+    }
   spinlock_acquire (&pipe->lock);
   real_len = pipe->end - pipe->start;
   memcpy (buffer, pipe->buffer + pipe->start, len > real_len ? real_len : len);
