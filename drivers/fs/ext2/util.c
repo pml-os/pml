@@ -1545,7 +1545,7 @@ ext2_update_vfs_inode (struct vnode *vp)
 {
   struct ext2_fs *fs = vp->mount->data;
   struct ext2_file *file = vp->data;
-  vp->mode = file->inode.i_mode & S_IFMT;
+  vp->mode = file->inode.i_mode;
   vp->nlink = file->inode.i_links_count;
   vp->uid = file->inode.i_uid;
   vp->gid = file->inode.i_gid;
