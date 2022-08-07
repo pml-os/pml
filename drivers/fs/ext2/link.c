@@ -125,7 +125,7 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
     {
       /* Make sure the directory is empty */
       int empty = 1;
-      ext2_dir_iterate (fs, dir, DIRENT_FLAG_EMPTY, NULL, ext2_check_empty,
+      ext2_dir_iterate (fs, vp, DIRENT_FLAG_EMPTY, NULL, ext2_check_empty,
 			&empty);
       if (!empty)
 	{
@@ -133,6 +133,10 @@ ext2_process_unlink (struct vnode *dir, int entry, struct ext2_dirent *dirent,
 	  errno = ENOTEMPTY;
 	  return DIRENT_ABORT;
 	}
+      vp->nlink--;
+      file->inode.i_links_count--;
+      dir->nlink--;
+      ((struct ext2_file *) dir->data)->inode.i_links_count--;
     }
   vp->nlink--;
   file->inode.i_links_count--;
