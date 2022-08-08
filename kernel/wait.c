@@ -71,9 +71,14 @@ sys_wait4 (pid_t pid, int *status, int flags, struct rusage *rusage)
     return do_wait (pid, status, rusage);
   while (1)
     {
-      pid_t ret = do_wait (pid, status, rusage);
+      pid_t ret;
+      SLOW_SYSCALL_BEGIN;
+      ret = do_wait (pid, status, rusage);
       if (ret)
-	return ret;
+	{
+	  SLOW_SYSCALL_END;
+	  return ret;
+	}
       sched_yield ();
     }
 }
